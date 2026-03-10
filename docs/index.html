@@ -3,68 +3,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Montana Climate Office Drought Dashboard — interactive maps of drought indices, soil moisture, precipitation, and streamflow across Montana.">
   <title>MCO Drought Dashboard</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <!-- Resource hints -->
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://data.climate.umt.edu">
+
+  <!-- Inline SVG favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2C16 2 6 16 6 22a10 10 0 0020 0C26 16 16 2 16 2z' fill='%231a6faf'/%3E%3C/svg%3E">
+
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+
+  <!-- Leaflet JS (render-blocking is acceptable) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- georaster + georaster-layer-for-leaflet -->
-  <script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
-  <script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
+  <script defer src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+  <script defer src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
 
   <!-- chroma.js -->
-  <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
+  <script defer src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
   <!-- topojson -->
-  <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script defer src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
 
-  <!-- html2canvas (screenshot export) -->
-  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- html2canvas for pixel-perfect screenshot export -->
+  <script defer src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
-    /* ── CSS custom properties ─────────────────────────────────── */
+    /* ================================================================
+       CSS Custom Properties
+       ================================================================ */
     :root {
-      --accent:     #1a6faf;
-      --accent-dk:  #114f80;
-      --sidebar-w:  280px;
-      --sidebar-bg: #1e2530;
-      --sidebar-fg: #e8ecf0;
-      --pill-active:#1a6faf;
-      --pill-bg:    #2c3545;
-      --btn-active: #1a6faf;
-      --btn-bg:     #2c3545;
-      --shadow:     0 2px 12px rgba(0,0,0,0.3);
-      --navbar-h:   48px;
+      --bg-deep: #161b22;
+      --bg-surface: #1e2530;
+      --bg-elevated: #2c3545;
+      --accent: #1a6faf;
+      --accent-light: #5aaee8;
+      --accent-dk: #114f80;
+      --border: #3a4558;
+      --border-glass: rgba(255,255,255,0.08);
+      --text-primary: #e8ecf0;
+      --text-secondary: #c0cad6;
+      --text-muted: #8a99b0;
+      --text-dim: #6b7a90;
+      --text-body: #aab4c0;
+      --glass: rgba(30,37,48,0.82);
+      --glass-blur: 16px;
+      --sidebar-w: 290px;
+      --navbar-h: 52px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-pill: 20px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'Space Mono', monospace;
     }
 
+    /* ================================================================
+       Reset
+       ================================================================ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: var(--font-display);
       overflow: hidden;
+      background: var(--bg-deep);
+      color: var(--text-primary);
     }
 
-    /* ── Navbar ─────────────────────────────────────────────────── */
+    /* ================================================================
+       Navbar
+       ================================================================ */
     #navbar {
       position: fixed;
       top: 0; left: 0; right: 0;
       height: var(--navbar-h);
-      background: var(--sidebar-bg);
-      color: var(--sidebar-fg);
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       padding: 0 14px;
       z-index: 1100;
-      box-shadow: var(--shadow);
       gap: 10px;
-      border-bottom: 2px solid var(--accent);
+    }
+
+    #navbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-dk), var(--accent), var(--accent-light), var(--accent), var(--accent-dk));
     }
 
     #navbar .brand {
-      font-size: 2rem;
-      font-weight: 1000;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
       letter-spacing: 0.02em;
       flex: 1;
       white-space: nowrap;
@@ -72,9 +121,7 @@
       text-overflow: ellipsis;
     }
 
-    #navbar .brand span {
-      color: var(--accent);
-    }
+    #navbar .brand span { color: var(--accent-light); }
 
     #mco-logo-link {
       display: flex;
@@ -84,47 +131,58 @@
     }
 
     #mco-logo {
-      height: 34px;
-      width: 34px;
-      border-radius: 8px;
+      height: 40px;
+      width: 40px;
+      border-radius: 6px;
       object-fit: cover;
       transition: opacity 0.15s;
     }
 
     #mco-logo:hover { opacity: 0.8; }
 
+    /* ── Hamburger ──────────────────────────────────────────────── */
     #hamburger {
       background: none;
       border: none;
-      color: var(--sidebar-fg);
+      color: var(--text-primary);
       cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 4px;
-      font-size: 1.2rem;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      font-size: 1.3rem;
       line-height: 1;
+      width: 44px;
+      height: 44px;
       display: none;
+      align-items: center;
+      justify-content: center;
     }
 
-    #hamburger:hover { background: var(--pill-bg); }
+    #hamburger:hover { background: var(--bg-elevated); }
 
-    /* ── Screenshot button ──────────────────────────────────────── */
+    /* ================================================================
+       Screenshot Button
+       ================================================================ */
     #screenshot-btn {
       background: none;
-      border: 1px solid #3a4558;
-      border-radius: 6px;
-      color: var(--sidebar-fg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
       cursor: pointer;
-      padding: 5px 10px;
+      padding: 6px 12px;
       font-size: 0.78rem;
+      font-family: var(--font-display);
       display: flex;
       align-items: center;
       gap: 5px;
       white-space: nowrap;
       flex-shrink: 0;
-      transition: background 0.15s, border-color 0.15s;
+      transition: var(--transition);
     }
 
-    #screenshot-btn:hover { background: var(--pill-bg); border-color: var(--accent); }
+    #screenshot-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
 
     #screenshot-btn:disabled {
       opacity: 0.5;
@@ -133,22 +191,120 @@
 
     #screenshot-btn svg { flex-shrink: 0; }
 
-    /* ── App shell ──────────────────────────────────────────────── */
+    #methods-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    #methods-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
+
+    #methods-btn svg { flex-shrink: 0; }
+
+    #share-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    #share-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
+
+    #share-btn svg { flex-shrink: 0; }
+
+    #share-btn .share-toast {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    #share-btn .share-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Raster query popup ────────────────────────────────────── */
+    .query-popup .leaflet-popup-content-wrapper {
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+    }
+
+    .query-popup .leaflet-popup-tip {
+      background: var(--glass);
+      border: 1px solid var(--border);
+    }
+
+    .query-popup .leaflet-popup-close-button {
+      color: var(--text-muted);
+    }
+
+    .query-val { font-size: 1.1rem; font-weight: 700; color: var(--accent-light); }
+    .query-label { color: var(--text-muted); font-size: 0.75rem; margin-top: 2px; }
+    .query-coords { color: var(--text-dim); font-size: 0.7rem; margin-top: 4px; }
+
+    /* ================================================================
+       App Shell
+       ================================================================ */
     #shell {
       position: fixed;
       top: var(--navbar-h);
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       display: flex;
     }
 
-    /* ── Sidebar ────────────────────────────────────────────────── */
+    /* ================================================================
+       Sidebar
+       ================================================================ */
     #sidebar {
       width: var(--sidebar-w);
       min-width: var(--sidebar-w);
-      background: var(--sidebar-bg);
-      color: var(--sidebar-fg);
+      background: var(--bg-surface);
+      color: var(--text-primary);
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
@@ -157,6 +313,17 @@
       z-index: 1050;
       transition: width 0.25s ease, min-width 0.25s ease;
       box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    #sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      opacity: 0.15;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.5' fill='%236b7a90'/%3E%3C/svg%3E");
+      background-repeat: repeat;
     }
 
     #sidebar.collapsed {
@@ -170,42 +337,58 @@
     }
 
     .sidebar-inner {
-      padding: 12px 12px 20px;
+      padding: 16px 16px 28px;
       transition: opacity 0.2s ease;
       min-width: var(--sidebar-w);
     }
 
-    /* ── Section headings ───────────────────────────────────────── */
+    /* ================================================================
+       Section Labels
+       ================================================================ */
     .section-label {
-      font-size: 0.65rem;
-      font-weight: 700;
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #6b7a90;
-      padding: 14px 4px 6px;
-      border-top: 1px solid #2c3545;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 14px 6px 6px;
+      border-top: 1px solid rgba(255,255,255,0.04);
       margin-top: 4px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
       user-select: none;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      animation: fadeSlideIn 0.4s ease both;
+      animation-delay: calc(var(--i, 0) * 0.05s);
     }
 
-    .section-label:first-child { border-top: none; margin-top: 0; padding-top: 4px; }
+    .section-label:first-child {
+      border-top: none;
+      margin-top: 0;
+      padding-top: 4px;
+    }
 
-    .section-label:hover { color: #8a99b0; }
+    .section-label:hover {
+      background: rgba(255,255,255,0.03);
+      color: var(--text-muted);
+    }
 
     .section-label .caret {
       font-size: 0.55rem;
-      color: #4a5a70;
+      color: var(--text-dim);
       transition: transform 0.2s ease;
       flex-shrink: 0;
     }
 
     .section-label.sec-collapsed .caret { transform: rotate(-90deg); }
 
-    /* ── Section bodies ──────────────────────────────────────────── */
+    /* ================================================================
+       Section Bodies
+       ================================================================ */
     .section-body {
       overflow: hidden;
       max-height: 600px;
@@ -219,20 +402,124 @@
       opacity: 0;
     }
 
-    /* ── Range controls ──────────────────────────────────────────── */
+    /* ================================================================
+       Custom Select
+       ================================================================ */
+    .custom-select { position: relative; width: 100%; }
+
+    .cs-trigger {
+      width: 100%;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-family: var(--font-display);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: var(--transition);
+      text-align: left;
+      outline: none;
+    }
+
+    .cs-trigger:hover { border-color: var(--accent); }
+    .cs-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(26,111,175,0.2); }
+
+    .cs-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cs-chevron {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+      color: var(--text-dim);
+    }
+
+    .custom-select.open .cs-chevron { transform: rotate(180deg); }
+
+    .cs-panel {
+      position: fixed;
+      z-index: 1200;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 320px;
+      overflow-y: auto;
+      transform-origin: top;
+      transform: scaleY(0);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      padding: 4px 0;
+    }
+
+    .custom-select.open .cs-panel {
+      transform: scaleY(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .cs-group-header {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 12px 4px;
+      font-family: var(--font-display);
+      font-weight: 600;
+    }
+
+    .cs-item {
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: var(--transition);
+      border-left: 2px solid transparent;
+      color: var(--text-secondary);
+    }
+
+    .cs-item:hover {
+      background: rgba(26,111,175,0.1);
+      color: var(--text-primary);
+    }
+
+    .cs-item.active {
+      border-left-color: var(--accent);
+      color: var(--accent-light);
+      background: rgba(26,111,175,0.08);
+    }
+
+    /* ── Native select (hidden) ────────────────────────────────── */
+    #var-select { display: none; }
+
+    /* ================================================================
+       Range Section
+       ================================================================ */
     #range-section {
       margin-top: 10px;
       padding-top: 8px;
-      border-top: 1px solid #2c3545;
+      border-top: 1px solid rgba(255,255,255,0.04);
     }
 
     .subsec-label {
       font-size: 0.6rem;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #4a5a70;
+      color: var(--text-dim);
       margin-bottom: 6px;
+      font-family: var(--font-display);
     }
 
     #range-row {
@@ -250,17 +537,18 @@
 
     .range-lbl {
       font-size: 0.62rem;
-      color: #6b7a90;
+      color: var(--text-dim);
       margin-bottom: 2px;
     }
 
     .range-input {
-      background: var(--pill-bg);
-      color: var(--sidebar-fg);
-      border: 1px solid #3a4558;
-      border-radius: 4px;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       padding: 5px 6px;
       font-size: 0.78rem;
+      font-family: var(--font-mono);
       width: 100%;
       -moz-appearance: textfield;
     }
@@ -271,91 +559,125 @@
     .range-input:focus { outline: none; border-color: var(--accent); }
 
     #range-reset {
-      background: var(--btn-bg);
-      color: #aab4c0;
+      background: var(--bg-elevated);
+      color: var(--text-body);
       border: none;
-      border-radius: 5px;
+      border-radius: var(--radius-sm);
       padding: 5px 8px;
       font-size: 0.7rem;
+      font-family: var(--font-display);
       cursor: pointer;
       white-space: nowrap;
       flex-shrink: 0;
       align-self: flex-end;
+      transition: var(--transition);
     }
 
-    #range-reset:hover { background: #3a4a60; color: var(--sidebar-fg); }
-
-    /* ── Variable select ────────────────────────────────────────── */
-    #var-select {
-      width: 100%;
-      background: var(--pill-bg);
-      color: var(--sidebar-fg);
-      border: 1px solid #3a4558;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7a90'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
+    #range-reset:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
     }
 
-    #var-select optgroup { color: #6b7a90; font-size: 0.75rem; }
-    #var-select option   { color: var(--sidebar-fg); background: #2c3545; }
-
-    /* ── Timescale buttons ──────────────────────────────────────── */
+    /* ================================================================
+       Timescale Grid
+       ================================================================ */
     #timescale-strip {
-      font-size: 2rem;
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
       gap: 4px;
     }
 
     .ts-btn {
-      background: var(--btn-bg);
-      color: #aab4c0;
-      border: none;
-      border-radius: 5px;
-      padding: 4px 7px;
+      background: var(--bg-elevated);
+      color: var(--text-body);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 7px 4px;
       font-size: 0.72rem;
+      font-family: var(--font-mono);
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
+      transition: var(--transition);
+      text-align: center;
     }
 
-    .ts-btn:hover { background: #3a4a60; color: var(--sidebar-fg); }
-    .ts-btn.active { background: var(--btn-active); color: #fff; font-weight: 600; border-left: 3px solid #5aaee8; }
+    .ts-btn:hover { background: rgba(255,255,255,0.04); }
 
-    /* ── Period toggle pills ─────────────────────────────────────── */
+    .ts-btn.active {
+      background: rgba(26,111,175,0.15);
+      color: var(--accent-light);
+      border: 1px solid rgba(26,111,175,0.3);
+      box-shadow: inset 0 -2px 0 0 var(--accent-light);
+      font-weight: 600;
+    }
+
+    .ts-btn.ts-wide { grid-column: span 3; }
+
+    /* ================================================================
+       Period Segmented Control
+       ================================================================ */
     #period-strip {
       display: flex;
-      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
     }
 
     .period-btn {
       flex: 1;
-      background: var(--pill-bg);
-      color: #aab4c0;
+      background: transparent;
+      color: var(--text-body);
       border: none;
-      border-radius: 16px;
-      padding: 6px 8px;
+      border-right: 1px solid var(--border);
+      padding: 7px 8px;
       font-size: 0.78rem;
+      font-family: var(--font-display);
       cursor: pointer;
       text-align: center;
-      transition: background 0.15s, color 0.15s;
+      transition: var(--transition);
     }
 
-    .period-btn:hover { background: #3a4a60; color: var(--sidebar-fg); }
-    .period-btn.active { background: var(--pill-active); color: #fff; font-weight: 600; border-left: 3px solid #5aaee8; }
+    .period-btn:last-child { border-right: none; }
+    .period-btn:hover { background: rgba(255,255,255,0.03); }
 
-    /* ── Basemap strip ──────────────────────────────────────────── */
+    .period-btn.active {
+      background: rgba(26,111,175,0.2);
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    /* ================================================================
+       Basemap Grid
+       ================================================================ */
     #basemap-strip {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
-      flex-wrap: wrap;
     }
 
-    /* ── Opacity slider ─────────────────────────────────────────── */
+    .basemap-btn {
+      background: var(--bg-elevated);
+      color: var(--text-body);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 7px 8px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .basemap-btn:hover { background: rgba(255,255,255,0.04); }
+
+    .basemap-btn.active {
+      border-color: var(--accent);
+      background: rgba(26,111,175,0.08);
+      color: var(--accent-light);
+    }
+
+    /* ================================================================
+       Opacity Slider
+       ================================================================ */
     #opacity-row {
       display: flex;
       align-items: center;
@@ -364,69 +686,162 @@
 
     #opacity-val {
       font-size: 0.78rem;
-      color: #aab4c0;
-      min-width: 30px;
+      color: var(--text-body);
+      min-width: 36px;
       text-align: right;
+      font-family: var(--font-mono);
     }
 
     #opacity-slider {
       flex: 1;
-      accent-color: var(--accent);
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 75%), var(--border) var(--fill, 75%), var(--border) 100%);
+      border-radius: 2px;
       cursor: pointer;
+      outline: none;
     }
 
-    /* ── States checkbox ─────────────────────────────────────────── */
-    #states-row {
+    #opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(90,174,232,0.4);
+      cursor: pointer;
+      margin-top: 0;
+    }
+
+    #opacity-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(90,174,232,0.4);
+      cursor: pointer;
+      border: none;
+    }
+
+    #opacity-slider::-moz-range-track {
+      height: 4px;
+      background: transparent;
+      border: none;
+    }
+
+    /* ================================================================
+       Custom Checkboxes
+       ================================================================ */
+    .custom-check {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 0.82rem;
-      color: #aab4c0;
+      color: var(--text-body);
       cursor: pointer;
+      padding: 3px 0;
     }
 
-    #states-row input { accent-color: var(--accent); cursor: pointer; }
+    .custom-check input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--text-dim);
+      border-radius: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: var(--transition);
+    }
 
-    /* ── Collapse toggle ─────────────────────────────────────────── */
+    .custom-check input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .custom-check input[type="checkbox"]:checked::after {
+      content: '\2713';
+      color: white;
+      font-size: 11px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      line-height: 1;
+    }
+
+    /* ================================================================
+       Collapse Button
+       ================================================================ */
     #collapse-btn {
       position: absolute;
-      top: calc(var(--navbar-h) + 12px);
-      left: var(--sidebar-w);
-      z-index: 1060;
-      background: var(--sidebar-bg);
-      color: var(--sidebar-fg);
-      border: 1px solid #3a4558;
+      top: 50%;
+      right: -22px;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 40px;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
       border-left: none;
-      border-radius: 0 6px 6px 0;
-      width: 18px;
-      height: 36px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.7rem;
-      transition: left 0.25s ease;
-      box-shadow: 2px 0 6px rgba(0,0,0,0.2);
+      z-index: 1060;
+      transition: var(--transition);
     }
 
-    #collapse-btn:hover { background: var(--pill-bg); }
+    #collapse-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
 
-    /* ── Map ─────────────────────────────────────────────────────── */
-    #map {
-      flex: 1;
+    /* ================================================================
+       Map
+       ================================================================ */
+    #map { flex: 1; height: 100%; }
+
+    /* ================================================================
+       Map Skeleton Loader
+       ================================================================ */
+    #map-skeleton {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-deep);
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #map-skeleton::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
       height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+      animation: shimmer 2s infinite;
     }
 
-    /* ── Spinner overlay ─────────────────────────────────────────── */
+    /* ================================================================
+       Spinner Overlay
+       ================================================================ */
     #spinner {
       display: none;
       position: fixed;
       top: var(--navbar-h);
       left: var(--sidebar-w);
-      right: 0;
-      bottom: 0;
+      right: 0; bottom: 0;
       z-index: 900;
-      background: rgba(15,20,28,0.45);
+      background: rgba(13,17,23,0.5);
+      backdrop-filter: blur(4px);
       align-items: center;
       justify-content: center;
       flex-direction: column;
@@ -437,50 +852,56 @@
     #spinner.active { display: flex; }
 
     .spin-ring {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(255,255,255,0.15);
-      border-top-color: var(--accent);
+      width: 52px;
+      height: 52px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent-light);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
 
     .spin-label {
-      color: #e0e8f0;
+      color: var(--text-secondary);
       font-size: 0.85rem;
+      font-family: var(--font-display);
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Legend ──────────────────────────────────────────────────── */
+    /* ================================================================
+       Legend
+       ================================================================ */
     .leaflet-legend {
-      background: rgba(20,26,36,0.92);
-      color: #e0e8f0;
-      border-radius: 8px;
-      padding: 10px 12px;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      border-radius: var(--radius-lg);
+      padding: 10px 14px;
       font-size: 0.78rem;
       line-height: 1.4;
       box-shadow: var(--shadow);
       min-width: 160px;
-      max-width: 200px;
+      max-width: 220px;
+      border: 1px solid var(--border-glass);
     }
 
     .leaflet-legend h4 {
-      font-size: 0.82rem;
-      font-weight: 700;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
       color: #fff;
       margin-bottom: 2px;
     }
 
-    .leaflet-legend .legend-sub {
+    .legend-sub {
+      font-family: var(--font-display);
       font-size: 0.7rem;
-      color: #8a99b0;
+      color: var(--text-muted);
       margin-bottom: 4px;
     }
 
     .legend-date {
+      font-family: var(--font-mono);
       font-size: 0.68rem;
-      color: #6b7a90;
+      color: var(--text-dim);
       margin-bottom: 8px;
     }
 
@@ -488,53 +909,333 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
 
     .legend-swatch {
       width: 16px;
       height: 14px;
-      border-radius: 2px;
+      border-radius: 3px;
       flex-shrink: 0;
     }
 
     .legend-lbl {
       font-size: 0.72rem;
-      color: #c0cad6;
+      color: var(--text-secondary);
       white-space: nowrap;
     }
 
-    /* ── States checkbox ─────────────────────────────────────────── */
-    #counties-row {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.82rem; color: #aab4c0; cursor: pointer; margin-top: 6px;
+    .legend-gradient {
+      width: 20px;
+      height: 160px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
-    #counties-row input { accent-color: var(--accent); cursor: pointer; }
 
-    /* ── County tooltip ──────────────────────────────────────────── */
+    .legend-gradient-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 160px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* ================================================================
+       County Tooltip
+       ================================================================ */
     .county-tooltip {
-      background: rgba(20,26,36,0.88);
-      border: none;
-      border-radius: 5px;
-      color: #e0e8f0;
+      background: var(--glass);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
       font-size: 0.75rem;
+      font-family: var(--font-display);
       padding: 4px 8px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+      box-shadow: var(--shadow);
     }
-    .county-tooltip::before { display: none; }
-    .hide-county-tooltips .county-tooltip { display: none !important; }
-    /* Suppress browser focus ring on click */
-    .leaflet-interactive:focus { outline: none; }
 
-    /* ── Variable info ───────────────────────────────────────────── */
+    .county-tooltip::before { display: none; }
+
+    .hide-county-tooltips .county-tooltip { display: none !important; }
+
+    /* ================================================================
+       Variable Info
+       ================================================================ */
     #var-info-text {
       font-size: 0.78rem;
-      color: #8a99b0;
+      color: var(--text-muted);
       line-height: 1.55;
       padding: 2px 4px 4px;
+      font-family: var(--font-display);
     }
 
-    /* ── Mobile ──────────────────────────────────────────────────── */
+    /* ================================================================
+       Streamflow Legend
+       ================================================================ */
+    #sf-legend {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      z-index: 900;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 12px;
+      min-width: 150px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-glass);
+    }
+
+    .sf-leg-title {
+      font-weight: 600;
+      font-size: 13px;
+      font-family: var(--font-display);
+      margin-bottom: 2px;
+    }
+
+    .sf-leg-period {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+    }
+
+    .sf-leg-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 2px;
+    }
+
+    .sf-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ================================================================
+       USGS Button
+       ================================================================ */
+    #usgs-btn {
+      background: var(--bg-elevated);
+      color: var(--text-body);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #usgs-btn:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    #usgs-btn.is-on {
+      background: rgba(26,111,175,0.15);
+      color: var(--accent-light);
+      border-color: rgba(26,111,175,0.3);
+    }
+
+    /* ================================================================
+       Flow Panel
+       ================================================================ */
+    #flow-panel {
+      position: fixed;
+      top: 60px;
+      right: 10px;
+      width: 380px;
+      min-width: 280px;
+      min-height: 180px;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    #flow-panel.visible {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    #flow-panel.dragging,
+    #flow-panel.resizing {
+      user-select: none;
+      transition: none;
+    }
+
+    #flow-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: move;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      border-image: linear-gradient(90deg, transparent, var(--border), transparent) 1;
+    }
+
+    #flow-panel-header .fp-title {
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    #flow-panel-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    #flow-panel-close:hover {
+      background: rgba(255, 80, 80, 0.15);
+      border-color: rgba(255, 80, 80, 0.4);
+      color: #ff6b6b;
+    }
+
+    #flow-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+    }
+
+    #flow-panel-content {
+      flex: 1;
+      overflow: auto;
+      padding: 8px;
+      min-height: 0;
+    }
+
+    #flow-panel-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    #flow-panel-resize {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 20px;
+      height: 20px;
+      cursor: nwse-resize;
+    }
+
+    #flow-panel-resize::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      opacity: 0.4;
+    }
+
+    #flow-panel-resize:hover::after {
+      opacity: 0.8;
+    }
+
+    /* ================================================================
+       Leaflet Controls
+       ================================================================ */
+    .leaflet-control-zoom a,
+    .leaflet-bar a {
+      background: var(--glass) !important;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass) !important;
+      color: var(--text-secondary) !important;
+      transition: var(--transition);
+    }
+
+    .leaflet-control-zoom a:hover,
+    .leaflet-bar a:hover {
+      background: rgba(26,111,175,0.2) !important;
+      color: #fff !important;
+    }
+
+    /* ================================================================
+       Mobile Overlay
+       ================================================================ */
+    #mobile-overlay {
+      display: none;
+      position: fixed;
+      top: var(--navbar-h);
+      left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      z-index: 1040;
+    }
+
+    #mobile-overlay.active { display: block; }
+
+    /* ================================================================
+       Custom Scrollbars
+       ================================================================ */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+
+    /* ================================================================
+       Focus Reset
+       ================================================================ */
+    .leaflet-interactive:focus { outline: none; }
+
+    /* ================================================================
+       Animations
+       ================================================================ */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
+    }
+
+    /* ================================================================
+       Mobile (max-width: 640px)
+       ================================================================ */
     @media (max-width: 640px) {
       #hamburger { display: flex; }
       #collapse-btn { display: none; }
@@ -558,237 +1259,39 @@
       }
 
       #spinner { left: 0; }
+
+      #flow-panel {
+        top: auto !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        max-height: 50vh;
+        min-width: unset;
+        min-height: unset;
+        resize: none;
+        transform: translateY(8px) !important;
+      }
+
+      #flow-panel.visible { transform: none !important; }
+
+      /* Tap targets */
+      .custom-check,
+      .period-btn,
+      .ts-btn,
+      .basemap-btn,
+      #usgs-btn,
+      .cs-trigger { min-height: 44px; }
+
+      #mobile-overlay.active { display: block; }
     }
-
-    /* ── Streamflow legend ───────────────────────────────────────── */
-    #sf-legend {
-      position: absolute;
-      bottom: 30px;
-      right: 10px;
-      z-index: 900;
-      background: rgba(30,37,48,0.92);
-      color: #e8ecf0;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      min-width: 150px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    }
-    .sf-leg-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-    .sf-leg-period { font-size: 11px; color: #a0aab8; margin-bottom: 6px; }
-    .sf-leg-row { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; }
-    .sf-swatch { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; }
-
-    /* ── Station Data controls ───────────────────────────────────── */
-    #usgs-btn-row { margin-top: 4px; }
-
-    #usgs-btn {
-      width: 100%;
-      background: var(--pill-bg);
-      color: #aab4c0;
-      border: 1px solid #3a4558;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 0.82rem;
-      cursor: pointer;
-      text-align: left;
-      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    #usgs-btn:hover {
-      background: #3a4a60;
-      color: var(--sidebar-fg);
-    }
-
-    #usgs-btn.is-on {
-      background: #1a2f50;
-      color: #60a5fa;
-      border-color: #2d5a9e;
-      box-shadow: inset 0 0 0 1px #2d5a9e;
-      font-weight: 600;
-    }
-
-/* ── HHP flow panel ──────────────────────────────────────────── */
-#flow-panel {
-  position: fixed;
-  top: 60px;
-  right: 10px;
-  width: 380px;
-  min-width: 280px;
-  min-height: 180px;
-  max-height: calc(100vh - 80px);
-  background: var(--sidebar-bg);
-  color: var(--sidebar-fg);
-  border: 1px solid #3a4558;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transform: scale(0.95);
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-#flow-panel.visible {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-}
-
-#flow-panel.dragging, #flow-panel.resizing {
-  user-select: none;
-  transition: none;
-}
-
-#flow-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid #3a4558;
-  background: var(--sidebar-bg);
-  border-radius: 8px 8px 0 0;
-  cursor: grab;
-  flex-shrink: 0;
-}
-
-#flow-panel-header:active { cursor: grabbing; }
-
-#flow-panel-drag-grip {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-direction: column;
-  margin-right: 8px;
-  flex-shrink: 0;
-  opacity: 0.4;
-}
-
-#flow-panel-drag-grip span {
-  display: flex;
-  gap: 2px;
-}
-
-#flow-panel-drag-grip i {
-  display: block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--sidebar-fg);
-}
-
-#flow-panel-title {
-  font-weight: 600;
-  font-size: 0.92rem;
-  line-height: 1.3;
-}
-
-#flow-panel-sub {
-  font-size: 0.78rem;
-  color: #9aabb8;
-  margin-top: 2px;
-}
-
-#flow-panel-close {
-  background: none;
-  border: none;
-  color: #6b7a90;
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 0 0 10px;
-  flex-shrink: 0;
-}
-
-#flow-panel-close:hover { color: var(--sidebar-fg); }
-
-#flow-panel-content {
-  padding: 10px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-#flow-panel-content img {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 4px;
-}
-
-#flow-panel-resize {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 16px;
-  height: 16px;
-  cursor: se-resize;
-  opacity: 0.4;
-  background:
-    linear-gradient(135deg, transparent 40%, #8a99b0 40%, #8a99b0 50%, transparent 50%),
-    linear-gradient(135deg, transparent 60%, #8a99b0 60%, #8a99b0 70%, transparent 70%);
-}
-
-/* ── Custom scrollbars ───────────────────────────────────────── */
-#sidebar::-webkit-scrollbar,
-#flow-panel-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-#sidebar::-webkit-scrollbar-track,
-#flow-panel-content::-webkit-scrollbar-track {
-  background: #1e2530;
-}
-
-#sidebar::-webkit-scrollbar-thumb,
-#flow-panel-content::-webkit-scrollbar-thumb {
-  background: #3a4558;
-  border-radius: 3px;
-}
-
-#sidebar::-webkit-scrollbar-thumb:hover,
-#flow-panel-content::-webkit-scrollbar-thumb:hover {
-  background: #4a5568;
-}
-
-/* ── Leaflet controls — dark theme ───────────────────────────── */
-.leaflet-control-zoom a,
-.leaflet-bar a {
-  background-color: #2c3545 !important;
-  color: #e8ecf0 !important;
-  border-color: #3a4558 !important;
-}
-
-.leaflet-control-zoom a:hover,
-.leaflet-bar a:hover {
-  background-color: #1a6faf !important;
-  color: #fff !important;
-}
-
-@media (max-width: 640px) {
-  #flow-panel {
-    top: auto !important;
-    bottom: 0 !important;
-    right: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    border-radius: 12px 12px 0 0;
-    max-height: 50vh;
-    min-width: unset;
-    min-height: unset;
-    resize: none;
-  }
-}
   </style>
 </head>
 <body>
 
-<!-- ── Navbar ─────────────────────────────────────────────────── -->
+<!-- Navbar -->
 <nav id="navbar">
   <button id="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
@@ -802,37 +1305,53 @@
     </svg>
     Export
   </button>
+  <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" title="View methodology documentation">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+    Methods
+  </a>
+  <button id="share-btn" title="Copy shareable link to clipboard">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+    Share
+    <span class="share-toast">Link copied!</span>
+  </button>
 </nav>
 
-<!-- ── Sidebar collapse tab ───────────────────────────────────── -->
+<!-- Sidebar collapse tab -->
 <button id="collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">&#9664;</button>
 
-<!-- ── App shell ──────────────────────────────────────────────── -->
+<!-- App shell -->
 <div id="shell">
 
   <!-- Sidebar -->
   <div id="sidebar">
     <div class="sidebar-inner">
 
-      <!-- Variable -->
-      <div class="section-label" data-sec="sec-variable">Variable <span class="caret">&#9660;</span></div>
+      <!-- Variable — section index 0 -->
+      <div class="section-label" data-sec="sec-variable" style="--i:0">Variable <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-variable">
+        <!-- Hidden native select (still used by JS) -->
         <select id="var-select">
           <optgroup label="── Drought Indices ──">
-            <option value="spi"   selected>Standardized Precipitation Index (SPI)</option>
-            <option value="spei"          >Standardized Precip-Evapotranspiration Index (SPEI)</option>
-            <option value="eddi"          >Evaporative Demand Drought Index (EDDI)</option>
-            <option value="svpdi"         >Standardized Vapor Pressure Deficit Index (SVPDI)</option>
+            <option value="spi" selected>Standardized Precipitation Index (SPI)</option>
+            <option value="spei">Standardized Precip-Evapotranspiration Index (SPEI)</option>
+            <option value="eddi">Evaporative Demand Drought Index (EDDI)</option>
+            <option value="svpdi">Standardized Vapor Pressure Deficit Index (SVPDI)</option>
           </optgroup>
           <optgroup label="── Precipitation ──">
-            <option value="precip_pon"   >Precipitation — Percent of Normal</option>
-            <option value="precip_dev"   >Precipitation — Departure (mm)</option>
+            <option value="precip_pon">Precipitation — Percent of Normal</option>
+            <option value="precip_dev">Precipitation — Departure (mm)</option>
             <option value="precip_pctile">Precipitation — Percentile</option>
-            <option value="precip_in"    >Precipitation — Accumulation (in)</option>
+            <option value="precip_in">Precipitation — Accumulation (in)</option>
           </optgroup>
           <optgroup label="── VPD ──">
-            <option value="vpd_pon"   >VPD — Percent of Normal</option>
-            <option value="vpd_dev"   >VPD — Departure</option>
+            <option value="vpd_pon">VPD — Percent of Normal</option>
+            <option value="vpd_dev">VPD — Departure</option>
             <option value="vpd_pctile">VPD — Percentile</option>
           </optgroup>
           <optgroup label="── Temperature ──">
@@ -843,7 +1362,18 @@
           </optgroup>
         </select>
 
-        <!-- Range controls — shown only for dynamic variables -->
+        <!-- Custom dropdown (populated by JS) -->
+        <div class="custom-select" id="custom-var-select" tabindex="0">
+          <button type="button" class="cs-trigger">
+            <span class="cs-label">Standardized Precipitation Index (SPI)</span>
+            <svg class="cs-chevron" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="cs-panel"></div>
+        </div>
+
+        <!-- Range controls (shown only for dynamic variables) -->
         <div id="range-section" style="display:none">
           <div class="subsec-label">Color Range</div>
           <div id="range-row">
@@ -860,23 +1390,79 @@
         </div>
       </div>
 
-      <!-- Timescale -->
-      <div class="section-label" data-sec="sec-timescale">Timescale <span class="caret">&#9660;</span></div>
+      <!-- Timescale — section index 1 -->
+      <div class="section-label" data-sec="sec-timescale" style="--i:1">Timescale <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-timescale">
         <div id="timescale-strip"></div>
       </div>
 
-      <!-- Reference Period -->
-      <div class="section-label" data-sec="sec-period">Reference Period <span class="caret">&#9660;</span></div>
+      <!-- Reference Period — section index 2 -->
+      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
           <button class="period-btn active" data-period="rolling_30">Rolling 30yr</button>
-          <button class="period-btn"        data-period="full">Full Period</button>
+          <button class="period-btn" data-period="full">Full Period</button>
         </div>
       </div>
 
-      <!-- Opacity -->
-      <div class="section-label" data-sec="sec-opacity">Layer Opacity <span class="caret">&#9660;</span></div>
+      <!-- Zoom to State — section index 3 -->
+      <div class="section-label" data-sec="sec-zoom-state" style="--i:3">Zoom to State <span class="caret">&#9660;</span></div>
+      <div class="section-body" id="sec-zoom-state">
+        <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-2);color:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:13px;cursor:pointer;">
+          <option value="">CONUS (default)</option>
+          <option value="AL">Alabama</option>
+          <option value="AZ">Arizona</option>
+          <option value="AR">Arkansas</option>
+          <option value="CA">California</option>
+          <option value="CO">Colorado</option>
+          <option value="CT">Connecticut</option>
+          <option value="DE">Delaware</option>
+          <option value="FL">Florida</option>
+          <option value="GA">Georgia</option>
+          <option value="ID">Idaho</option>
+          <option value="IL">Illinois</option>
+          <option value="IN">Indiana</option>
+          <option value="IA">Iowa</option>
+          <option value="KS">Kansas</option>
+          <option value="KY">Kentucky</option>
+          <option value="LA">Louisiana</option>
+          <option value="ME">Maine</option>
+          <option value="MD">Maryland</option>
+          <option value="MA">Massachusetts</option>
+          <option value="MI">Michigan</option>
+          <option value="MN">Minnesota</option>
+          <option value="MS">Mississippi</option>
+          <option value="MO">Missouri</option>
+          <option value="MT">Montana</option>
+          <option value="NE">Nebraska</option>
+          <option value="NV">Nevada</option>
+          <option value="NH">New Hampshire</option>
+          <option value="NJ">New Jersey</option>
+          <option value="NM">New Mexico</option>
+          <option value="NY">New York</option>
+          <option value="NC">North Carolina</option>
+          <option value="ND">North Dakota</option>
+          <option value="OH">Ohio</option>
+          <option value="OK">Oklahoma</option>
+          <option value="OR">Oregon</option>
+          <option value="PA">Pennsylvania</option>
+          <option value="RI">Rhode Island</option>
+          <option value="SC">South Carolina</option>
+          <option value="SD">South Dakota</option>
+          <option value="TN">Tennessee</option>
+          <option value="TX">Texas</option>
+          <option value="UT">Utah</option>
+          <option value="VT">Vermont</option>
+          <option value="VA">Virginia</option>
+          <option value="WA">Washington</option>
+          <option value="WV">West Virginia</option>
+          <option value="WI">Wisconsin</option>
+          <option value="WY">Wyoming</option>
+        </select>
+      </div>
+
+      <!-- Layer Opacity — section index 4 -->
+      <div class="section-label" data-sec="sec-opacity" style="--i:4">Layer Opacity <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-opacity">
         <div id="opacity-row">
           <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
@@ -884,38 +1470,42 @@
         </div>
       </div>
 
-      <!-- Variable Info -->
-      <div class="section-label" data-sec="sec-info">About <span class="caret">&#9660;</span></div>
+      <!-- About — section index 5 -->
+      <div class="section-label" data-sec="sec-info" style="--i:5">About <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-info">
         <div id="var-info-text"></div>
       </div>
 
-      <!-- Overlays -->
-      <div class="section-label" data-sec="sec-overlays">Overlays <span class="caret">&#9660;</span></div>
+      <!-- Overlays — section index 6 -->
+      <div class="section-label" data-sec="sec-overlays" style="--i:6">Overlays <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-overlays">
-        <label id="states-row">
+        <label class="custom-check" id="states-row">
           <input type="checkbox" id="states-chk" checked>
           State boundaries
         </label>
-        <label id="counties-row">
+        <label class="custom-check" id="counties-row">
           <input type="checkbox" id="counties-chk">
           County boundaries
         </label>
+        <label class="custom-check" id="query-row">
+          <input type="checkbox" id="query-chk">
+          Point query (click map)
+        </label>
       </div>
 
-      <!-- Basemap -->
-      <div class="section-label" data-sec="sec-basemap">Basemap <span class="caret">&#9660;</span></div>
+      <!-- Basemap — section index 7 -->
+      <div class="section-label" data-sec="sec-basemap" style="--i:7">Basemap <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-basemap">
         <div id="basemap-strip">
-          <button class="period-btn basemap-btn" data-basemap="light">Light</button>
-          <button class="period-btn basemap-btn" data-basemap="dark">Dark</button>
-          <button class="period-btn basemap-btn active" data-basemap="voyager">Voyager</button>
-          <button class="period-btn basemap-btn" data-basemap="satellite">Satellite</button>
+          <button class="basemap-btn" data-basemap="light">Light</button>
+          <button class="basemap-btn" data-basemap="dark">Dark</button>
+          <button class="basemap-btn active" data-basemap="voyager">Voyager</button>
+          <button class="basemap-btn" data-basemap="satellite">Satellite</button>
         </div>
       </div>
 
-      <!-- Station Data -->
-      <div class="section-label" data-sec="sec-station">Station Data <span class="caret">&#9660;</span></div>
+      <!-- Station Data — section index 8 -->
+      <div class="section-label" data-sec="sec-station" style="--i:8">Station Data <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-station">
         <div id="usgs-btn-row">
           <button id="usgs-btn" type="button">
@@ -929,6 +1519,9 @@
 
   <!-- Map -->
   <div id="map"></div>
+
+  <!-- Map skeleton (removed on first layer load) -->
+  <div id="map-skeleton"></div>
 
 </div><!-- #shell -->
 
@@ -970,12 +1563,15 @@
   <div id="flow-panel-resize"></div>
 </div>
 
+<!-- Mobile sidebar backdrop -->
+<div id="mobile-overlay"></div>
+
 <script>
+document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-const BASE_URL = "https://data.climate.umt.edu/share/conus_drought_web";
-// Change to S3/GCS bucket URL when migrated
+const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -1222,9 +1818,37 @@ function updateRangeSection(varKey, georaster) {
 let activeVar        = "spi";
 let activeTS         = DEFAULT_TS;
 let activePeriod     = "rolling_30";
+let activeZoomState  = "";
 let activeDate       = "Loading\u2026";
 let activeLayer      = null;
 let statesLayer      = null;
+
+const STATE_BOUNDS = {
+  AL: [[30.22, -88.47], [35.01, -84.89]], AZ: [[31.33, -114.81], [37.00, -109.04]],
+  AR: [[33.00, -94.62], [36.50, -89.64]], CA: [[32.53, -124.41], [42.01, -114.13]],
+  CO: [[36.99, -109.06], [41.00, -102.04]], CT: [[40.95, -73.73], [42.05, -71.79]],
+  DE: [[38.45, -75.79], [39.84, -75.05]], FL: [[24.40, -87.63], [31.00, -80.03]],
+  GA: [[30.36, -85.61], [35.00, -80.84]], ID: [[41.99, -117.24], [49.00, -111.04]],
+  IL: [[36.97, -91.51], [42.51, -87.02]], IN: [[37.77, -88.10], [41.76, -84.78]],
+  IA: [[40.37, -96.64], [43.50, -90.14]], KS: [[36.99, -102.05], [40.00, -94.59]],
+  KY: [[36.50, -89.57], [39.15, -81.96]], LA: [[28.93, -94.04], [33.02, -88.82]],
+  ME: [[43.06, -71.08], [47.46, -66.95]], MD: [[37.91, -79.49], [39.72, -75.05]],
+  MA: [[41.24, -73.51], [42.89, -69.93]], MI: [[41.70, -90.42], [48.26, -82.12]],
+  MN: [[43.50, -97.24], [49.38, -89.49]], MS: [[30.17, -91.66], [34.99, -88.10]],
+  MO: [[35.99, -95.77], [40.61, -89.10]], MT: [[44.36, -116.05], [49.00, -104.04]],
+  NE: [[39.99, -104.05], [43.00, -95.31]], NV: [[35.00, -120.01], [42.00, -114.04]],
+  NH: [[42.70, -72.56], [45.30, -70.70]], NJ: [[38.93, -75.56], [41.36, -73.89]],
+  NM: [[31.33, -109.05], [37.00, -103.00]], NY: [[40.50, -79.76], [45.01, -71.86]],
+  NC: [[33.84, -84.32], [36.59, -75.46]], ND: [[45.94, -104.05], [49.00, -96.55]],
+  OH: [[38.40, -84.82], [41.98, -80.52]], OK: [[33.62, -103.00], [37.00, -94.43]],
+  OR: [[41.99, -124.57], [46.29, -116.46]], PA: [[39.72, -80.52], [42.27, -74.69]],
+  RI: [[41.15, -71.86], [42.02, -71.12]], SC: [[32.03, -83.35], [35.22, -78.54]],
+  SD: [[42.48, -104.06], [45.94, -96.44]], TN: [[34.98, -90.31], [36.68, -81.65]],
+  TX: [[25.84, -106.65], [36.50, -93.51]], UT: [[36.99, -114.05], [42.00, -109.04]],
+  VT: [[42.73, -73.44], [45.02, -71.50]], VA: [[36.54, -83.68], [39.47, -75.24]],
+  WA: [[45.54, -124.85], [49.00, -116.92]], WV: [[37.20, -82.64], [40.64, -77.72]],
+  WI: [[42.49, -92.89], [47.08, -86.25]], WY: [[40.99, -111.06], [45.01, -104.05]]
+};
 let legendCtrl       = null;
 const georasterCache = {};   // url → georaster, avoids re-fetching on palette/range change
 
@@ -1265,6 +1889,7 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
   TIMESCALES.forEach(ts => {
     const btn = document.createElement("button");
     btn.className = "ts-btn" + (ts === DEFAULT_TS ? " active" : "");
+    if (ts === 'wy' || ts === 'ytd') btn.classList.add('ts-wide');
     btn.textContent = TS_LABELS[ts] || ts;
     btn.dataset.ts = ts;
     btn.addEventListener("click", () => {
@@ -1272,6 +1897,8 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
       strip.querySelectorAll(".ts-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       activeTS = ts;
+      updateVarInfo(activeVar);
+      saveState();
       loadLayer(activeVar, activeTS, activePeriod);
     });
     btn.addEventListener("mouseenter", () => {
@@ -1290,11 +1917,30 @@ document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
     document.querySelectorAll(".period-btn[data-period]").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activePeriod = btn.dataset.period;
+    updateVarInfo(activeVar);
+    saveState();
     loadLayer(activeVar, activeTS, activePeriod);
   });
   btn.addEventListener("mouseenter", () => {
     prefetch(activeVar, activeTS, btn.dataset.period);
   });
+});
+
+/* ════════════════════════════════════════════════════════════════
+   ZOOM TO STATE
+   ════════════════════════════════════════════════════════════════ */
+function zoomToState(code) {
+  if (code && STATE_BOUNDS[code]) {
+    map.fitBounds(STATE_BOUNDS[code], { padding: [20, 20] });
+  } else {
+    map.fitBounds([[24, -126], [50, -66]]);
+  }
+}
+
+document.getElementById("state-select").addEventListener("change", function() {
+  activeZoomState = this.value;
+  saveState();
+  zoomToState(activeZoomState);
 });
 
 document.querySelectorAll(".basemap-btn").forEach(btn => {
@@ -1321,6 +1967,13 @@ document.getElementById("var-select").addEventListener("change", function() {
   }
 
   activeVar = this.value;
+  saveState();
+
+  // Update custom dropdown trigger label
+  const csTrigger = document.querySelector('#custom-var-select .cs-label');
+  const selOpt = this.selectedOptions[0];
+  if (csTrigger && selOpt) csTrigger.textContent = selOpt.textContent;
+
   document.getElementById("range-min").value = "";
   document.getElementById("range-max").value = "";
   updateRangeSection(activeVar, null);
@@ -1328,11 +1981,15 @@ document.getElementById("var-select").addEventListener("change", function() {
 
   const tsLabel = document.querySelector(".section-label[data-sec='sec-timescale']");
   const tsBody  = document.getElementById("sec-timescale");
+  const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
+  const prBody  = document.getElementById("sec-period");
 
   if (activeVar === "hhp") {
-    // Hide timescale section for HHP
+    // Hide timescale and period sections for HHP
     tsLabel.style.display = "none";
     tsBody.style.display  = "none";
+    prLabel.style.display = "none";
+    prBody.style.display  = "none";
     // Remove any active raster layer; load HHP vector layer
     if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null; }
     (async () => {
@@ -1341,6 +1998,7 @@ document.getElementById("var-select").addEventListener("change", function() {
         try { await loadHhpStreamflow(); } finally { document.getElementById("spinner").style.display = "none"; }
       }
       hhpLayer.addTo(map);
+      document.getElementById('map-skeleton')?.remove();
       if (statesLayer) statesLayer.bringToFront();
       if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
       document.getElementById("sf-legend").style.display = "block";
@@ -1348,9 +2006,11 @@ document.getElementById("var-select").addEventListener("change", function() {
     return;
   }
 
-  // Restore timescale section for all other variables
+  // Restore timescale and period sections for all other variables
   tsLabel.style.display = "";
   tsBody.style.display  = "";
+  prLabel.style.display = "";
+  prBody.style.display  = "";
 
   loadLayer(activeVar, activeTS, activePeriod);
 });
@@ -1370,6 +2030,7 @@ const opacityVal    = document.getElementById("opacity-val");
 opacitySlider.addEventListener("input", function() {
   const v = parseFloat(this.value);
   opacityVal.textContent = v.toFixed(2);
+  opacitySlider.style.setProperty('--fill', (v * 100) + '%');
   if (activeVar === "hhp" && hhpLayer) {
     hhpLayer.setStyle({ fillOpacity: v });
   } else if (activeLayer) {
@@ -1381,8 +2042,34 @@ opacitySlider.addEventListener("input", function() {
    VARIABLE INFO
    ════════════════════════════════════════════════════════════════ */
 function updateVarInfo(varKey) {
-  const desc = VAR_CONFIG[varKey].description || "";
-  document.getElementById("var-info-text").textContent = desc;
+  const cfg = VAR_CONFIG[varKey];
+  const el = document.getElementById("var-info-text");
+
+  if (varKey === "hhp") {
+    el.innerHTML = cfg.description || "";
+    return;
+  }
+
+  // Timescale in plain English
+  let tsText;
+  if (activeTS === "wy") tsText = "the water year (October 1 through today)";
+  else if (activeTS === "ytd") tsText = "the calendar year to date (January 1 through today)";
+  else tsText = "the last " + parseInt(activeTS) + " days";
+
+  // Reference period in plain English
+  let periodText;
+  if (activePeriod === "rolling_30")
+    periodText = "Anomalies are calculated relative to the most recent 30 years of data, which tracks the contemporary climate.";
+  else
+    periodText = "Anomalies are calculated relative to the entire historical record (since 1979), providing a long-term perspective.";
+
+  const isRaw = (varKey === "precip_in");
+
+  let html = `<p>${cfg.description}</p>`;
+  html += `<p style="margin-top:6px"><b>Timescale:</b> Looking at conditions over ${tsText}.</p>`;
+  if (!isRaw) html += `<p style="margin-top:4px"><b>Reference period:</b> ${periodText}</p>`;
+
+  el.innerHTML = html;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1433,7 +2120,7 @@ async function loadCounties() {
 
     const geojson = topojson.feature(topo, topo.objects.counties);
     countiesLayer = L.geoJSON(geojson, {
-      style: { color: "#667", weight: 0.6, fillOpacity: 0, opacity: 0.35 },
+      style: { color: "#334", weight: 0.6, fillOpacity: 0, opacity: 0.55 },
       onEachFeature: function(feature, layer) {
         const name = fipsToName[feature.id] || `FIPS ${feature.id}`;
         layer.bindTooltip(name, { sticky: true, className: "county-tooltip" });
@@ -1448,6 +2135,109 @@ document.getElementById("counties-chk").addEventListener("change", function() {
   if (!countiesLayer) return;
   if (this.checked) { countiesLayer.addTo(map); if (statesLayer) statesLayer.bringToFront(); }
   else              map.removeLayer(countiesLayer);
+});
+
+/* ════════════════════════════════════════════════════════════════
+   POINT QUERY (click-to-inspect raster value)
+   ════════════════════════════════════════════════════════════════ */
+let queryActive = false;
+let queryPopup = null;
+
+function queryRasterAt(latlng) {
+  const cfg = VAR_CONFIG[activeVar];
+  if (!cfg || cfg.noRaster) {
+    // HHP vector — query feature properties instead
+    if (activeVar === "hhp") {
+      L.popup({ className: "query-popup" })
+        .setLatLng(latlng)
+        .setContent('<span class="query-label">Click a basin polygon for streamflow data</span>')
+        .openOn(map);
+    }
+    return;
+  }
+
+  const url = `${BASE_URL}/${cfg.prefix}${activeTS}_${activePeriod}.tif`;
+  const geo = georasterCache[url];
+  if (!geo) return;
+
+  const { xmin, xmax, ymin, ymax, width, height, values, noDataValue } = geo;
+  const lng = latlng.lng;
+  const lat = latlng.lat;
+
+  // Check bounds
+  if (lng < xmin || lng > xmax || lat < ymin || lat > ymax) {
+    if (queryPopup) map.closePopup(queryPopup);
+    return;
+  }
+
+  const cellW = (xmax - xmin) / width;
+  const cellH = (ymax - ymin) / height;
+  const col = Math.floor((lng - xmin) / cellW);
+  const row = Math.floor((ymax - lat) / cellH);
+
+  if (row < 0 || row >= height || col < 0 || col >= width) return;
+
+  const raw = values[0][row][col];
+  const noData = noDataValue != null ? noDataValue : -9999;
+
+  if (raw == null || raw === noData || raw === -9999) {
+    queryPopup = L.popup({ className: "query-popup" })
+      .setLatLng(latlng)
+      .setContent('<span class="query-label">No data at this location</span>')
+      .openOn(map);
+    return;
+  }
+
+  const scaled = raw * 0.01;
+
+  // Format based on variable type
+  let displayVal;
+  if (cfg.labelFmt) {
+    displayVal = cfg.labelFmt(scaled);
+  } else if (cfg.dynamicType === 'sequential') {
+    displayVal = scaled.toFixed(2) + " in";
+  } else if (cfg.dynamicType === 'diverging_centered') {
+    displayVal = scaled.toFixed(1) + "%";
+  } else {
+    displayVal = scaled.toFixed(2);
+  }
+
+  // Get color for the swatch
+  const paletteKey = cfg.defaultPalette;
+  const rangeOv = getRangeOverride() || (cfg.dynamic ? getVisibleRange(geo) : null);
+  const { scaleFn } = buildScale(activeVar, paletteKey, geo, rangeOv);
+  const color = scaleFn(scaled);
+  const hex = color ? color.hex() : "#888";
+
+  const html = `
+    <div style="text-align:center;min-width:120px">
+      <div class="query-val">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${hex};vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.2)"></span>
+        ${displayVal}
+      </div>
+      <div class="query-label">${cfg.label} &middot; ${activeTS}</div>
+      <div class="query-coords">${lat.toFixed(4)}&deg;${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}&deg;${lng < 0 ? 'W' : 'E'}</div>
+    </div>`;
+
+  queryPopup = L.popup({ className: "query-popup" })
+    .setLatLng(latlng)
+    .setContent(html)
+    .openOn(map);
+}
+
+function onMapQueryClick(e) {
+  if (queryActive) queryRasterAt(e.latlng);
+}
+
+map.on("click", onMapQueryClick);
+
+document.getElementById("query-chk").addEventListener("change", function() {
+  queryActive = this.checked;
+  document.getElementById("map").style.cursor = queryActive ? "crosshair" : "";
+  if (!queryActive && queryPopup) {
+    map.closePopup(queryPopup);
+    queryPopup = null;
+  }
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -1544,16 +2334,39 @@ function buildLegend(varKey, ts, period, legendRows) {
   legendCtrl = L.control({ position: "bottomleft" });
   legendCtrl.onAdd = function() {
     const div = L.DomUtil.create("div", "leaflet-legend");
-    div.innerHTML = `
-      <h4>${cfg.label}</h4>
-      <div class="legend-sub">${ts} &nbsp;·&nbsp; ${periodLabel}</div>
-      <div class="legend-date">${activeDate}</div>
-      ${legendRows.map(r =>
+
+    let legendBody;
+    if (cfg.dynamic && legendRows.length > 4) {
+      // Gradient bar mode
+      const colors = legendRows.map(r => r.color);
+      const gradient = `linear-gradient(to top, ${colors.join(', ')})`;
+      const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
+      const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
+      const midIdx = Math.floor(legendRows.length / 2);
+      const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
+      legendBody = `
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <div class="legend-gradient" style="background:${gradient}"></div>
+          <div class="legend-gradient-labels">
+            <span>${topLabel}</span>
+            <span>${midLabel}</span>
+            <span>${bottomLabel}</span>
+          </div>
+        </div>`;
+    } else {
+      legendBody = legendRows.map(r =>
         `<div class="legend-row">
           <div class="legend-swatch" style="background:${r.color}"></div>
           <div class="legend-lbl">${r.label}</div>
         </div>`
-      ).join("")}
+      ).join('');
+    }
+
+    div.innerHTML = `
+      <h4>${cfg.label}</h4>
+      <div class="legend-sub">${ts} &nbsp;&middot;&nbsp; ${periodLabel}</div>
+      <div class="legend-date">${activeDate}</div>
+      ${legendBody}
     `;
     return div;
   };
@@ -1607,11 +2420,13 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
       const c = scaleFn(raw * 0.01);
       return c ? c.hex() : null;
     },
-    resolution: 256,
-    updateWhenZooming: false
+    resolution: window.devicePixelRatio > 1 ? 192 : 256,
+    updateWhenZooming: false,
+    updateWhenIdle: true
   });
 
   activeLayer.addTo(map);
+  document.getElementById('map-skeleton')?.remove();
   buildLegend(varKey, ts, period, legendRows);
   if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
   if (statesLayer) statesLayer.bringToFront();
@@ -1747,8 +2562,16 @@ function toggleSidebar() {
     spinner.style.left     = "0";
   }
 
+  const overlay = document.getElementById('mobile-overlay');
+  if (window.innerWidth <= 640) {
+    overlay.classList.toggle('active', sidebarOpen);
+  } else {
+    overlay.classList.remove('active');
+  }
+
   setTimeout(() => map.invalidateSize(), 260);
 }
+window.toggleSidebar = toggleSidebar;
 
 /* ════════════════════════════════════════════════════════════════
    SCREENSHOT / EXPORT
@@ -1777,60 +2600,8 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/* Render the active GeoRaster layer directly from pixel values at arbitrary
-   resolution — bypasses Leaflet tile rendering entirely, so it's always crisp. */
-function renderRasterDirect(georaster, scaleFn, opacity, outW, outH) {
-  const bounds = map.getBounds();
-  const mapW = bounds.getWest(), mapE = bounds.getEast();
-  const mapN = bounds.getNorth(), mapS = bounds.getSouth();
-
-  const { xmin, xmax, ymin, ymax, width, height, values, noDataValue } = georaster;
-  const noData = noDataValue != null ? noDataValue : -9999;
-  const cellW  = (xmax - xmin) / width;
-  const cellH  = (ymax - ymin) / height;
-
-  const canvas = document.createElement("canvas");
-  canvas.width  = outW;
-  canvas.height = outH;
-  const ctx = canvas.getContext("2d");
-  const img = ctx.createImageData(outW, outH);
-  const d   = img.data;
-  const band = values[0];
-  const alpha = Math.round(opacity * 255);
-
-  // Precompute Mercator Y bounds so the per-pixel lat uses the same
-  // projection as the CartoDB basemap and all vector layers.
-  const toMercY = deg => Math.log(Math.tan(Math.PI / 4 + (deg * Math.PI) / 360));
-  const mercN = toMercY(mapN);
-  const mercS = toMercY(mapS);
-
-  for (let py = 0; py < outH; py++) {
-    const mercY = mercN + (mercS - mercN) * py / outH;
-    const lat   = (2 * Math.atan(Math.exp(mercY)) - Math.PI / 2) * (180 / Math.PI);
-    for (let px = 0; px < outW; px++) {
-      const lng = mapW + (mapE - mapW) * px / outW;
-
-      const col = Math.floor((lng - xmin) / cellW);
-      const row = Math.floor((ymax - lat) / cellH);
-      if (col < 0 || col >= width || row < 0 || row >= height) continue;
-
-      const raw = band[row] && band[row][col];
-      if (raw == null || raw === noData || raw === -9999) continue;
-
-      const c = scaleFn(raw * 0.01);
-      if (!c) continue;
-
-      const rgb = c.rgb();
-      const i   = (py * outW + px) * 4;
-      d[i]   = rgb[0];
-      d[i+1] = rgb[1];
-      d[i+2] = rgb[2];
-      d[i+3] = alpha;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  return canvas;
-}
+/* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
+   screenshot export now uses html2canvas for pixel-perfect capture) */
 
 function drawLegendOnCanvas(ctx, offsetY, sc) {
   const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
@@ -1844,102 +2615,115 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
   const cfg         = VAR_CONFIG[activeVar];
   const periodLabel = activePeriod === "rolling_30" ? "Rolling 30yr" : "Full Period";
 
-  const sw  = Math.round(22 * sc);
-  const sh  = Math.round(16 * sc);
-  const lh  = sh + Math.round(5 * sc);
-  const pad = Math.round(14 * sc);
-  const fs  = Math.round(12 * sc);
-  const tfs = Math.round(15 * sc);
+  const sw  = Math.round(24 * sc);
+  const sh  = Math.round(18 * sc);
+  const lh  = sh + Math.round(7 * sc);
+  const pad = Math.round(18 * sc);
+  const fs  = Math.round(13 * sc);
+  const tfs = Math.round(16 * sc);
 
-  ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-  const maxLW  = Math.max(...legendRows.map(r => ctx.measureText(r.label).width));
-  const panelW = pad * 2 + sw + Math.round(10 * sc) + maxLW;
-  const panelH = pad * 2 + tfs + Math.round(6 * sc) + fs + Math.round(10 * sc) + legendRows.length * lh;
-  const px     = Math.round(20 * sc);
-  const py     = ctx.canvas.height - panelH - Math.round(20 * sc);
+  // Determine if we use gradient bar mode
+  const useGradient = cfg.dynamic && legendRows.length > 4;
 
-  ctx.fillStyle = "rgba(18,24,34,0.93)";
-  roundRect(ctx, px, py, panelW, panelH, Math.round(8 * sc));
-  ctx.fill();
+  if (useGradient) {
+    // Gradient bar rendering
+    const barW = Math.round(20 * sc);
+    const barH = Math.round(140 * sc);
+    const labelGap = Math.round(10 * sc);
 
-  let cy = py + pad;
-  ctx.textBaseline = "top";
-  ctx.textAlign    = "left";
+    const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
+    const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
+    const midIdx = Math.floor(legendRows.length / 2);
+    const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-  ctx.fillText(cfg.label, px + pad, cy);
-  cy += tfs + Math.round(5 * sc);
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    const maxLW = Math.max(ctx.measureText(topLabel).width, ctx.measureText(midLabel).width, ctx.measureText(bottomLabel).width);
+    const panelW = pad * 2 + barW + labelGap + maxLW;
+    const panelH = pad * 2 + tfs + Math.round(6 * sc) + fs + Math.round(10 * sc) + barH;
+    const px = Math.round(20 * sc);
+    const py = ctx.canvas.height - panelH - Math.round(20 * sc);
 
-  ctx.fillStyle = "#8a99b0";
-  ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-  ctx.fillText(`${activeTS}  ·  ${periodLabel}`, px + pad, cy);
-  cy += fs + Math.round(10 * sc);
+    ctx.fillStyle = "rgba(18,24,34,0.93)";
+    ctx.fillRect(px, py, panelW, panelH);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, panelW, panelH);
 
-  legendRows.forEach(row => {
-    ctx.fillStyle = row.color;
-    ctx.fillRect(px + pad, cy, sw, sh);
+    let cy = py + pad;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+    ctx.fillText(cfg.label, px + pad, cy);
+    cy += tfs + Math.round(5 * sc);
+
+    ctx.fillStyle = "#8a99b0";
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    ctx.fillText(`${activeTS}  \u00b7  ${periodLabel}`, px + pad, cy);
+    cy += fs + Math.round(10 * sc);
+
+    // Draw gradient bar
+    const colors = legendRows.map(r => r.color);
+    const gradBarX = px + pad;
+    const gradBarY = cy;
+    for (let i = 0; i < barH; i++) {
+      const t = 1 - (i / barH); // top = last color, bottom = first color
+      const cIdx = t * (colors.length - 1);
+      const lo = Math.floor(cIdx);
+      const hi = Math.min(lo + 1, colors.length - 1);
+      const frac = cIdx - lo;
+      const c = chroma.mix(colors[lo], colors[hi], frac).hex();
+      ctx.fillStyle = c;
+      ctx.fillRect(gradBarX, gradBarY + i, barW, 1);
+    }
+
+    // Draw tick labels
     ctx.fillStyle = "#c8d4e0";
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(row.label, px + pad + sw + Math.round(8 * sc), cy + (sh - fs) / 2);
-    cy += lh;
-  });
-}
+    ctx.textBaseline = "middle";
+    const tickX = gradBarX + barW + labelGap;
+    ctx.fillText(topLabel, tickX, gradBarY);
+    ctx.fillText(midLabel, tickX, gradBarY + barH / 2);
+    ctx.fillText(bottomLabel, tickX, gradBarY + barH);
+  } else {
+    // Standard swatch rendering
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    const maxLW  = Math.max(...legendRows.map(r => ctx.measureText(r.label).width));
+    const panelW = pad * 2 + sw + Math.round(12 * sc) + maxLW;
+    const panelH = pad * 2 + tfs + Math.round(6 * sc) + fs + Math.round(10 * sc) + legendRows.length * lh;
+    const px     = Math.round(20 * sc);
+    const py     = ctx.canvas.height - panelH - Math.round(20 * sc);
 
-async function captureBasemap(mapEl, mapW_px, mapH_px, SCALE) {
-  const canvas = document.createElement('canvas');
-  canvas.width  = mapW_px;
-  canvas.height = mapH_px;
-  const ctx = canvas.getContext('2d');
-  const mapRect = mapEl.getBoundingClientRect();
+    ctx.fillStyle = "rgba(18,24,34,0.93)";
+    ctx.fillRect(px, py, panelW, panelH);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, panelW, panelH);
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, mapW_px, mapH_px);
-  ctx.clip();
+    let cy = py + pad;
+    ctx.textBaseline = "top";
+    ctx.textAlign    = "left";
 
-  // Background colour (matches CartoDB water/land default)
-  ctx.fillStyle = '#e8e0d8';
-  ctx.fillRect(0, 0, mapW_px, mapH_px);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+    ctx.fillText(cfg.label, px + pad, cy);
+    cy += tfs + Math.round(5 * sc);
 
-  // Draw basemap tile images
-  const tileEls = Array.from(mapEl.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'));
-  await Promise.all(tileEls.map(tile => new Promise(resolve => {
-    const r = tile.getBoundingClientRect();
-    const x = (r.left - mapRect.left) * SCALE;
-    const y = (r.top  - mapRect.top)  * SCALE;
-    const w = r.width  * SCALE;
-    const h = r.height * SCALE;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => { ctx.drawImage(img, x, y, w, h); resolve(); };
-    img.onerror = resolve; // skip broken tile
-    img.src = tile.src;
-  })));
+    ctx.fillStyle = "#8a99b0";
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    ctx.fillText(`${activeTS}  \u00b7  ${periodLabel}`, px + pad, cy);
+    cy += fs + Math.round(10 * sc);
 
-  // Draw SVG vector overlay (states, counties, HHP basins, USGS circles)
-  const svgEl = mapEl.querySelector('.leaflet-overlay-pane svg');
-  if (svgEl) {
-    const svgRect = svgEl.getBoundingClientRect();
-    const sx = (svgRect.left - mapRect.left) * SCALE;
-    const sy = (svgRect.top  - mapRect.top)  * SCALE;
-    const sw = svgRect.width  * SCALE;
-    const sh = svgRect.height * SCALE;
-    const clone = svgEl.cloneNode(true);
-    clone.setAttribute('width',  svgRect.width);
-    clone.setAttribute('height', svgRect.height);
-    const data = new XMLSerializer().serializeToString(clone);
-    const b64  = btoa(unescape(encodeURIComponent(data)));
-    await new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => { ctx.drawImage(img, sx, sy, sw, sh); resolve(); };
-      img.onerror = resolve;
-      img.src = 'data:image/svg+xml;base64,' + b64;
+    legendRows.forEach(row => {
+      ctx.fillStyle = row.color;
+      ctx.fillRect(px + pad, cy, sw, sh);
+      ctx.fillStyle = "#c8d4e0";
+      ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+      ctx.fillText(row.label, px + pad + sw + Math.round(12 * sc), cy + (sh - fs) / 2);
+      cy += lh;
     });
   }
-
-  ctx.restore();
-  return canvas;
 }
 
 async function takeScreenshot() {
@@ -1951,32 +2735,51 @@ async function takeScreenshot() {
     if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
-    const SCALE    = 2;                            // output DPI multiplier
+    const SCALE    = 2;
     const mapW_px  = mapEl.offsetWidth  * SCALE;
     const mapH_px  = mapEl.offsetHeight * SCALE;
     const HEADER_H = Math.round(68 * SCALE);
 
-    /* ── 1. Capture basemap tiles + vector overlay ─────────────── */
-    const baseCanvas = await captureBasemap(mapEl, mapW_px, mapH_px, SCALE);
+    /* ── 0. Force Leaflet to sync its internal state with the DOM ── */
+    map.invalidateSize({ animate: false });
 
-    /* ── 2. Re-render the raster at full output resolution ─────── */
-    const rasterCanvas = (() => {
-      const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
-      const geo = georasterCache[url];
-      if (!geo) return null;
-      const rangeOv = getRangeOverride() || (VAR_CONFIG[activeVar].dynamic ? getVisibleRange(geo) : null);
-      const { scaleFn } = buildScale(activeVar, VAR_CONFIG[activeVar].defaultPalette, geo, rangeOv);
-      const opacity = parseFloat(document.getElementById("opacity-slider").value);
-      return renderRasterDirect(geo, scaleFn, opacity, mapW_px, mapH_px);
-    })();
+    /* ── 1. Hide SVG overlay so html2canvas captures only basemap + raster ── */
+    const svgPane = mapEl.querySelector('.leaflet-overlay-pane');
+    let svgPaneOrigVis = '';
+    if (svgPane) {
+      svgPaneOrigVis = svgPane.style.visibility;
+      svgPane.style.visibility = 'hidden';
+    }
 
-    /* ── 3. Composite onto output canvas ───────────────────────── */
+    // Hide Leaflet controls (zoom buttons, attribution) for clean export
+    const controlContainer = mapEl.querySelector('.leaflet-control-container');
+    let controlOrigVis = '';
+    if (controlContainer) {
+      controlOrigVis = controlContainer.style.visibility;
+      controlContainer.style.visibility = 'hidden';
+    }
+
+    const mapRect = mapEl.getBoundingClientRect();
+
+    /* ── 2. Capture basemap + raster with html2canvas ── */
+    const mapCapture = await html2canvas(mapEl, {
+      scale: SCALE,
+      useCORS: true,
+      allowTaint: false,
+      logging: false
+    });
+
+    /* ── Restore SVG overlay visibility ── */
+    if (svgPane) svgPane.style.visibility = svgPaneOrigVis;
+    if (controlContainer) controlContainer.style.visibility = controlOrigVis;
+
+    /* ── 2. Build output canvas with header ────────────────────── */
     const out = document.createElement("canvas");
     out.width  = mapW_px;
     out.height = mapH_px + HEADER_H;
     const ctx  = out.getContext("2d");
 
-    // Header
+    // Header background
     ctx.fillStyle = "#1e2530";
     ctx.fillRect(0, 0, mapW_px, HEADER_H);
     ctx.fillStyle = "#1a6faf";
@@ -1999,28 +2802,73 @@ async function takeScreenshot() {
     ctx.textAlign    = "left";
     ctx.fillStyle    = "#e8ecf0";
     ctx.font         = `bold ${titleFS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`${cfg.label}  ·  ${activeTS}  ·  ${periodLabel}`, textX, HEADER_H * 0.36);
+    ctx.fillText(`${cfg.label}  \u00b7  ${activeTS}  \u00b7  ${periodLabel}`, textX, HEADER_H * 0.36);
     ctx.fillStyle = "#8a99b0";
     ctx.font      = `${subFS}px 'Segoe UI', sans-serif`;
     ctx.fillText(`MCO Drought Dashboard  |  Data through: ${dateTxt}`, textX, HEADER_H * 0.72);
 
-    // Basemap
-    ctx.drawImage(baseCanvas, 0, HEADER_H);
+    /* ── 3a. Draw captured map — replaces captureBasemap + renderRasterDirect ── */
+    ctx.drawImage(mapCapture, 0, HEADER_H, mapW_px, mapH_px);
 
-    // Raster overlay (direct render, always crisp)
-    if (rasterCanvas) ctx.drawImage(rasterCanvas, 0, HEADER_H);
+    /* ── 3b. Composite SVG vector overlays (states, counties) ─────
+       XMLSerializer + getBoundingClientRect correctly handles Leaflet's
+       CSS translate3d transforms. We must strip the transform from the
+       clone so paths aren't double-offset. ─────────────────────────── */
+    const svgEls = mapEl.querySelectorAll('.leaflet-overlay-pane svg');
+    for (const svgEl of svgEls) {
+      const svgRect = svgEl.getBoundingClientRect();
+      const sx = (svgRect.left - mapRect.left) * SCALE;
+      const sy = (svgRect.top  - mapRect.top)  * SCALE + HEADER_H;
+      const sw = svgRect.width  * SCALE;
+      const sh = svgRect.height * SCALE;
+
+      const clone = svgEl.cloneNode(true);
+      // Strip Leaflet's CSS transform — positioning is handled by sx/sy
+      clone.style.transform = 'none';
+      clone.style.webkitTransform = 'none';
+      clone.style.left = '0';
+      clone.style.top  = '0';
+
+      // Match width/height to viewBox so paths render 1:1 (no scaling distortion)
+      const vb = svgEl.getAttribute('viewBox');
+      if (vb) {
+        const parts = vb.split(/[\s,]+/).map(Number);
+        clone.setAttribute('width',  parts[2]);
+        clone.setAttribute('height', parts[3]);
+      } else {
+        clone.setAttribute('width',  svgRect.width);
+        clone.setAttribute('height', svgRect.height);
+      }
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const data = new XMLSerializer().serializeToString(clone);
+      const b64  = btoa(unescape(encodeURIComponent(data)));
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, sx, sy, sw, sh); resolve(); };
+        img.onerror = () => { console.warn('SVG overlay rasterization failed'); resolve(); };
+        img.src = 'data:image/svg+xml;base64,' + b64;
+      });
+    }
 
     // Legend
     drawLegendOnCanvas(ctx, HEADER_H, SCALE);
 
-    // Attribution
-    ctx.fillStyle    = "rgba(255,255,255,0.5)";
-    ctx.font         = `${Math.round(9 * SCALE)}px 'Segoe UI', sans-serif`;
-    ctx.textBaseline = "bottom";
-    ctx.textAlign    = "right";
-    ctx.fillText("Montana Climate Office  |  climate.umt.edu/drought",
-                 mapW_px - Math.round(10 * SCALE),
-                 out.height - Math.round(8 * SCALE));
+    // Attribution with dark background pill
+    const attrText = "Montana Climate Office  |  climate.umt.edu/drought";
+    const attrFS = Math.round(10 * SCALE);
+    ctx.font = `${attrFS}px 'Segoe UI', sans-serif`;
+    const attrW = ctx.measureText(attrText).width;
+    const attrPadX = Math.round(8 * SCALE);
+    const attrPadY = Math.round(4 * SCALE);
+    const attrX = mapW_px - Math.round(10 * SCALE) - attrW - attrPadX;
+    const attrY = out.height - Math.round(8 * SCALE) - attrFS - attrPadY;
+    ctx.fillStyle = "rgba(18,24,34,0.65)";
+    ctx.fillRect(attrX, attrY, attrW + attrPadX * 2, attrFS + attrPadY * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.fillText(attrText, attrX + attrPadX, attrY + attrPadY);
 
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
@@ -2037,6 +2885,7 @@ async function takeScreenshot() {
     btn.querySelector("svg").style.animation = "";
   }
 }
+window.takeScreenshot = takeScreenshot;
 
 /* ════════════════════════════════════════════════════════════════
    HHP FLOW PANEL
@@ -2162,14 +3011,238 @@ document.getElementById("flow-panel-close").addEventListener("click", function (
 }());
 
 /* ════════════════════════════════════════════════════════════════
+   URL STATE PERSISTENCE
+   ════════════════════════════════════════════════════════════════ */
+function saveState() {
+  // State is tracked in memory; URL is only updated when user clicks Share
+}
+
+function buildShareUrl() {
+  let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
+  if (activeZoomState) hash += '/' + activeZoomState;
+  return window.location.origin + window.location.pathname + hash;
+}
+
+document.getElementById("share-btn").addEventListener("click", function() {
+  const url = buildShareUrl();
+  navigator.clipboard.writeText(url).then(() => {
+    const toast = this.querySelector(".share-toast");
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1800);
+  }).catch(() => {
+    // Fallback for insecure contexts
+    prompt("Copy this link:", url);
+  });
+});
+window.buildShareUrl = buildShareUrl;
+
+function loadState() {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return null;
+  const parts = hash.split('/');
+  const v = parts[0], ts = parts[1], period = parts[2], zoomSt = parts[3] || '';
+  if (!VAR_CONFIG[v]) return null;
+  if (ts && !TIMESCALES.includes(ts)) return null;
+  if (period && !['rolling_30','full'].includes(period)) return null;
+  if (zoomSt && !STATE_BOUNDS[zoomSt]) return null;
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling_30', zoomState: zoomSt };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CUSTOM DROPDOWN
+   ════════════════════════════════════════════════════════════════ */
+function initCustomSelect() {
+  const sel = document.getElementById('var-select');
+  const container = document.getElementById('custom-var-select');
+  if (!container) return;
+  const trigger = container.querySelector('.cs-trigger');
+  const panel = container.querySelector('.cs-panel');
+  panel.innerHTML = '';
+
+  const groups = sel.querySelectorAll('optgroup');
+  groups.forEach(grp => {
+    const header = document.createElement('div');
+    header.className = 'cs-group-header';
+    header.textContent = grp.label.replace(/[─—]/g, '').trim();
+    panel.appendChild(header);
+    grp.querySelectorAll('option').forEach(opt => {
+      const item = document.createElement('div');
+      item.className = 'cs-item';
+      item.dataset.value = opt.value;
+      item.textContent = opt.textContent;
+      if (opt.selected || opt.value === activeVar) item.classList.add('active');
+      item.addEventListener('click', () => {
+        panel.querySelectorAll('.cs-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        trigger.querySelector('.cs-label').textContent = opt.textContent;
+        sel.value = opt.value;
+        sel.dispatchEvent(new Event('change'));
+        container.classList.remove('open');
+      });
+      panel.appendChild(item);
+    });
+  });
+
+  function positionPanel() {
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top = (rect.bottom + 4) + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.width = rect.width + 'px';
+  }
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!container.classList.contains('open')) {
+      positionPanel();
+    }
+    const isOpen = container.classList.toggle('open');
+    if (isOpen) {
+      const active = panel.querySelector('.cs-item.active');
+      if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) container.classList.remove('open');
+  });
+
+  container.addEventListener('keydown', (e) => {
+    const isOpen = container.classList.contains('open');
+    if (!isOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      container.classList.add('open');
+      return;
+    }
+    if (!isOpen) return;
+    const items = [...panel.querySelectorAll('.cs-item')];
+    const curr = items.findIndex(i => i.classList.contains('active'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = Math.min(curr + 1, items.length - 1);
+      items.forEach(i => i.classList.remove('active'));
+      items[next].classList.add('active');
+      items[next].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = Math.max(curr - 1, 0);
+      items.forEach(i => i.classList.remove('active'));
+      items[prev].classList.add('active');
+      items[prev].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (curr >= 0) items[curr].click();
+    } else if (e.key === 'Escape') {
+      container.classList.remove('open');
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
    INIT
    ════════════════════════════════════════════════════════════════ */
 initCollapsibles();
+initCustomSelect();
 loadStates();
 loadCounties();
+
+// Restore URL state
+const savedState = loadState();
+if (savedState) {
+  activeVar = savedState.var;
+  activeTS = savedState.ts;
+  activePeriod = savedState.period;
+  activeZoomState = savedState.zoomState || '';
+  // Update UI
+  document.getElementById('var-select').value = activeVar;
+  // Update custom dropdown
+  const csPanel = document.querySelector('#custom-var-select .cs-panel');
+  if (csPanel) {
+    csPanel.querySelectorAll('.cs-item').forEach(i => {
+      i.classList.toggle('active', i.dataset.value === activeVar);
+    });
+  }
+  const csTrigger = document.querySelector('#custom-var-select .cs-label');
+  const selOpt = document.getElementById('var-select').selectedOptions[0];
+  if (csTrigger && selOpt) csTrigger.textContent = selOpt.textContent;
+  // Update timescale buttons
+  document.querySelectorAll('.ts-btn').forEach(b => b.classList.toggle('active', b.dataset.ts === activeTS));
+  // Update period buttons
+  document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
+  // Update state dropdown and zoom
+  if (activeZoomState) {
+    document.getElementById('state-select').value = activeZoomState;
+    zoomToState(activeZoomState);
+  }
+
+  // Handle HHP — hide timescale and period sections
+  if (activeVar === 'hhp') {
+    const tsLabel = document.querySelector(".section-label[data-sec='sec-timescale']");
+    const tsBody = document.getElementById("sec-timescale");
+    const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
+    const prBody = document.getElementById("sec-period");
+    tsLabel.style.display = "none";
+    tsBody.style.display = "none";
+    prLabel.style.display = "none";
+    prBody.style.display = "none";
+  }
+}
+
 updateRangeSection(activeVar, null);
 updateVarInfo(activeVar);
-loadLayer(activeVar, activeTS, activePeriod);
+
+// Set initial opacity slider fill
+opacitySlider.style.setProperty('--fill', (parseFloat(opacitySlider.value) * 100) + '%');
+
+if (activeVar === 'hhp') {
+  (async () => {
+    if (!hhpLoaded) {
+      document.getElementById("spinner").style.display = "flex";
+      try { await loadHhpStreamflow(); } finally { document.getElementById("spinner").style.display = "none"; }
+    }
+    hhpLayer.addTo(map);
+    document.getElementById('map-skeleton')?.remove();
+    if (statesLayer) statesLayer.bringToFront();
+    if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+    document.getElementById("sf-legend").style.display = "block";
+  })();
+} else {
+  loadLayer(activeVar, activeTS, activePeriod);
+}
+
+// Popstate handler
+window.addEventListener('popstate', function() {
+  const st = loadState();
+  if (!st) return;
+  activeVar = st.var;
+  activeTS = st.ts;
+  activePeriod = st.period;
+  activeZoomState = st.zoomState || '';
+  document.getElementById('var-select').value = activeVar;
+  document.querySelectorAll('.ts-btn').forEach(b => b.classList.toggle('active', b.dataset.ts === activeTS));
+  document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
+  document.getElementById('state-select').value = activeZoomState;
+  zoomToState(activeZoomState);
+  // Show/hide period section based on variable
+  const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
+  const prBody = document.getElementById("sec-period");
+  const tsLabel = document.querySelector(".section-label[data-sec='sec-timescale']");
+  const tsBody = document.getElementById("sec-timescale");
+  const isHhp = activeVar === 'hhp';
+  prLabel.style.display = isHhp ? "none" : "";
+  prBody.style.display  = isHhp ? "none" : "";
+  tsLabel.style.display = isHhp ? "none" : "";
+  tsBody.style.display  = isHhp ? "none" : "";
+  updateRangeSection(activeVar, null);
+  updateVarInfo(activeVar);
+  loadLayer(activeVar, activeTS, activePeriod);
+});
+
+// Mobile overlay click closes sidebar
+document.getElementById('mobile-overlay').addEventListener('click', function() {
+  if (sidebarOpen) toggleSidebar();
+});
+
+}); // end DOMContentLoaded
 </script>
 
 </body>
