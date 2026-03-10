@@ -59,6 +59,7 @@
       z-index: 1100;
       box-shadow: var(--shadow);
       gap: 10px;
+      border-bottom: 2px solid var(--accent);
     }
 
     #navbar .brand {
@@ -323,7 +324,7 @@
     }
 
     .ts-btn:hover { background: #3a4a60; color: var(--sidebar-fg); }
-    .ts-btn.active { background: var(--btn-active); color: #fff; font-weight: 600; }
+    .ts-btn.active { background: var(--btn-active); color: #fff; font-weight: 600; border-left: 3px solid #5aaee8; }
 
     /* ── Period toggle pills ─────────────────────────────────────── */
     #period-strip {
@@ -345,7 +346,7 @@
     }
 
     .period-btn:hover { background: #3a4a60; color: var(--sidebar-fg); }
-    .period-btn.active { background: var(--pill-active); color: #fff; font-weight: 600; }
+    .period-btn.active { background: var(--pill-active); color: #fff; font-weight: 600; border-left: 3px solid #5aaee8; }
 
     /* ── Basemap strip ──────────────────────────────────────────── */
     #basemap-strip {
@@ -616,15 +617,32 @@
   top: 60px;
   right: 10px;
   width: 380px;
+  min-width: 280px;
+  min-height: 180px;
   max-height: calc(100vh - 80px);
   background: var(--sidebar-bg);
   color: var(--sidebar-fg);
   border: 1px solid #3a4558;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  overflow-y: auto;
   z-index: 1000;
-  display: none;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+#flow-panel.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+#flow-panel.dragging, #flow-panel.resizing {
+  user-select: none;
+  transition: none;
 }
 
 #flow-panel-header {
@@ -633,9 +651,35 @@
   align-items: flex-start;
   padding: 10px 12px 8px;
   border-bottom: 1px solid #3a4558;
-  position: sticky;
-  top: 0;
   background: var(--sidebar-bg);
+  border-radius: 8px 8px 0 0;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+#flow-panel-header:active { cursor: grabbing; }
+
+#flow-panel-drag-grip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-direction: column;
+  margin-right: 8px;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+#flow-panel-drag-grip span {
+  display: flex;
+  gap: 2px;
+}
+
+#flow-panel-drag-grip i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--sidebar-fg);
 }
 
 #flow-panel-title {
@@ -665,6 +709,8 @@
 
 #flow-panel-content {
   padding: 10px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 #flow-panel-content img {
@@ -674,15 +720,68 @@
   border-radius: 4px;
 }
 
+#flow-panel-resize {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  opacity: 0.4;
+  background:
+    linear-gradient(135deg, transparent 40%, #8a99b0 40%, #8a99b0 50%, transparent 50%),
+    linear-gradient(135deg, transparent 60%, #8a99b0 60%, #8a99b0 70%, transparent 70%);
+}
+
+/* ── Custom scrollbars ───────────────────────────────────────── */
+#sidebar::-webkit-scrollbar,
+#flow-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sidebar::-webkit-scrollbar-track,
+#flow-panel-content::-webkit-scrollbar-track {
+  background: #1e2530;
+}
+
+#sidebar::-webkit-scrollbar-thumb,
+#flow-panel-content::-webkit-scrollbar-thumb {
+  background: #3a4558;
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover,
+#flow-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #4a5568;
+}
+
+/* ── Leaflet controls — dark theme ───────────────────────────── */
+.leaflet-control-zoom a,
+.leaflet-bar a {
+  background-color: #2c3545 !important;
+  color: #e8ecf0 !important;
+  border-color: #3a4558 !important;
+}
+
+.leaflet-control-zoom a:hover,
+.leaflet-bar a:hover {
+  background-color: #1a6faf !important;
+  color: #fff !important;
+}
+
 @media (max-width: 640px) {
   #flow-panel {
-    top: auto;
-    bottom: 0;
-    right: 0;
-    left: 0;
-    width: 100%;
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
     border-radius: 12px 12px 0 0;
     max-height: 50vh;
+    min-width: unset;
+    min-height: unset;
+    resize: none;
   }
 }
   </style>
@@ -856,13 +955,19 @@
 <!-- HHP basin flow panel -->
 <div id="flow-panel">
   <div id="flow-panel-header">
-    <div>
+    <div id="flow-panel-drag-grip">
+      <span><i></i><i></i></span>
+      <span><i></i><i></i></span>
+      <span><i></i><i></i></span>
+    </div>
+    <div style="flex:1; min-width:0;">
       <div id="flow-panel-title"></div>
       <div id="flow-panel-sub"></div>
     </div>
     <button id="flow-panel-close">&times;</button>
   </div>
   <div id="flow-panel-content"></div>
+  <div id="flow-panel-resize"></div>
 </div>
 
 <script>
@@ -1781,6 +1886,62 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
   });
 }
 
+async function captureBasemap(mapEl, mapW_px, mapH_px, SCALE) {
+  const canvas = document.createElement('canvas');
+  canvas.width  = mapW_px;
+  canvas.height = mapH_px;
+  const ctx = canvas.getContext('2d');
+  const mapRect = mapEl.getBoundingClientRect();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, mapW_px, mapH_px);
+  ctx.clip();
+
+  // Background colour (matches CartoDB water/land default)
+  ctx.fillStyle = '#e8e0d8';
+  ctx.fillRect(0, 0, mapW_px, mapH_px);
+
+  // Draw basemap tile images
+  const tileEls = Array.from(mapEl.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'));
+  await Promise.all(tileEls.map(tile => new Promise(resolve => {
+    const r = tile.getBoundingClientRect();
+    const x = (r.left - mapRect.left) * SCALE;
+    const y = (r.top  - mapRect.top)  * SCALE;
+    const w = r.width  * SCALE;
+    const h = r.height * SCALE;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { ctx.drawImage(img, x, y, w, h); resolve(); };
+    img.onerror = resolve; // skip broken tile
+    img.src = tile.src;
+  })));
+
+  // Draw SVG vector overlay (states, counties, HHP basins, USGS circles)
+  const svgEl = mapEl.querySelector('.leaflet-overlay-pane svg');
+  if (svgEl) {
+    const svgRect = svgEl.getBoundingClientRect();
+    const sx = (svgRect.left - mapRect.left) * SCALE;
+    const sy = (svgRect.top  - mapRect.top)  * SCALE;
+    const sw = svgRect.width  * SCALE;
+    const sh = svgRect.height * SCALE;
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute('width',  svgRect.width);
+    clone.setAttribute('height', svgRect.height);
+    const data = new XMLSerializer().serializeToString(clone);
+    const b64  = btoa(unescape(encodeURIComponent(data)));
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => { ctx.drawImage(img, sx, sy, sw, sh); resolve(); };
+      img.onerror = resolve;
+      img.src = 'data:image/svg+xml;base64,' + b64;
+    });
+  }
+
+  ctx.restore();
+  return canvas;
+}
+
 async function takeScreenshot() {
   const btn = document.getElementById("screenshot-btn");
   btn.disabled = true;
@@ -1795,16 +1956,8 @@ async function takeScreenshot() {
     const mapH_px  = mapEl.offsetHeight * SCALE;
     const HEADER_H = Math.round(68 * SCALE);
 
-    /* ── 1. Capture basemap tiles + state vector via html2canvas ── */
-    const baseCanvas = await html2canvas(mapEl, {
-      useCORS:         true,
-      allowTaint:      false,
-      scale:           SCALE,
-      backgroundColor: "#e8e0d8",   // CartoDB fallback
-      logging:         false,
-      // Skip the GeoRaster layer tiles — we re-render them at full res below
-      ignoreElements: el => el.tagName === "CANVAS" && el.closest(".leaflet-tile-container") !== null
-    });
+    /* ── 1. Capture basemap tiles + vector overlay ─────────────── */
+    const baseCanvas = await captureBasemap(mapEl, mapW_px, mapH_px, SCALE);
 
     /* ── 2. Re-render the raster at full output resolution ─────── */
     const rasterCanvas = (() => {
@@ -1851,7 +2004,7 @@ async function takeScreenshot() {
     ctx.font      = `${subFS}px 'Segoe UI', sans-serif`;
     ctx.fillText(`MCO Drought Dashboard  |  Data through: ${dateTxt}`, textX, HEADER_H * 0.72);
 
-    // Basemap (from html2canvas)
+    // Basemap
     ctx.drawImage(baseCanvas, 0, HEADER_H);
 
     // Raster overlay (direct render, always crisp)
@@ -1909,12 +2062,104 @@ function showFlowPanel(f) {
   img.src = `https://data.climate.umt.edu/share/operational-plots/current_climatology_plot_${basinId}.png?cacheBust=${Date.now()}`;
   img.alt = "Current flow plot";
   content.appendChild(img);
-  document.getElementById("flow-panel").style.display = "block";
+  const panel = document.getElementById("flow-panel");
+  // Reset to default anchored position if it wandered off-screen
+  if (panel._dragged) {
+    const r = panel.getBoundingClientRect();
+    if (r.right < 0 || r.left > window.innerWidth || r.bottom < 0 || r.top > window.innerHeight) {
+      panel.style.left = "";
+      panel.style.top = "60px";
+      panel.style.right = "10px";
+      panel._dragged = false;
+    }
+  }
+  panel.classList.add("visible");
 }
 
 document.getElementById("flow-panel-close").addEventListener("click", function () {
-  document.getElementById("flow-panel").style.display = "none";
+  document.getElementById("flow-panel").classList.remove("visible");
 });
+
+/* ── Drag + Resize for #flow-panel ───────────────────────────── */
+(function () {
+  const panel  = document.getElementById("flow-panel");
+  const header = document.getElementById("flow-panel-header");
+  const handle = document.getElementById("flow-panel-resize");
+
+  /* Convert right-anchored position to left-anchored (pixels) */
+  function switchToLeft() {
+    if (panel._dragged) return;
+    const r = panel.getBoundingClientRect();
+    panel.style.right  = "auto";
+    panel.style.left   = r.left + "px";
+    panel.style.top    = r.top  + "px";
+    panel._dragged = true;
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  /* ── Drag ── */
+  let dragOffX = 0, dragOffY = 0, dragging = false;
+
+  header.addEventListener("mousedown", function (e) {
+    if (e.target === document.getElementById("flow-panel-close")) return;
+    // Skip on mobile (handled by touch / bottom-sheet)
+    if (window.innerWidth <= 640) return;
+    switchToLeft();
+    dragging = true;
+    const r = panel.getBoundingClientRect();
+    dragOffX = e.clientX - r.left;
+    dragOffY = e.clientY - r.top;
+    panel.classList.add("dragging");
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", function (e) {
+    if (!dragging) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    const pw = panel.offsetWidth, ph = panel.offsetHeight;
+    const x = clamp(e.clientX - dragOffX, 0, W - pw);
+    const y = clamp(e.clientY - dragOffY, 0, H - ph);
+    panel.style.left = x + "px";
+    panel.style.top  = y + "px";
+  });
+
+  document.addEventListener("mouseup", function () {
+    if (dragging) { dragging = false; panel.classList.remove("dragging"); }
+  });
+
+  /* ── Resize ── */
+  let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
+
+  handle.addEventListener("mousedown", function (e) {
+    if (window.innerWidth <= 640) return;
+    switchToLeft();
+    resizing = true;
+    rsX = e.clientX;
+    rsY = e.clientY;
+    rsW = panel.offsetWidth;
+    rsH = panel.offsetHeight;
+    panel.classList.add("resizing");
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener("mousemove", function (e) {
+    if (!resizing) return;
+    const panelLeft = parseInt(panel.style.left) || 0;
+    const panelTop  = parseInt(panel.style.top)  || 0;
+    const maxW = window.innerWidth  - panelLeft;
+    const maxH = window.innerHeight - panelTop;
+    const newW = clamp(rsW + (e.clientX - rsX), 280, maxW);
+    const newH = clamp(rsH + (e.clientY - rsY), 180, maxH);
+    panel.style.width  = newW + "px";
+    panel.style.height = newH + "px";
+  });
+
+  document.addEventListener("mouseup", function () {
+    if (resizing) { resizing = false; panel.classList.remove("resizing"); }
+  });
+}());
 
 /* ════════════════════════════════════════════════════════════════
    INIT
