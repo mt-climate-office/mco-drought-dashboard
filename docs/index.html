@@ -2289,11 +2289,12 @@ function updateVarInfo(varKey) {
    STATES OVERLAY
    ════════════════════════════════════════════════════════════════ */
 async function loadStates() {
-  const url = "https://data.climate.umt.edu/share/dashboard_misc/states.geojson";
+  const url = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const geojson = await resp.json();
+    const topo = await resp.json();
+    const geojson = topojson.feature(topo, topo.objects.states);
     statesLayer = L.geoJSON(geojson, {
       style: { color: "#445", weight: 2.5, fill: false, opacity: 0.7 }
     }).addTo(map);
