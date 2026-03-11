@@ -812,6 +812,7 @@
       border: none;
     }
 
+    #usdm-week-slider::-webkit-slider-thumb,
     #usdm-opacity-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 14px;
@@ -823,6 +824,7 @@
       margin-top: 0;
     }
 
+    #usdm-week-slider::-moz-range-thumb,
     #usdm-opacity-slider::-moz-range-thumb {
       width: 14px;
       height: 14px;
@@ -833,6 +835,7 @@
       border: none;
     }
 
+    #usdm-week-slider::-moz-range-track,
     #usdm-opacity-slider::-moz-range-track {
       height: 4px;
       background: transparent;
@@ -1469,18 +1472,18 @@
             <option value="svpdi">Standardized Vapor Pressure Deficit Index (SVPDI)</option>
           </optgroup>
           <optgroup label="── Precipitation ──">
-            <option value="precip_pon">Precipitation — Percent of Normal</option>
-            <option value="precip_dev">Precipitation — Departure (mm)</option>
-            <option value="precip_pctile">Precipitation — Percentile</option>
-            <option value="precip_in">Precipitation — Accumulation (in)</option>
+            <option value="precip-pon">Precipitation — Percent of Normal</option>
+            <option value="precip-dev">Precipitation — Departure (in)</option>
+            <option value="precip-pctile">Precipitation — Percentile</option>
+            <option value="precip-in">Precipitation — Accumulation (in)</option>
           </optgroup>
           <optgroup label="── VPD ──">
-            <option value="vpd_pon">VPD — Percent of Normal</option>
-            <option value="vpd_dev">VPD — Departure</option>
-            <option value="vpd_pctile">VPD — Percentile</option>
+            <option value="vpd-pon">VPD — Percent of Normal</option>
+            <option value="vpd-dev">VPD — Departure</option>
+            <option value="vpd-pctile">VPD — Percentile</option>
           </optgroup>
           <optgroup label="── Temperature ──">
-            <option value="tmax_pctile">Maximum Temperature — Percentile</option>
+            <option value="tmax-pctile">Maximum Temperature — Percentile</option>
           </optgroup>
           <optgroup label="── Streamflow Percentiles (ML-Model) ──">
             <option value="hhp">HHP Streamflow Basins</option>
@@ -1525,7 +1528,7 @@
       <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
-          <button class="period-btn active" data-period="rolling_30">Rolling 30yr</button>
+          <button class="period-btn active" data-period="rolling-30">Rolling 30yr</button>
           <button class="period-btn" data-period="full">Full Period</button>
         </div>
       </div>
@@ -1572,8 +1575,27 @@
           <input type="checkbox" id="usdm-chk">
           U.S. Drought Monitor
         </label>
-        <div id="usdm-opacity-row" style="display:none;margin-top:4px;padding-left:24px;">
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">USDM Opacity</div>
+      </div>
+
+      <!-- U.S. Drought Monitor — section index 7 -->
+      <div class="section-label" data-sec="sec-usdm" style="--i:7;display:none;">U.S. Drought Monitor <span class="caret">&#9660;</span></div>
+      <div class="section-body" id="sec-usdm" style="display:none;">
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+            <datalist id="usdm-week-ticks"></datalist>
+            <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
+          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-2);color:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:13px;cursor:pointer;">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
             <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
@@ -1725,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web";
+const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -1806,14 +1828,14 @@ const VAR_CONFIG = {
   spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation-Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
   eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
-  precip_pon:   { label: "Precipitation — % of Normal",     prefix: "precip_pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
-  precip_dev:   { label: "Precipitation — Departure (mm)",  prefix: "precip_dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  description: "Precipitation departure from the long-term normal, expressed in millimeters. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
-  precip_pctile:{ label: "Precipitation — Percentile",      prefix: "precip_pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
-  precip_in:    { label: "Precipitation — Accumulation (in)",prefix: "precip_in_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
-  vpd_pon:      { label: "VPD — Percent of Normal",         prefix: "vpd_pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
-  vpd_dev:      { label: "VPD — Departure",                 prefix: "vpd_dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
-  vpd_pctile:   { label: "VPD — Percentile",                prefix: "vpd_pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
-  tmax_pctile:  { label: "Maximum Temperature — Percentile",prefix: "tmax_pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
+  'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
+  'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
+  'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
+  'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-in_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
+  'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
+  'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
+  'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
+  'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
 };
 
@@ -1857,8 +1879,9 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
   /* Dynamic: derive auto stats from raster, then apply any overrides */
   const rawMin = georaster.mins[0];
   const rawMax = georaster.maxs[0];
-  const autoMin = (rawMin === -9999 ? 0 : rawMin) * 0.01;
-  const autoMax = rawMax * 0.01;
+  const mmFactor = cfg.mmToIn ? 1 / 25.4 : 1;
+  const autoMin = (rawMin === -9999 ? 0 : rawMin) * 0.01 * mmFactor;
+  const autoMax = rawMax * 0.01 * mmFactor;
 
   const ov  = rangeOverride || {};
   const dMin = (ov.min != null && ov.min !== "") ? parseFloat(ov.min) : autoMin;
@@ -1893,12 +1916,13 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
     const absMax = Math.max(Math.abs(dMin), Math.abs(dMax));
     const cs    = chroma.scale(colors).domain([-absMax, 0, absMax]).mode("lab");
     const steps = 6;
+    const suffix = cfg.mmToIn ? ' in' : '';
     return {
       scaleFn: v => cs(v),
       legendRows: Array.from({ length: steps * 2 }, (_, i) => {
         const lo = -absMax + absMax * 2 / (steps * 2) * i;
         const hi = lo + absMax * 2 / (steps * 2);
-        return { color: cs((lo + hi) / 2).hex(), label: `${lo.toFixed(1)} – ${hi.toFixed(1)}` };
+        return { color: cs((lo + hi) / 2).hex(), label: `${lo.toFixed(1)} – ${hi.toFixed(1)}${suffix}` };
       }),
     };
   }
@@ -1933,6 +1957,7 @@ function getVisibleRange(georaster) {
   const band = values[0];
   const noData = noDataValue != null ? noDataValue : -9999;
 
+  const mmFactor = VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].mmToIn ? 1 / 25.4 : 1;
   let lo = Infinity, hi = -Infinity;
   for (let r = rowStart; r < rowEnd; r += step) {
     const row = band[r];
@@ -1940,7 +1965,7 @@ function getVisibleRange(georaster) {
     for (let c = colStart; c < colEnd; c += step) {
       const v = row[c];
       if (v == null || v === noData || v === -9999) continue;
-      const scaled = v * 0.01;
+      const scaled = v * 0.01 * mmFactor;
       if (scaled < lo) lo = scaled;
       if (scaled > hi) hi = scaled;
     }
@@ -1961,8 +1986,9 @@ function updateRangeSection(varKey, georaster) {
   const sec = document.getElementById("range-section");
   sec.style.display = cfg.dynamic ? "block" : "none";
   if (cfg.dynamic && georaster) {
-    const autoMin = ((georaster.mins[0] === -9999 ? 0 : georaster.mins[0]) * 0.01).toFixed(2);
-    const autoMax = (georaster.maxs[0] * 0.01).toFixed(2);
+    const mmF = cfg.mmToIn ? 1 / 25.4 : 1;
+    const autoMin = ((georaster.mins[0] === -9999 ? 0 : georaster.mins[0]) * 0.01 * mmF).toFixed(2);
+    const autoMax = (georaster.maxs[0] * 0.01 * mmF).toFixed(2);
     document.getElementById("range-min").placeholder = autoMin;
     document.getElementById("range-max").placeholder = autoMax;
   }
@@ -1973,7 +1999,7 @@ function updateRangeSection(varKey, georaster) {
    ════════════════════════════════════════════════════════════════ */
 let activeVar        = "spi";
 let activeTS         = DEFAULT_TS;
-let activePeriod     = "rolling_30";
+let activePeriod     = "rolling-30";
 let activeZoomState  = "";
 let activeDate       = "Loading\u2026";
 let activeLayer      = null;
@@ -2244,12 +2270,12 @@ function updateVarInfo(varKey) {
 
   // Reference period in plain English
   let periodText;
-  if (activePeriod === "rolling_30")
+  if (activePeriod === "rolling-30")
     periodText = "Anomalies are calculated relative to the most recent 30 years of data, which tracks the contemporary climate.";
   else
     periodText = "Anomalies are calculated relative to the entire historical record (since 1979), providing a long-term perspective.";
 
-  const isRaw = (varKey === "precip_in");
+  const isRaw = (varKey === "precip-in");
 
   let html = `<p>${cfg.description}</p>`;
   html += `<p style="margin-top:6px"><b>Timescale:</b> Looking at conditions over ${tsText}.</p>`;
@@ -2440,7 +2466,8 @@ function queryRasterAt(latlng) {
     return;
   }
 
-  const scaled = raw * 0.01;
+  let scaled = raw * 0.01;
+  if (cfg.mmToIn) scaled /= 25.4;
 
   // Format based on variable type
   let displayVal;
@@ -2450,6 +2477,8 @@ function queryRasterAt(latlng) {
     displayVal = scaled.toFixed(2) + " in";
   } else if (cfg.dynamicType === 'diverging_centered') {
     displayVal = scaled.toFixed(1) + "%";
+  } else if (cfg.mmToIn) {
+    displayVal = scaled.toFixed(2) + " in";
   } else {
     displayVal = scaled.toFixed(2);
   }
@@ -2594,11 +2623,100 @@ const USDM_DM_LABELS = {
   4: "D4 — Exceptional Drought"
 };
 
-async function loadUsdm() {
-  const resp = await fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json");
-  const geojson = await resp.json();
+// ── USDM manifest + parquet helpers (loaded once, reused) ──
+const USDM_BASE = "https://sustainable-fsa.com/usdm/usdm";
+let usdmAllDates = [];          // all available YYYY-MM-DD strings (oldest → newest)
+let usdmRecentDates = [];       // last 8 dates (for slider)
+let usdmManifestReady = false;
+let usdmParquetRead = null;     // cached hyparquet.parquetRead
+let usdmZstdWrap = null;        // cached zstd decompressor
+let usdmActiveDate = "";        // currently displayed date
 
-  // Simplify coordinates for faster rendering (~19MB → ~600KB effective)
+async function loadUsdmManifest() {
+  if (usdmManifestReady) return;
+  const mResp = await fetch(USDM_BASE + "/manifest-sha256.txt");
+  const mText = await mResp.text();
+  usdmAllDates = mText.split('\n')
+    .filter(l => l.includes('data/parquet/'))
+    .map(l => { const m = l.match(/USDM_(\d{4}-\d{2}-\d{2})/); return m ? m[1] : null; })
+    .filter(Boolean);
+  usdmRecentDates = usdmAllDates.slice(-12);
+
+  // Populate "All dates" dropdown (newest first)
+  const sel = document.getElementById("usdm-date-select");
+  sel.innerHTML = "";
+  for (let i = usdmAllDates.length - 1; i >= 0; i--) {
+    const o = document.createElement("option");
+    o.value = usdmAllDates[i];
+    o.textContent = usdmAllDates[i];
+    sel.appendChild(o);
+  }
+
+  // Set slider range, tick marks, and label
+  const slider = document.getElementById("usdm-week-slider");
+  slider.max = usdmRecentDates.length - 1;
+  slider.value = usdmRecentDates.length - 1;
+  const tickList = document.getElementById("usdm-week-ticks");
+  tickList.innerHTML = "";
+  for (let i = 0; i < usdmRecentDates.length; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    tickList.appendChild(opt);
+  }
+  updateUsdmWeekLabel();
+
+  // Load parquet libs once
+  const hp = await import("https://cdn.jsdelivr.net/npm/hyparquet/+esm");
+  usdmParquetRead = hp.parquetRead;
+  const fzstd = await import("https://cdn.jsdelivr.net/npm/fzstd@0.1.1/+esm");
+  usdmZstdWrap = function(input) {
+    const arr = input instanceof Uint8Array ? input : new Uint8Array(input.buffer || input, input.byteOffset || 0, input.byteLength || input.length);
+    return fzstd.decompress(arr);
+  };
+
+  usdmManifestReady = true;
+}
+
+function updateUsdmWeekLabel() {
+  const slider = document.getElementById("usdm-week-slider");
+  const idx = parseInt(slider.value);
+  const label = document.getElementById("usdm-week-label");
+  if (idx === usdmRecentDates.length - 1) {
+    label.textContent = "Latest";
+  } else {
+    label.textContent = usdmRecentDates[idx] || "";
+  }
+  slider.style.setProperty('--fill', (idx / (usdmRecentDates.length - 1) * 100) + '%');
+}
+
+async function loadUsdmForDate(dateStr) {
+  if (usdmActiveDate === dateStr && usdmLoaded) return;
+  usdmActiveDate = dateStr;
+  document.getElementById("usdm-date").textContent = dateStr;
+
+  // Fetch and parse geoparquet
+  const pqResp = await fetch(USDM_BASE + "/data/parquet/USDM_" + dateStr + ".parquet");
+  const buffer = await pqResp.arrayBuffer();
+  let rows;
+  await usdmParquetRead({
+    file: buffer,
+    columns: ['usdm_class', 'geometry'],
+    compressors: { ZSTD: usdmZstdWrap },
+    onComplete: data => { rows = data; }
+  });
+
+  // Convert to GeoJSON
+  const classToNum = { D0: 0, D1: 1, D2: 2, D3: 3, D4: 4 };
+  const features = [];
+  for (let i = 0; i < rows.length; i++) {
+    const cls = rows[i][0];
+    const geom = rows[i][1];
+    const dm = classToNum[cls] !== undefined ? classToNum[cls] : parseInt(String(cls).replace(/\D/g, '')) || 0;
+    features.push({ type: "Feature", properties: { DM: dm }, geometry: geom });
+  }
+  const geojson = { type: "FeatureCollection", features: features };
+
+  // Simplify
   function dpDist(p, a, b) {
     const dx = b[0]-a[0], dy = b[1]-a[1];
     if (dx === 0 && dy === 0) return Math.hypot(p[0]-a[0], p[1]-a[1]);
@@ -2619,24 +2737,21 @@ async function loadUsdm() {
     }
     return [pts[0], pts[pts.length-1]];
   }
-  const eps = 0.01; // ~1km tolerance
+  const eps = 0.01;
   function simplifyRing(ring) { const s = dpSimplify(ring, eps); return s.length >= 4 ? s : ring; }
   function simplifyGeom(geom) {
     if (geom.type === 'Polygon') geom.coordinates = geom.coordinates.map(simplifyRing);
     else if (geom.type === 'MultiPolygon') geom.coordinates = geom.coordinates.map(p => p.map(simplifyRing));
   }
   geojson.features.forEach(f => simplifyGeom(f.geometry));
-
-  // Sort so higher severity draws on top
   geojson.features.sort((a, b) => a.properties.DM - b.properties.DM);
 
+  // Remove old layer, create new
+  if (usdmLayer && map.hasLayer(usdmLayer)) map.removeLayer(usdmLayer);
   usdmLayer = L.geoJson(geojson, {
     style: f => ({
       fillColor: USDM_DM_COLORS[f.properties.DM] || "#999",
-      weight: 0.6,
-      opacity: 0.7,
-      color: "#333",
-      fillOpacity: 0.55
+      weight: 0.6, opacity: 0.7, color: "#333", fillOpacity: usdmOpacity
     }),
     onEachFeature: (f, layer) => {
       const dm = f.properties.DM;
@@ -2644,7 +2759,58 @@ async function loadUsdm() {
     }
   });
   usdmLoaded = true;
+
+  // If USDM is currently visible, swap on map
+  if (document.getElementById("usdm-chk").checked) {
+    usdmLayer.addTo(map);
+    if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
+    if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  }
 }
+
+async function loadUsdm() {
+  await loadUsdmManifest();
+  const latestDate = usdmAllDates[usdmAllDates.length - 1];
+  await loadUsdmForDate(latestDate);
+}
+
+// ── USDM week slider ──
+let usdmSliderTimer = null;
+let usdmSliderLoading = false;
+document.getElementById("usdm-week-slider").addEventListener("input", function() {
+  updateUsdmWeekLabel();
+  if (!usdmManifestReady) return;
+  const idx = parseInt(this.value);
+  const dateStr = usdmRecentDates[idx];
+  if (!dateStr || dateStr === usdmActiveDate) return;
+  document.getElementById("usdm-date-select").value = dateStr;
+  if (usdmSliderTimer) clearTimeout(usdmSliderTimer);
+  usdmSliderTimer = setTimeout(async function() {
+    if (usdmSliderLoading) return;
+    usdmSliderLoading = true;
+    try { await loadUsdmForDate(dateStr); } finally {
+      usdmSliderLoading = false;
+    }
+  }, 80);
+});
+
+// ── USDM date dropdown ──
+document.getElementById("usdm-date-select").addEventListener("change", async function() {
+  if (!usdmManifestReady) return;
+  const dateStr = this.value;
+  if (!dateStr) return;
+  // Update slider if date is in recent range
+  const recentIdx = usdmRecentDates.indexOf(dateStr);
+  const slider = document.getElementById("usdm-week-slider");
+  if (recentIdx >= 0) {
+    slider.value = recentIdx;
+  } else {
+    slider.value = 0;
+  }
+  updateUsdmWeekLabel();
+  document.getElementById("spinner").style.display = "flex";
+  try { await loadUsdmForDate(dateStr); } finally { document.getElementById("spinner").style.display = "none"; }
+});
 
 function stackRightLegends() {
   const sf = document.getElementById("sf-legend");
@@ -2657,25 +2823,27 @@ function stackRightLegends() {
 }
 
 document.getElementById("usdm-chk").addEventListener("change", async function () {
-  const opacityRow = document.getElementById("usdm-opacity-row");
+  const usdmSection = document.getElementById("sec-usdm");
+  const usdmLabel = document.querySelector(".section-label[data-sec='sec-usdm']");
   if (!this.checked) {
     if (usdmLayer) map.removeLayer(usdmLayer);
     document.getElementById("usdm-legend").style.display = "none";
-    opacityRow.style.display = "none";
+    usdmSection.style.display = "none";
+    usdmLabel.style.display = "none";
     stackRightLegends();
     return;
   }
+  usdmLabel.style.display = "";
+  usdmSection.style.display = "";
   if (!usdmLoaded) {
     document.getElementById("spinner").style.display = "flex";
     try { await loadUsdm(); } finally { document.getElementById("spinner").style.display = "none"; }
   }
   usdmLayer.setStyle({ fillOpacity: usdmOpacity });
   usdmLayer.addTo(map);
-  // Ensure boundary layers stay on top
   if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
   if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
   document.getElementById("usdm-legend").style.display = "block";
-  opacityRow.style.display = "block";
   stackRightLegends();
 });
 
@@ -2686,7 +2854,7 @@ function buildLegend(varKey, ts, period, legendRows) {
   if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
 
   const cfg         = VAR_CONFIG[varKey];
-  const periodLabel = period === "rolling_30" ? "Rolling 30yr" : "Full Period";
+  const periodLabel = period === "rolling-30" ? "Rolling 30yr" : "Full Period";
 
   legendCtrl = L.control({ position: "bottomleft" });
   legendCtrl.onAdd = function() {
@@ -2735,7 +2903,7 @@ function buildLegend(varKey, ts, period, legendRows) {
    ════════════════════════════════════════════════════════════════ */
 async function fetchDate(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
-  const url = `${BASE_URL}/${cfg.prefix}${ts}_${period}_time.txt`;
+  const url = `${BASE_URL}/latest-date.txt`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error("not found");
@@ -2774,7 +2942,9 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
     pixelValuesToColorFn: function(vals) {
       const raw = vals[0];
       if (raw === -9999 || raw === undefined || raw === null) return null;
-      const c = scaleFn(raw * 0.01);
+      let v = raw * 0.01;
+      if (VAR_CONFIG[varKey].mmToIn) v /= 25.4;
+      const c = scaleFn(v);
       return c ? c.hex() : null;
     },
     resolution: window.devicePixelRatio > 1 ? 192 : 256,
@@ -2970,7 +3140,7 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
   if (!legendRows || !legendRows.length) return;
 
   const cfg         = VAR_CONFIG[activeVar];
-  const periodLabel = activePeriod === "rolling_30" ? "Rolling 30yr" : "Full Period";
+  const periodLabel = activePeriod === "rolling-30" ? "Rolling 30yr" : "Full Period";
 
   const sw  = Math.round(22 * sc);
   const sh  = Math.round(16 * sc);
@@ -3342,7 +3512,7 @@ async function takeScreenshot() {
 
     // Header text
     const cfg         = VAR_CONFIG[activeVar];
-    const periodLabel = activePeriod === "rolling_30" ? "Rolling 30yr" : "Full Period";
+    const periodLabel = activePeriod === "rolling-30" ? "Rolling 30yr" : "Full Period";
     const dateTxt     = activeDate;
     const titleFS     = Math.round(16 * SCALE);
     const subFS       = Math.round(11 * SCALE);
@@ -3611,9 +3781,9 @@ function loadState() {
   const v = parts[0], ts = parts[1], period = parts[2], zoomSt = parts[3] || '';
   if (!VAR_CONFIG[v]) return null;
   if (ts && !TIMESCALES.includes(ts)) return null;
-  if (period && !['rolling_30','full'].includes(period)) return null;
+  if (period && !['rolling-30','full'].includes(period)) return null;
   if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling_30', zoomState: zoomSt };
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt };
 }
 
 /* ════════════════════════════════════════════════════════════════
