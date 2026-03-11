@@ -262,6 +262,83 @@
       transform: translateY(0);
     }
 
+    /* ── Share modal ───────────────────────────────────────────── */
+    #share-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #share-modal-overlay.active { display: flex; }
+
+    #share-modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+      width: 440px;
+      max-width: 90vw;
+      font-family: var(--font-display);
+    }
+
+    #share-modal h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    #share-modal-url {
+      width: 100%;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      word-break: break-all;
+      cursor: text;
+      user-select: all;
+    }
+
+    #share-modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      justify-content: flex-end;
+    }
+
+    #share-modal-actions button {
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 8px 18px;
+      font-size: 0.82rem;
+      font-family: var(--font-display);
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    #share-copy-btn {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    #share-copy-btn:hover { background: var(--accent-dk); }
+
+    #share-close-btn {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+    }
+
+    #share-close-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+
     /* ── Raster query popup ────────────────────────────────────── */
     .query-popup .leaflet-popup-content-wrapper {
       background: var(--glass);
@@ -413,7 +490,7 @@
       color: var(--text-primary);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-size: 0.82rem;
       font-family: var(--font-display);
       cursor: pointer;
@@ -424,6 +501,7 @@
       transition: var(--transition);
       text-align: left;
       outline: none;
+      min-height: 52px;
     }
 
     .cs-trigger:hover { border-color: var(--accent); }
@@ -432,8 +510,11 @@
     .cs-label {
       flex: 1;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.3;
+      font-weight: 600;
     }
 
     .cs-chevron {
@@ -1424,14 +1505,8 @@
         </div>
       </div>
 
-      <!-- About — section index 5 -->
-      <div class="section-label" data-sec="sec-info" style="--i:5">About <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-info">
-        <div id="var-info-text"></div>
-      </div>
-
-      <!-- Overlays — section index 6 -->
-      <div class="section-label" data-sec="sec-overlays" style="--i:6">Overlays <span class="caret">&#9660;</span></div>
+      <!-- Overlays — section index 5 -->
+      <div class="section-label" data-sec="sec-overlays" style="--i:5">Overlays <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-overlays">
         <label class="custom-check" id="states-row">
           <input type="checkbox" id="states-chk" checked>
@@ -1447,19 +1522,8 @@
         </label>
       </div>
 
-      <!-- Basemap — section index 7 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:7">Basemap <span class="caret">&#9660;</span></div>
-      <div class="section-body sec-collapsed" id="sec-basemap">
-        <div id="basemap-strip">
-          <button class="basemap-btn" data-basemap="light">Light</button>
-          <button class="basemap-btn" data-basemap="dark">Dark</button>
-          <button class="basemap-btn active" data-basemap="voyager">Voyager</button>
-          <button class="basemap-btn" data-basemap="satellite">Satellite</button>
-        </div>
-      </div>
-
-      <!-- Zoom to State — section index 8 -->
-      <div class="section-label" data-sec="sec-zoom-state" style="--i:8">Zoom to State <span class="caret">&#9660;</span></div>
+      <!-- Zoom to State — section index 6 -->
+      <div class="section-label" data-sec="sec-zoom-state" style="--i:6">Zoom to State <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-zoom-state">
         <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-2);color:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:13px;cursor:pointer;">
           <option value="">CONUS (default)</option>
@@ -1512,6 +1576,23 @@
           <option value="WI">Wisconsin</option>
           <option value="WY">Wyoming</option>
         </select>
+      </div>
+
+      <!-- Basemap — section index 7 (collapsed by default) -->
+      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:7">Basemap <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-basemap">
+        <div id="basemap-strip">
+          <button class="basemap-btn" data-basemap="light">Light</button>
+          <button class="basemap-btn" data-basemap="dark">Dark</button>
+          <button class="basemap-btn active" data-basemap="voyager">Voyager</button>
+          <button class="basemap-btn" data-basemap="satellite">Satellite</button>
+        </div>
+      </div>
+
+      <!-- Information — section index 8 (collapsed by default) -->
+      <div class="section-label sec-collapsed" data-sec="sec-info" style="--i:8">Information <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-info">
+        <div id="var-info-text"></div>
       </div>
 
     </div><!-- .sidebar-inner -->
@@ -3025,14 +3106,28 @@ function buildShareUrl() {
 
 document.getElementById("share-btn").addEventListener("click", function() {
   const url = buildShareUrl();
+  const overlay = document.getElementById("share-modal-overlay");
+  const urlBox = document.getElementById("share-modal-url");
+  urlBox.textContent = url;
+  overlay.classList.add("active");
+});
+
+document.getElementById("share-copy-btn").addEventListener("click", function() {
+  const url = document.getElementById("share-modal-url").textContent;
   navigator.clipboard.writeText(url).then(() => {
-    const toast = this.querySelector(".share-toast");
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 1800);
+    this.textContent = "Copied!";
+    setTimeout(() => { this.textContent = "Copy to Clipboard"; }, 1500);
   }).catch(() => {
-    // Fallback for insecure contexts
     prompt("Copy this link:", url);
   });
+});
+
+document.getElementById("share-close-btn").addEventListener("click", function() {
+  document.getElementById("share-modal-overlay").classList.remove("active");
+});
+
+document.getElementById("share-modal-overlay").addEventListener("click", function(e) {
+  if (e.target === this) this.classList.remove("active");
 });
 window.buildShareUrl = buildShareUrl;
 
@@ -3244,6 +3339,18 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
 
 }); // end DOMContentLoaded
 </script>
+
+<!-- Share Modal -->
+<div id="share-modal-overlay">
+  <div id="share-modal">
+    <h3>Share this view</h3>
+    <div id="share-modal-url"></div>
+    <div id="share-modal-actions">
+      <button id="share-close-btn">Close</button>
+      <button id="share-copy-btn">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
