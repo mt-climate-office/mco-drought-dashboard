@@ -2163,7 +2163,7 @@ async function loadStates() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const geojson = await resp.json();
     statesLayer = L.geoJSON(geojson, {
-      style: { color: "#445", weight: 1.5, fill: false, opacity: 0.6 }
+      style: { color: "#445", weight: 2.5, fill: false, opacity: 0.7 }
     }).addTo(map);
   } catch (e) {
     console.warn("State boundary load failed, skipping.", e);
@@ -2444,8 +2444,8 @@ function buildLegend(varKey, ts, period, legendRows) {
     }
 
     div.innerHTML = `
-      <h4>${cfg.label}</h4>
-      <div class="legend-sub">${ts} &nbsp;&middot;&nbsp; ${periodLabel}</div>
+      <h4>${cfg.label.replace(/\s*\u2014\s*/g, '<br>')}</h4>
+      <div class="legend-sub">${ts}<br>${periodLabel}</div>
       <div class="legend-date">${activeDate}</div>
       ${legendBody}
     `;
@@ -2696,12 +2696,35 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
   const cfg         = VAR_CONFIG[activeVar];
   const periodLabel = activePeriod === "rolling_30" ? "Rolling 30yr" : "Full Period";
 
-  const sw  = Math.round(24 * sc);
-  const sh  = Math.round(18 * sc);
-  const lh  = sh + Math.round(7 * sc);
-  const pad = Math.round(18 * sc);
-  const fs  = Math.round(13 * sc);
-  const tfs = Math.round(16 * sc);
+  const sw  = Math.round(22 * sc);
+  const sh  = Math.round(16 * sc);
+  const lh  = sh + Math.round(6 * sc);
+  const pad = Math.round(22 * sc);
+  const fs  = Math.round(12 * sc);
+  const tfs = Math.round(15 * sc);
+  const cornerR = Math.round(10 * sc);
+
+  // Split label on em dash first, then word-wrap remaining lines
+  function wrapLabel(ctx, text, maxW) {
+    // Split on em dash separator (e.g. "Precipitation — Percentile")
+    const parts = text.split(/\s*\u2014\s*/);
+    const lines = [];
+    for (const part of parts) {
+      const words = part.split(' ');
+      let line = words[0];
+      for (let i = 1; i < words.length; i++) {
+        const test = line + ' ' + words[i];
+        if (ctx.measureText(test).width > maxW) {
+          lines.push(line);
+          line = words[i];
+        } else {
+          line = test;
+        }
+      }
+      lines.push(line);
+    }
+    return lines;
+  }
 
   // Determine if we use gradient bar mode
   const useGradient = cfg.dynamic && legendRows.length > 4;
@@ -2711,24 +2734,54 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
     const barW = Math.round(20 * sc);
     const barH = Math.round(140 * sc);
     const labelGap = Math.round(10 * sc);
+    const tickMarkLen = Math.round(5 * sc);
 
     const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
     const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
+    const q1Idx = Math.floor(legendRows.length * 0.25);
     const midIdx = Math.floor(legendRows.length / 2);
+    const q3Idx = Math.floor(legendRows.length * 0.75);
+    const q1Label = legendRows[q1Idx].label.split('\u2013')[0].trim();
     const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
+    const q3Label = legendRows[q3Idx].label.split('\u2013')[0].trim();
 
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    const maxLW = Math.max(ctx.measureText(topLabel).width, ctx.measureText(midLabel).width, ctx.measureText(bottomLabel).width);
-    const panelW = pad * 2 + barW + labelGap + maxLW;
-    const panelH = pad * 2 + tfs + Math.round(6 * sc) + fs + Math.round(10 * sc) + barH;
-    const px = Math.round(20 * sc);
-    const py = ctx.canvas.height - panelH - Math.round(20 * sc);
+    const maxTickLW = Math.max(
+      ctx.measureText(topLabel).width, ctx.measureText(q3Label).width,
+      ctx.measureText(midLabel).width, ctx.measureText(q1Label).width,
+      ctx.measureText(bottomLabel).width
+    );
+    const contentW = barW + tickMarkLen + labelGap + maxTickLW;
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    const sub1W = ctx.measureText(activeTS).width;
+    const sub2W = ctx.measureText(periodLabel).width;
+    let innerW = Math.max(contentW, sub1W, sub2W);
+    // Wrap title, then expand panel if any line is still wider
+    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+    const titleLines = wrapLabel(ctx, cfg.label, innerW);
+    const maxTitleW = Math.max(...titleLines.map(l => ctx.measureText(l).width));
+    innerW = Math.max(innerW, maxTitleW);
+    const panelW = pad * 2 + innerW;
+    const titleBlockH = titleLines.length * (tfs + Math.round(2 * sc));
+    const panelH = pad * 2 + titleBlockH + Math.round(4 * sc) + fs * 2 + Math.round(4 * sc) + Math.round(14 * sc) + barH;
+    const px = Math.round(24 * sc);
+    const py = ctx.canvas.height - panelH - Math.round(24 * sc);
 
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 12 * sc;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4 * sc;
     ctx.fillStyle = "rgba(18,24,34,0.93)";
-    ctx.fillRect(px, py, panelW, panelH);
-    ctx.strokeStyle = "rgba(255,255,255,0.15)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px, py, panelW, panelH);
+    roundRect(ctx, px, py, panelW, panelH, cornerR);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.lineWidth = Math.round(1.5 * sc);
+    roundRect(ctx, px, py, panelW, panelH, cornerR);
+    ctx.stroke();
 
     let cy = py + pad;
     ctx.textBaseline = "top";
@@ -2736,20 +2789,38 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
 
     ctx.fillStyle = "#ffffff";
     ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(cfg.label, px + pad, cy);
-    cy += tfs + Math.round(5 * sc);
+    titleLines.forEach(line => {
+      ctx.fillText(line, px + pad, cy);
+      cy += tfs + Math.round(2 * sc);
+    });
+    cy += Math.round(2 * sc);
 
     ctx.fillStyle = "#8a99b0";
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`${activeTS}  \u00b7  ${periodLabel}`, px + pad, cy);
-    cy += fs + Math.round(10 * sc);
+    ctx.fillText(activeTS, px + pad, cy);
+    cy += fs + Math.round(2 * sc);
+    ctx.fillText(periodLabel, px + pad, cy);
+    cy += fs + Math.round(4 * sc);
 
-    // Draw gradient bar
+    // Divider line
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + pad, cy);
+    ctx.lineTo(px + panelW - pad, cy);
+    ctx.stroke();
+    cy += Math.round(10 * sc);
+
+    // Draw gradient bar with rounded clip
     const colors = legendRows.map(r => r.color);
     const gradBarX = px + pad;
     const gradBarY = cy;
+    const barR = Math.round(3 * sc);
+    ctx.save();
+    roundRect(ctx, gradBarX, gradBarY, barW, barH, barR);
+    ctx.clip();
     for (let i = 0; i < barH; i++) {
-      const t = 1 - (i / barH); // top = last color, bottom = first color
+      const t = 1 - (i / barH);
       const cIdx = t * (colors.length - 1);
       const lo = Math.floor(cIdx);
       const hi = Math.min(lo + 1, colors.length - 1);
@@ -2758,29 +2829,64 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
       ctx.fillStyle = c;
       ctx.fillRect(gradBarX, gradBarY + i, barW, 1);
     }
+    ctx.restore();
 
-    // Draw tick labels
+    // Draw tick marks and labels (5 ticks)
     ctx.fillStyle = "#c8d4e0";
+    ctx.strokeStyle = "#c8d4e0";
+    ctx.lineWidth = Math.round(1 * sc);
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
     ctx.textBaseline = "middle";
-    const tickX = gradBarX + barW + labelGap;
-    ctx.fillText(topLabel, tickX, gradBarY);
-    ctx.fillText(midLabel, tickX, gradBarY + barH / 2);
-    ctx.fillText(bottomLabel, tickX, gradBarY + barH);
+    const tickX = gradBarX + barW;
+    const labelX = tickX + tickMarkLen + Math.round(4 * sc);
+    const ticks = [
+      { y: gradBarY, label: topLabel },
+      { y: gradBarY + barH * 0.25, label: q3Label },
+      { y: gradBarY + barH * 0.5, label: midLabel },
+      { y: gradBarY + barH * 0.75, label: q1Label },
+      { y: gradBarY + barH, label: bottomLabel }
+    ];
+    ticks.forEach(t => {
+      ctx.beginPath();
+      ctx.moveTo(tickX, t.y);
+      ctx.lineTo(tickX + tickMarkLen, t.y);
+      ctx.stroke();
+      ctx.fillText(t.label, labelX, t.y);
+    });
   } else {
     // Standard swatch rendering
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
     const maxLW  = Math.max(...legendRows.map(r => ctx.measureText(r.label).width));
-    const panelW = pad * 2 + sw + Math.round(12 * sc) + maxLW;
-    const panelH = pad * 2 + tfs + Math.round(6 * sc) + fs + Math.round(10 * sc) + legendRows.length * lh;
-    const px     = Math.round(20 * sc);
-    const py     = ctx.canvas.height - panelH - Math.round(20 * sc);
+    const swatchContentW = sw + Math.round(10 * sc) + maxLW;
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    const sub1W = ctx.measureText(activeTS).width;
+    const sub2W = ctx.measureText(periodLabel).width;
+    let innerW = Math.max(swatchContentW, sub1W, sub2W);
+    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+    const titleLines = wrapLabel(ctx, cfg.label, innerW);
+    const maxTitleW = Math.max(...titleLines.map(l => ctx.measureText(l).width));
+    innerW = Math.max(innerW, maxTitleW);
+    const panelW = pad * 2 + innerW;
+    const titleBlockH = titleLines.length * (tfs + Math.round(2 * sc));
+    const panelH = pad * 2 + titleBlockH + Math.round(4 * sc) + fs * 2 + Math.round(4 * sc) + Math.round(14 * sc) + legendRows.length * lh;
+    const px     = Math.round(24 * sc);
+    const py     = ctx.canvas.height - panelH - Math.round(24 * sc);
 
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 12 * sc;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4 * sc;
     ctx.fillStyle = "rgba(18,24,34,0.93)";
-    ctx.fillRect(px, py, panelW, panelH);
-    ctx.strokeStyle = "rgba(255,255,255,0.15)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px, py, panelW, panelH);
+    roundRect(ctx, px, py, panelW, panelH, cornerR);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.lineWidth = Math.round(1.5 * sc);
+    roundRect(ctx, px, py, panelW, panelH, cornerR);
+    ctx.stroke();
 
     let cy = py + pad;
     ctx.textBaseline = "top";
@@ -2788,20 +2894,36 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
 
     ctx.fillStyle = "#ffffff";
     ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(cfg.label, px + pad, cy);
-    cy += tfs + Math.round(5 * sc);
+    titleLines.forEach(line => {
+      ctx.fillText(line, px + pad, cy);
+      cy += tfs + Math.round(2 * sc);
+    });
+    cy += Math.round(2 * sc);
 
     ctx.fillStyle = "#8a99b0";
     ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`${activeTS}  \u00b7  ${periodLabel}`, px + pad, cy);
-    cy += fs + Math.round(10 * sc);
+    ctx.fillText(activeTS, px + pad, cy);
+    cy += fs + Math.round(2 * sc);
+    ctx.fillText(periodLabel, px + pad, cy);
+    cy += fs + Math.round(4 * sc);
 
+    // Divider line
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + pad, cy);
+    ctx.lineTo(px + panelW - pad, cy);
+    ctx.stroke();
+    cy += Math.round(10 * sc);
+
+    const swatchR = Math.round(3 * sc);
     legendRows.forEach(row => {
       ctx.fillStyle = row.color;
-      ctx.fillRect(px + pad, cy, sw, sh);
+      roundRect(ctx, px + pad, cy, sw, sh, swatchR);
+      ctx.fill();
       ctx.fillStyle = "#c8d4e0";
       ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-      ctx.fillText(row.label, px + pad + sw + Math.round(12 * sc), cy + (sh - fs) / 2);
+      ctx.fillText(row.label, px + pad + sw + Math.round(10 * sc), cy + (sh - fs) / 2);
       cy += lh;
     });
   }
@@ -2883,10 +3005,10 @@ async function takeScreenshot() {
     ctx.textAlign    = "left";
     ctx.fillStyle    = "#e8ecf0";
     ctx.font         = `bold ${titleFS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`${cfg.label}  \u00b7  ${activeTS}  \u00b7  ${periodLabel}`, textX, HEADER_H * 0.36);
+    ctx.fillText(`${cfg.label}  \u00b7  ${activeTS}  \u00b7  ${periodLabel}`, textX, HEADER_H * 0.38);
     ctx.fillStyle = "#8a99b0";
     ctx.font      = `${subFS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`MCO Drought Dashboard  |  Data through: ${dateTxt}`, textX, HEADER_H * 0.72);
+    ctx.fillText(`MCO Drought Dashboard  |  Data through: ${dateTxt}`, textX, HEADER_H * 0.68);
 
     /* ── 3a. Draw captured map — replaces captureBasemap + renderRasterDirect ── */
     ctx.drawImage(mapCapture, 0, HEADER_H, mapW_px, mapH_px);
@@ -2937,16 +3059,19 @@ async function takeScreenshot() {
 
     // Attribution with dark background pill
     const attrText = "Montana Climate Office  |  climate.umt.edu/drought";
-    const attrFS = Math.round(10 * SCALE);
+    const attrFS = Math.round(11 * SCALE);
     ctx.font = `${attrFS}px 'Segoe UI', sans-serif`;
     const attrW = ctx.measureText(attrText).width;
-    const attrPadX = Math.round(8 * SCALE);
-    const attrPadY = Math.round(4 * SCALE);
-    const attrX = mapW_px - Math.round(10 * SCALE) - attrW - attrPadX;
-    const attrY = out.height - Math.round(8 * SCALE) - attrFS - attrPadY;
-    ctx.fillStyle = "rgba(18,24,34,0.65)";
-    ctx.fillRect(attrX, attrY, attrW + attrPadX * 2, attrFS + attrPadY * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    const attrPadX = Math.round(10 * SCALE);
+    const attrPadY = Math.round(5 * SCALE);
+    const attrPillR = Math.round(4 * SCALE);
+    const attrMargin = Math.round(24 * SCALE);
+    const attrX = mapW_px - attrMargin - attrW - attrPadX * 2;
+    const attrY = out.height - attrMargin - attrFS - attrPadY * 2;
+    ctx.fillStyle = "rgba(18,24,34,0.75)";
+    roundRect(ctx, attrX, attrY, attrW + attrPadX * 2, attrFS + attrPadY * 2, attrPillR);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText(attrText, attrX + attrPadX, attrY + attrPadY);
