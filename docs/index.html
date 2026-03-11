@@ -1460,12 +1460,12 @@
   <div id="sidebar">
     <div class="sidebar-inner">
 
-      <!-- Variable — section index 0 -->
-      <div class="section-label" data-sec="sec-variable" style="--i:0">Variable <span class="caret">&#9660;</span></div>
+      <!-- Data Layer — section index 0 -->
+      <div class="section-label" data-sec="sec-variable" style="--i:0">Data Layer <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-variable">
         <!-- Hidden native select (still used by JS) -->
         <select id="var-select">
-          <optgroup label="── Drought Indices ──">
+          <optgroup label="── Drought Metrics ──">
             <option value="spi" selected>Standardized Precipitation Index (SPI)</option>
             <option value="spei">Standardized Precip-Evapotranspiration Index (SPEI)</option>
             <option value="eddi">Evaporative Demand Drought Index (EDDI)</option>
@@ -1477,15 +1477,15 @@
             <option value="precip-pctile">Precipitation — Percentile</option>
             <option value="precip-in">Precipitation — Accumulation (in)</option>
           </optgroup>
+          <optgroup label="── Temperature ──">
+            <option value="tmax-pctile">Maximum Temperature — Percentile</option>
+          </optgroup>
           <optgroup label="── VPD ──">
             <option value="vpd-pon">VPD — Percent of Normal</option>
             <option value="vpd-dev">VPD — Departure</option>
             <option value="vpd-pctile">VPD — Percentile</option>
           </optgroup>
-          <optgroup label="── Temperature ──">
-            <option value="tmax-pctile">Maximum Temperature — Percentile</option>
-          </optgroup>
-          <optgroup label="── Streamflow Percentiles (ML-Model) ──">
+          <optgroup label="── Streamflow ──">
             <option value="hhp">HHP Streamflow Basins</option>
           </optgroup>
         </select>
@@ -1516,6 +1516,11 @@
             <button id="range-reset">Auto</button>
           </div>
         </div>
+
+        <label class="custom-check" id="query-row" style="margin-top:8px;">
+          <input type="checkbox" id="query-chk">
+          Point query (click map)
+        </label>
       </div>
 
       <!-- Timescale — section index 1 -->
@@ -1566,10 +1571,6 @@
         <label class="custom-check" id="tribal-row">
           <input type="checkbox" id="tribal-chk">
           Tribal Nations
-        </label>
-        <label class="custom-check" id="query-row">
-          <input type="checkbox" id="query-chk">
-          Point query (click map)
         </label>
         <label class="custom-check" id="usdm-row">
           <input type="checkbox" id="usdm-chk">
