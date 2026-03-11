@@ -39,6 +39,7 @@
   <!-- html2canvas for pixel-perfect screenshot export -->
   <script defer src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
+
   <style>
     /* ================================================================
        CSS Custom Properties
@@ -1072,6 +1073,22 @@
       border: 1px solid var(--border-glass);
     }
 
+    #usdm-legend {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      z-index: 900;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 12px;
+      min-width: 150px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-glass);
+    }
+
     .sf-leg-title {
       font-weight: 600;
       font-size: 13px;
@@ -1520,6 +1537,10 @@
           <input type="checkbox" id="query-chk">
           Point query (click map)
         </label>
+        <label class="custom-check" id="usdm-row">
+          <input type="checkbox" id="usdm-chk">
+          U.S. Drought Monitor
+        </label>
       </div>
 
       <!-- Zoom to State — section index 6 -->
@@ -1626,6 +1647,17 @@
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#303B83"></span>98–100%</div>
 </div>
 
+<!-- USDM legend -->
+<div id="usdm-legend" style="display:none">
+  <div class="sf-leg-title">U.S. Drought Monitor</div>
+  <div class="sf-leg-period" id="usdm-date"></div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FFFF00"></span>D0 — Abnormally Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FCD37F"></span>D1 — Moderate Drought</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FFAA00"></span>D2 — Severe Drought</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#E60000"></span>D3 — Extreme Drought</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#730000"></span>D4 — Exceptional Drought</div>
+</div>
+
 <!-- HHP basin flow panel -->
 <div id="flow-panel">
   <div id="flow-panel-header">
@@ -1679,6 +1711,7 @@ const EXCLUDED_BASINS = [
 
 let hhpLayer = null, hhpLoaded = false;
 let usgsStreamLayer = null, usgsStreamLoaded = false;
+let usdmLayer = null, usdmLoaded = false;
 
 /* ── Hand-tuned default color arrays (11 colors each) ───────── */
 const USDM_COLORS = ["#730000","#E60000","#FFAA00","#FCD37F","#FFFF00","#FFFFFF",
@@ -2045,6 +2078,7 @@ document.getElementById("var-select").addEventListener("change", function() {
     map.removeLayer(hhpLayer);
     const usgsOn = usgsStreamLayer && map.hasLayer(usgsStreamLayer);
     if (!usgsOn) document.getElementById("sf-legend").style.display = "none";
+    stackRightLegends();
   }
 
   activeVar = this.value;
@@ -2083,6 +2117,7 @@ document.getElementById("var-select").addEventListener("change", function() {
       if (statesLayer) statesLayer.bringToFront();
       if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
       document.getElementById("sf-legend").style.display = "block";
+      stackRightLegends();
     })();
     return;
   }
@@ -2390,6 +2425,7 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
     this.classList.remove("is-on");
     const sfOn = document.getElementById("var-select").value === "hhp";
     if (!sfOn) document.getElementById("sf-legend").style.display = "none";
+    stackRightLegends();
     return;
   }
 
@@ -2401,6 +2437,106 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
   this.querySelector("span").textContent = "Remove Current USGS Percentiles";
   this.classList.add("is-on");
   document.getElementById("sf-legend").style.display = "block";
+  stackRightLegends();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   U.S. DROUGHT MONITOR OVERLAY
+   ════════════════════════════════════════════════════════════════ */
+const USDM_DM_COLORS = {
+  0: "#FFFF00",   // D0 Abnormally Dry
+  1: "#FCD37F",   // D1 Moderate Drought
+  2: "#FFAA00",   // D2 Severe Drought
+  3: "#E60000",   // D3 Extreme Drought
+  4: "#730000"    // D4 Exceptional Drought
+};
+const USDM_DM_LABELS = {
+  0: "D0 — Abnormally Dry",
+  1: "D1 — Moderate Drought",
+  2: "D2 — Severe Drought",
+  3: "D3 — Extreme Drought",
+  4: "D4 — Exceptional Drought"
+};
+
+async function loadUsdm() {
+  const resp = await fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json");
+  const geojson = await resp.json();
+
+  // Simplify coordinates for faster rendering (~19MB → ~600KB effective)
+  function dpDist(p, a, b) {
+    const dx = b[0]-a[0], dy = b[1]-a[1];
+    if (dx === 0 && dy === 0) return Math.hypot(p[0]-a[0], p[1]-a[1]);
+    const t = Math.max(0, Math.min(1, ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / (dx*dx + dy*dy)));
+    return Math.hypot(p[0]-(a[0]+t*dx), p[1]-(a[1]+t*dy));
+  }
+  function dpSimplify(pts, eps) {
+    if (pts.length <= 2) return pts;
+    let dmax = 0, idx = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const d = dpDist(pts[i], pts[0], pts[pts.length-1]);
+      if (d > dmax) { dmax = d; idx = i; }
+    }
+    if (dmax > eps) {
+      const left = dpSimplify(pts.slice(0, idx+1), eps);
+      const right = dpSimplify(pts.slice(idx), eps);
+      return left.slice(0, -1).concat(right);
+    }
+    return [pts[0], pts[pts.length-1]];
+  }
+  const eps = 0.01; // ~1km tolerance
+  function simplifyRing(ring) { const s = dpSimplify(ring, eps); return s.length >= 4 ? s : ring; }
+  function simplifyGeom(geom) {
+    if (geom.type === 'Polygon') geom.coordinates = geom.coordinates.map(simplifyRing);
+    else if (geom.type === 'MultiPolygon') geom.coordinates = geom.coordinates.map(p => p.map(simplifyRing));
+  }
+  geojson.features.forEach(f => simplifyGeom(f.geometry));
+
+  // Sort so higher severity draws on top
+  geojson.features.sort((a, b) => a.properties.DM - b.properties.DM);
+
+  usdmLayer = L.geoJson(geojson, {
+    style: f => ({
+      fillColor: USDM_DM_COLORS[f.properties.DM] || "#999",
+      weight: 0.6,
+      opacity: 0.7,
+      color: "#333",
+      fillOpacity: 0.55
+    }),
+    onEachFeature: (f, layer) => {
+      const dm = f.properties.DM;
+      layer.bindTooltip(USDM_DM_LABELS[dm] || `D${dm}`, { direction: "auto", sticky: true });
+    }
+  });
+  usdmLoaded = true;
+}
+
+function stackRightLegends() {
+  const sf = document.getElementById("sf-legend");
+  const usdm = document.getElementById("usdm-legend");
+  if (sf.style.display !== "none" && usdm.style.display !== "none") {
+    usdm.style.bottom = (30 + sf.offsetHeight + 8) + "px";
+  } else {
+    usdm.style.bottom = "30px";
+  }
+}
+
+document.getElementById("usdm-chk").addEventListener("change", async function () {
+  if (!this.checked) {
+    if (usdmLayer) map.removeLayer(usdmLayer);
+    document.getElementById("usdm-legend").style.display = "none";
+    stackRightLegends();
+    return;
+  }
+  if (!usdmLoaded) {
+    document.getElementById("spinner").style.display = "flex";
+    try { await loadUsdm(); } finally { document.getElementById("spinner").style.display = "none"; }
+  }
+  usdmLayer.addTo(map);
+  // Ensure boundary layers stay on top
+  if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
+  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  document.getElementById("usdm-legend").style.display = "block";
+  stackRightLegends();
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -2929,6 +3065,77 @@ function drawLegendOnCanvas(ctx, offsetY, sc) {
   }
 }
 
+function drawUsdmLegendOnCanvas(ctx, offsetY, sc) {
+  if (!usdmLayer || !map.hasLayer(usdmLayer)) return;
+
+  const pad = Math.round(22 * sc);
+  const fs  = Math.round(12 * sc);
+  const tfs = Math.round(15 * sc);
+  const sw  = Math.round(22 * sc);
+  const sh  = Math.round(16 * sc);
+  const lh  = sh + Math.round(6 * sc);
+  const cornerR = Math.round(10 * sc);
+  const swatchR = Math.round(3 * sc);
+
+  const rows = [
+    { color: "#FFFF00", label: "D0 — Abnormally Dry" },
+    { color: "#FCD37F", label: "D1 — Moderate Drought" },
+    { color: "#FFAA00", label: "D2 — Severe Drought" },
+    { color: "#E60000", label: "D3 — Extreme Drought" },
+    { color: "#730000", label: "D4 — Exceptional Drought" }
+  ];
+
+  const title = "U.S. Drought Monitor";
+
+  ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+  const maxLW = Math.max(...rows.map(r => ctx.measureText(r.label).width));
+  const swatchContentW = sw + Math.round(10 * sc) + maxLW;
+  ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+  const titleW = ctx.measureText(title).width;
+  const innerW = Math.max(swatchContentW, titleW);
+
+  const panelW = pad * 2 + innerW;
+  const panelH = pad * 2 + tfs + Math.round(10 * sc) + rows.length * lh;
+  const margin = Math.round(24 * sc);
+  const px = ctx.canvas.width - panelW - margin;
+  const py = ctx.canvas.height - panelH - margin;
+
+  // Shadow
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 12 * sc;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 4 * sc;
+  ctx.fillStyle = "rgba(18,24,34,0.93)";
+  roundRect(ctx, px, py, panelW, panelH, cornerR);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  ctx.lineWidth = Math.round(1.5 * sc);
+  roundRect(ctx, px, py, panelW, panelH, cornerR);
+  ctx.stroke();
+
+  let cy = py + pad;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
+  ctx.fillText(title, px + pad, cy);
+  cy += tfs + Math.round(10 * sc);
+
+  rows.forEach(row => {
+    ctx.fillStyle = row.color;
+    roundRect(ctx, px + pad, cy, sw, sh, swatchR);
+    ctx.fill();
+    ctx.fillStyle = "#c8d4e0";
+    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
+    ctx.fillText(row.label, px + pad + sw + Math.round(10 * sc), cy + (sh - fs) / 2);
+    cy += lh;
+  });
+}
+
 async function takeScreenshot() {
   const btn = document.getElementById("screenshot-btn");
   btn.disabled = true;
@@ -3056,6 +3263,7 @@ async function takeScreenshot() {
 
     // Legend
     drawLegendOnCanvas(ctx, HEADER_H, SCALE);
+    drawUsdmLegendOnCanvas(ctx, HEADER_H, SCALE);
 
     // Attribution with dark background pill
     const attrText = "Montana Climate Office  |  climate.umt.edu/drought";
@@ -3424,6 +3632,7 @@ if (activeVar === 'hhp') {
     if (statesLayer) statesLayer.bringToFront();
     if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
     document.getElementById("sf-legend").style.display = "block";
+    stackRightLegends();
   })();
 } else {
   loadLayer(activeVar, activeTS, activePeriod);
