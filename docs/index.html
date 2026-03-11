@@ -1673,7 +1673,7 @@ function makeStepScale(breaks, colors) {
 
 function makeBreakLabels(breaks, colors, fmt) {
   const rows = [];
-  for (let i = 1; i < breaks.length - 1; i++) {
+  for (let i = 1; i < breaks.length; i++) {
     const lo = breaks[i - 1] === -999 ? null : breaks[i - 1];
     const hi = breaks[i]     ===  999 ? null : breaks[i];
     let label;
