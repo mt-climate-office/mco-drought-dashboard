@@ -1565,7 +1565,7 @@
           State boundaries
         </label>
         <label class="custom-check" id="counties-row">
-          <input type="checkbox" id="counties-chk">
+          <input type="checkbox" id="counties-chk" checked>
           County boundaries
         </label>
         <label class="custom-check" id="tribal-row">
@@ -2341,6 +2341,8 @@ async function loadCounties() {
         layer.bindTooltip(name, { sticky: true, className: "county-tooltip" });
       }
     });
+    countiesLayer.addTo(map);
+    if (statesLayer) statesLayer.bringToFront();
   } catch(e) {
     console.warn("County boundary load failed:", e);
   }
