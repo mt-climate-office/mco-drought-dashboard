@@ -1748,7 +1748,8 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
+//const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
+const BASE_URL = "https://data.climate.umt.edu/share/latest/conus_drought_web_latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -2042,8 +2043,8 @@ const map = L.map("map", { zoomControl: false, zoomSnap: 0.5, zoomDelta: 0.5 });
 L.control.zoom({ position: 'topright' }).addTo(map);
 
 const BASEMAPS = {
-  light:     { url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",  opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
-  dark:      { url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",   opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
+  light:     { url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",  opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
+  dark:      { url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",   opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
   voyager:   { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opts: { maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.esri.com/">Esri</a>' } },
 };
@@ -2901,27 +2902,17 @@ function buildLegend(varKey, ts, period, legendRows) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   DATE FETCH
+   DATE EXTRACTION FROM GEOTIFF METADATA
    ════════════════════════════════════════════════════════════════ */
-async function fetchDate(varKey, ts, period) {
-  const cfg = VAR_CONFIG[varKey];
-  const url = `${BASE_URL}/latest-date.txt`;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error("not found");
-    activeDate = (await resp.text()).trim();
-  } catch {
-    activeDate = "Date N/A";
-  }
-  // Rebuild legend with updated date — need current legendRows from cache
-  const tifUrl = `${BASE_URL}/${cfg.prefix}${ts}_${period}.tif`;
-  const geo = georasterCache[tifUrl];
-  if (geo && legendCtrl) {
-    const paletteKey = VAR_CONFIG[varKey].defaultPalette;
-    const rangeOv = getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(geo) : null);
-    const { legendRows } = buildScale(varKey, paletteKey, geo, rangeOv);
-    buildLegend(varKey, ts, period, legendRows);
-  }
+const dateCache = {};  // url → date string
+
+function extractDateFromTiff(buffer) {
+  // GDAL metadata and band descriptions are stored as ASCII in the TIFF.
+  // Scan the first 200KB for an ISO date (YYYY-MM-DD).
+  const n = Math.min(buffer.byteLength, 200000);
+  const text = new TextDecoder('ascii', { fatal: false }).decode(new Uint8Array(buffer, 0, n));
+  const match = text.match(/\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : null;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2971,7 +2962,10 @@ function prefetch(varKey, ts, period) {
   if (georasterCache[url]) return;
   fetch(url)
     .then(r => r.ok ? r.arrayBuffer() : Promise.reject())
-    .then(buf => parseGeoraster(buf))
+    .then(buf => {
+      if (!dateCache[url]) dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
+      return parseGeoraster(buf);
+    })
     .then(gr => { georasterCache[url] = gr; })
     .catch(() => {});
 }
@@ -2986,9 +2980,9 @@ function loadLayer(varKey, ts, period) {
 
   if (georasterCache[url]) {
     updateRangeSection(varKey, georasterCache[url]);
+    activeDate = dateCache[url] || "Date N/A";
     renderLayer(georasterCache[url], varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
       getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georasterCache[url]) : null));
-    fetchDate(varKey, ts, period);
     return;
   }
 
@@ -3001,15 +2995,18 @@ function loadLayer(varKey, ts, period) {
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
       return r.arrayBuffer();
     })
-    .then(buf => parseGeoraster(buf))
+    .then(buf => {
+      dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
+      return parseGeoraster(buf);
+    })
     .then(georaster => {
       georasterCache[url] = georaster;
+      activeDate = dateCache[url];
       updateRangeSection(varKey, georaster);
       if (prevLayer) { map.removeLayer(prevLayer); }
       renderLayer(georaster, varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
         getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georaster) : null));
       hideSpinner();
-      fetchDate(varKey, ts, period);
       const idle = window.requestIdleCallback || (cb => setTimeout(cb, 200));
       const idx = TIMESCALES.indexOf(ts);
       [-1, 1].forEach(offset => {
