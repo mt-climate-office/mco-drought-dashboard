@@ -6,6 +6,15 @@
   <meta name="description" content="Montana Climate Office Drought Dashboard — interactive maps of drought indices, soil moisture, precipitation, and streamflow across Montana.">
   <title>MCO Drought Dashboard</title>
 
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5ERLJYJQC5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-5ERLJYJQC5');
+  </script>
+
   <!-- Resource hints -->
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -241,6 +250,106 @@
     }
 
     #explorer-btn svg { flex-shrink: 0; }
+
+    #github-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    #github-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
+
+    #github-btn svg { flex-shrink: 0; }
+
+    /* ── Nav actions overflow → More dropdown ───────────────────── */
+    #nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      flex-shrink: 1;
+      min-width: 0;
+    }
+
+    #nav-more-wrap {
+      position: relative;
+      flex-shrink: 0;
+      display: none; /* shown by JS when items overflow */
+    }
+
+    #nav-more-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      transition: var(--transition);
+    }
+
+    #nav-more-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
+
+    #nav-more-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      min-width: 180px;
+      z-index: 2000;
+      padding: 4px 0;
+    }
+
+    #nav-more-dropdown.open { display: block; }
+
+    #nav-more-dropdown a,
+    #nav-more-dropdown button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    #nav-more-dropdown a:hover,
+    #nav-more-dropdown button:hover {
+      background: rgba(26,111,175,0.1);
+      color: var(--text-primary);
+    }
+
+    #nav-more-dropdown svg { flex-shrink: 0; }
 
     #share-btn {
       background: none;
@@ -1451,34 +1560,50 @@
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
   </a>
   <div class="brand"><span>MCO</span> Drought Dashboard</div>
-  <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
-    </svg>
-    Export
-  </button>
-  <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" title="View methodology documentation">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-    </svg>
-    Methods
-  </a>
-  <a href="https://d2cs6zlcfp21pz.cloudfront.net/" target="_blank" rel="noopener" id="explorer-btn" title="Explore drought data interactively">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-    </svg>
-    Data Explorer
-  </a>
-  <button id="share-btn" title="Copy shareable link to clipboard">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-    </svg>
-    Share
-    <span class="share-toast">Link copied!</span>
-  </button>
+  <div id="nav-actions">
+    <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Export
+    </button>
+    <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" class="nav-action-item" title="View methodology documentation">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+      Methods
+    </a>
+    <a href="https://d2cs6zlcfp21pz.cloudfront.net/" target="_blank" rel="noopener" id="explorer-btn" class="nav-action-item" title="Explore drought data interactively">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Data Explorer
+    </a>
+    <a href="https://github.com/mt-climate-office/mco-drought-conus" target="_blank" rel="noopener" id="github-btn" class="nav-action-item" title="View source on GitHub">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      GitHub
+    </a>
+    <button id="share-btn" class="nav-action-item" title="Copy shareable link to clipboard">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      Share
+      <span class="share-toast">Link copied!</span>
+    </button>
+  </div>
+  <div id="nav-more-wrap">
+    <button id="nav-more-btn" title="More actions">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+      </svg>
+    </button>
+    <div id="nav-more-dropdown"></div>
+  </div>
 </nav>
 
 <!-- Sidebar collapse tab -->
@@ -1780,8 +1905,8 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-//const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
-const BASE_URL = "https://data.climate.umt.edu/share/latest";
+const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
+//const BASE_URL = "https://data.climate.umt.edu/share/latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -4109,6 +4234,81 @@ window.addEventListener('popstate', function() {
   updateVarInfo(activeVar);
   loadLayer(activeVar, activeTS, activePeriod);
 });
+
+/* ── Nav overflow → "More" dropdown ──────────────────────────── */
+(function initNavOverflow() {
+  const actions = document.getElementById('nav-actions');
+  const moreWrap = document.getElementById('nav-more-wrap');
+  const moreBtn = document.getElementById('nav-more-btn');
+  const dropdown = document.getElementById('nav-more-dropdown');
+  const items = [...actions.querySelectorAll('.nav-action-item')];
+
+  function updateOverflow() {
+    // Reset: show all items, hide More
+    items.forEach(el => el.style.display = '');
+    moreWrap.style.display = 'none';
+    dropdown.innerHTML = '';
+
+    // Check which items overflow the container
+    const containerRight = actions.getBoundingClientRect().right;
+    const overflowed = [];
+    items.forEach(el => {
+      if (el.getBoundingClientRect().right > containerRight + 1) {
+        overflowed.push(el);
+      }
+    });
+
+    if (overflowed.length === 0) return;
+
+    // Show More button, hide overflowed items
+    moreWrap.style.display = 'block';
+
+    // Recheck after More button takes space
+    const containerRight2 = actions.getBoundingClientRect().right;
+    items.forEach(el => {
+      if (el.getBoundingClientRect().right > containerRight2 + 1) {
+        if (!overflowed.includes(el)) overflowed.push(el);
+      }
+    });
+
+    overflowed.forEach(el => {
+      el.style.display = 'none';
+      // Clone into dropdown
+      const clone = el.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.classList.remove('nav-action-item');
+      clone.style.display = '';
+      // For screenshot button, wire up the onclick
+      if (el.id === 'screenshot-btn') {
+        clone.removeAttribute('onclick');
+        clone.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(); });
+      }
+      // For share button, wire up click
+      if (el.id === 'share-btn') {
+        clone.addEventListener('click', () => {
+          dropdown.classList.remove('open');
+          document.getElementById('share-btn').click();
+        });
+      }
+      // Close dropdown on link click
+      if (clone.tagName === 'A') {
+        clone.addEventListener('click', () => dropdown.classList.remove('open'));
+      }
+      dropdown.appendChild(clone);
+    });
+  }
+
+  moreBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+
+  document.addEventListener('click', () => dropdown.classList.remove('open'));
+  dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  window.addEventListener('resize', updateOverflow);
+  updateOverflow();
+})();
 
 // Mobile overlay click closes sidebar
 document.getElementById('mobile-overlay').addEventListener('click', function() {
