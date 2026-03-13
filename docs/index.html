@@ -2166,7 +2166,10 @@ function zoomToState(code) {
   } else if (code && STATE_BOUNDS[code]) {
     map.fitBounds(STATE_BOUNDS[code], { padding: [20, 20] });
   } else {
+    // Temporarily allow fractional zoom for a precise CONUS fit
+    map.options.zoomSnap = 0;
     map.fitBounds([[24, -126], [50, -66]]);
+    map.options.zoomSnap = 0.5;
   }
 }
 
