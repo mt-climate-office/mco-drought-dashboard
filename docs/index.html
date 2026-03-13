@@ -1749,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', function() {
    CONFIG
    ════════════════════════════════════════════════════════════════ */
 //const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
-const BASE_URL = "https://data.climate.umt.edu/share/latest/conus_drought_web_latest";
+const BASE_URL = "https://data.climate.umt.edu/share/latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -1833,7 +1833,7 @@ const VAR_CONFIG = {
   'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
   'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
   'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
-  'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-in_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
+  'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-mm_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', mmToIn: true, description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
   'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
   'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
@@ -1915,14 +1915,15 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
       }),
     };
   } else if (cfg.dynamicType === 'sequential') {
-    const cs    = chroma.scale(colors).domain([dMin, dMax]).mode("lab");
+    const seqMin = Math.max(0, dMin);
+    const cs    = chroma.scale(colors).domain([seqMin, dMax]).mode("lab");
     const steps = 6;
-    const span  = dMax - dMin;
+    const span  = dMax - seqMin;
     return {
       scaleFn: v => cs(v),
       legendRows: Array.from({ length: steps }, (_, i) => {
-        const lo = dMin + span / steps * i;
-        const hi = dMin + span / steps * (i + 1);
+        const lo = seqMin + span / steps * i;
+        const hi = seqMin + span / steps * (i + 1);
         return { color: cs((lo + hi) / 2).hex(), label: `${lo.toFixed(1)} – ${hi.toFixed(1)} in` };
       }),
     };
