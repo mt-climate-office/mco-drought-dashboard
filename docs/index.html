@@ -3514,12 +3514,12 @@ async function takeScreenshot() {
     // Line 1: Full variable name
     ctx.fillStyle = "#f0f2f5";
     ctx.font = `bold ${line1FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(fullVarName, textX, TITLE_H * 0.28);
+    ctx.fillText(`${fullVarName} \u2014 ${tsLabel}`, textX, TITLE_H * 0.28);
 
     // Line 2: Metadata
     ctx.fillStyle = "#94a3b8";
     ctx.font = `${line2FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`Timescale: ${tsLabel}  |  Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
+    ctx.fillText(`Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
 
     // Line 3: Source
     ctx.fillStyle = "#64748b";
