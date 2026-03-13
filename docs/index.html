@@ -1467,7 +1467,7 @@
         <select id="var-select">
           <optgroup label="── Drought Metrics ──">
             <option value="spi" selected>Standardized Precipitation Index (SPI)</option>
-            <option value="spei">Standardized Precip-Evapotranspiration Index (SPEI)</option>
+            <option value="spei">Standardized Precipitation Evapotranspiration Index (SPEI)</option>
             <option value="eddi">Evaporative Demand Drought Index (EDDI)</option>
             <option value="svpdi">Standardized Vapor Pressure Deficit Index (SVPDI)</option>
           </optgroup>
@@ -1748,8 +1748,8 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-//const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
-const BASE_URL = "https://data.climate.umt.edu/share/latest/conus_drought_web_latest";
+const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
+//const BASE_URL = "https://data.climate.umt.edu/share/latest/conus_drought_web_latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -1827,7 +1827,7 @@ function getPaletteColors(key, n, reversed) {
 /* ── Variable catalog ─────────────────────────────────────────── */
 const VAR_CONFIG = {
   spi:          { label: "SPI",                             prefix: "spi_",          paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation Index (SPI) measures precipitation anomalies relative to a long-term climatology. Negative values indicate drought conditions; positive values indicate wet conditions." },
-  spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation-Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
+  spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
   eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
   'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
@@ -1839,6 +1839,18 @@ const VAR_CONFIG = {
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
   'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
+};
+
+/* ── Screenshot helpers: full names & timescale labels ──────── */
+function getFullVarName(varKey) {
+  const opt = document.querySelector(`#var-select option[value="${varKey}"]`);
+  return opt ? opt.textContent.trim() : VAR_CONFIG[varKey].label;
+}
+const TS_FULL = {
+  "15d":"15 Days", "30d":"30 Days", "45d":"45 Days",
+  "60d":"60 Days", "90d":"90 Days", "120d":"120 Days",
+  "180d":"180 Days", "365d":"1 Year", "730d":"2 Years",
+  "wy":"Water Year", "ytd":"Year to Date"
 };
 
 /* ── Scale builders ──────────────────────────────────────────── */
@@ -2051,7 +2063,10 @@ const BASEMAPS = {
 
 let baseTile = L.tileLayer(BASEMAPS.voyager.url, BASEMAPS.voyager.opts).addTo(map);
 
+// Initial fit: temporarily allow fractional zoom for a precise CONUS fit
+map.options.zoomSnap = 0;
 map.fitBounds([[24, -126], [50, -66]]);
+map.options.zoomSnap = 0.5;
 
 const COUNTY_MIN_ZOOM = 6;
 function updateCountyTooltips() {
@@ -2296,6 +2311,8 @@ async function loadStates() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const topo = await resp.json();
     const geojson = topojson.feature(topo, topo.objects.states);
+    const EXCLUDE_FIPS = new Set(["02","15","60","66","69","72","78"]);
+    geojson.features = geojson.features.filter(f => !EXCLUDE_FIPS.has(String(f.id).padStart(2,"0")));
     statesLayer = L.geoJSON(geojson, {
       style: { color: "#445", weight: 2.5, fill: false, opacity: 0.7 }
     }).addTo(map);
@@ -2334,6 +2351,8 @@ async function loadCounties() {
     }
 
     const geojson = topojson.feature(topo, topo.objects.counties);
+    const EXCLUDE_ST = new Set(["02","15","60","66","69","72","78"]);
+    geojson.features = geojson.features.filter(f => !EXCLUDE_ST.has(String(f.id).slice(0, 2).padStart(2,"0")));
     countiesLayer = L.geoJSON(geojson, {
       style: { color: "#334", weight: 0.6, fillOpacity: 0, opacity: 0.55 },
       onEachFeature: function(feature, layer) {
@@ -2653,7 +2672,7 @@ async function loadUsdmManifest() {
   for (let i = usdmAllDates.length - 1; i >= 0; i--) {
     const o = document.createElement("option");
     o.value = usdmAllDates[i];
-    o.textContent = usdmAllDates[i];
+    o.textContent = formatDate(usdmAllDates[i]);
     sel.appendChild(o);
   }
 
@@ -2689,7 +2708,8 @@ function updateUsdmWeekLabel() {
   if (idx === usdmRecentDates.length - 1) {
     label.textContent = "Latest";
   } else {
-    label.textContent = usdmRecentDates[idx] || "";
+    const d = usdmRecentDates[idx];
+    label.textContent = d ? d.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_, y, m, dd) => `${+m}-${+dd}-${y}`) : "";
   }
   slider.style.setProperty('--fill', (idx / (usdmRecentDates.length - 1) * 100) + '%');
 }
@@ -2697,7 +2717,7 @@ function updateUsdmWeekLabel() {
 async function loadUsdmForDate(dateStr) {
   if (usdmActiveDate === dateStr && usdmLoaded) return;
   usdmActiveDate = dateStr;
-  document.getElementById("usdm-date").textContent = dateStr;
+  document.getElementById("usdm-date").textContent = formatDate(dateStr);
 
   // Fetch and parse geoparquet
   const pqResp = await fetch(USDM_BASE + "/data/parquet/USDM_" + dateStr + ".parquet");
@@ -2895,7 +2915,7 @@ function buildLegend(varKey, ts, period, legendRows) {
     div.innerHTML = `
       <h4>${cfg.label.replace(/\s*\u2014\s*/g, '<br>')}</h4>
       <div class="legend-sub">${ts}<br>${periodLabel}</div>
-      <div class="legend-date">${activeDate}</div>
+      <div class="legend-date">${formatDate(activeDate)}</div>
       ${legendBody}
     `;
     return div;
@@ -2907,6 +2927,13 @@ function buildLegend(varKey, ts, period, legendRows) {
    DATE EXTRACTION FROM GEOTIFF METADATA
    ════════════════════════════════════════════════════════════════ */
 const dateCache = {};  // url → date string
+
+function formatDate(iso) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
 
 function extractDateFromTiff(buffer) {
   // GDAL metadata and band descriptions are stored as ASCII in the TIFF.
@@ -3131,320 +3158,276 @@ function roundRect(ctx, x, y, w, h, r) {
 /* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
    screenshot export now uses html2canvas for pixel-perfect capture) */
 
-function drawLegendOnCanvas(ctx, offsetY, sc) {
+function drawFooterLegend(ctx, footerY, sc) {
   const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
   const geo = georasterCache[url];
-  if (!geo) return;
+  if (!geo) return 0;
 
   const rangeOv = getRangeOverride() || (VAR_CONFIG[activeVar].dynamic ? getVisibleRange(geo) : null);
   const { legendRows } = buildScale(activeVar, VAR_CONFIG[activeVar].defaultPalette, geo, rangeOv);
-  if (!legendRows || !legendRows.length) return;
+  if (!legendRows || !legendRows.length) return 0;
 
-  const cfg         = VAR_CONFIG[activeVar];
-  const periodLabel = activePeriod === "rolling-30" ? "Rolling 30yr" : "Full Period";
-
-  const sw  = Math.round(22 * sc);
-  const sh  = Math.round(16 * sc);
-  const lh  = sh + Math.round(6 * sc);
-  const pad = Math.round(22 * sc);
-  const fs  = Math.round(12 * sc);
-  const tfs = Math.round(15 * sc);
-  const cornerR = Math.round(10 * sc);
-
-  // Split label on em dash first, then word-wrap remaining lines
-  function wrapLabel(ctx, text, maxW) {
-    // Split on em dash separator (e.g. "Precipitation — Percentile")
-    const parts = text.split(/\s*\u2014\s*/);
-    const lines = [];
-    for (const part of parts) {
-      const words = part.split(' ');
-      let line = words[0];
-      for (let i = 1; i < words.length; i++) {
-        const test = line + ' ' + words[i];
-        if (ctx.measureText(test).width > maxW) {
-          lines.push(line);
-          line = words[i];
-        } else {
-          line = test;
-        }
-      }
-      lines.push(line);
-    }
-    return lines;
-  }
-
-  // Determine if we use gradient bar mode
+  const cfg = VAR_CONFIG[activeVar];
   const useGradient = cfg.dynamic && legendRows.length > 4;
+  const margin = Math.round(24 * sc);
+  const titleFS = Math.round(11 * sc);
+  const labelFS = Math.round(10 * sc);
+  const tickMarkLen = Math.round(4 * sc);
+
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
 
   if (useGradient) {
-    // Gradient bar rendering
-    const barW = Math.round(20 * sc);
-    const barH = Math.round(140 * sc);
-    const labelGap = Math.round(10 * sc);
-    const tickMarkLen = Math.round(5 * sc);
+    // Horizontal gradient bar
+    const maxBarW = Math.round(200 * sc);
+    const barH = Math.round(14 * sc);
+    const availW = ctx.canvas.width - margin * 4;
+    const barW = Math.min(maxBarW, Math.round(availW * 0.4));
 
-    const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
-    const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
-    const q1Idx = Math.floor(legendRows.length * 0.25);
-    const midIdx = Math.floor(legendRows.length / 2);
-    const q3Idx = Math.floor(legendRows.length * 0.75);
-    const q1Label = legendRows[q1Idx].label.split('\u2013')[0].trim();
-    const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
-    const q3Label = legendRows[q3Idx].label.split('\u2013')[0].trim();
+    const shortLabel = cfg.label;
+    const barX = margin;
+    let cy = footerY + Math.round(8 * sc);
 
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    const maxTickLW = Math.max(
-      ctx.measureText(topLabel).width, ctx.measureText(q3Label).width,
-      ctx.measureText(midLabel).width, ctx.measureText(q1Label).width,
-      ctx.measureText(bottomLabel).width
-    );
-    const contentW = barW + tickMarkLen + labelGap + maxTickLW;
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    const sub1W = ctx.measureText(activeTS).width;
-    const sub2W = ctx.measureText(periodLabel).width;
-    let innerW = Math.max(contentW, sub1W, sub2W);
-    // Wrap title, then expand panel if any line is still wider
-    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    const titleLines = wrapLabel(ctx, cfg.label, innerW);
-    const maxTitleW = Math.max(...titleLines.map(l => ctx.measureText(l).width));
-    innerW = Math.max(innerW, maxTitleW);
-    const panelW = pad * 2 + innerW;
-    const titleBlockH = titleLines.length * (tfs + Math.round(2 * sc));
-    const panelH = pad * 2 + titleBlockH + Math.round(4 * sc) + fs * 2 + Math.round(4 * sc) + Math.round(14 * sc) + barH;
-    const px = Math.round(24 * sc);
-    const py = ctx.canvas.height - panelH - Math.round(24 * sc);
-
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = 12 * sc;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4 * sc;
-    ctx.fillStyle = "rgba(18,24,34,0.93)";
-    roundRect(ctx, px, py, panelW, panelH, cornerR);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
-    ctx.lineWidth = Math.round(1.5 * sc);
-    roundRect(ctx, px, py, panelW, panelH, cornerR);
-    ctx.stroke();
-
-    let cy = py + pad;
-    ctx.textBaseline = "top";
+    // Title centered over bar
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(shortLabel, barX + barW / 2, cy);
     ctx.textAlign = "left";
+    cy += titleFS + Math.round(4 * sc);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    titleLines.forEach(line => {
-      ctx.fillText(line, px + pad, cy);
-      cy += tfs + Math.round(2 * sc);
-    });
-    cy += Math.round(2 * sc);
-
-    ctx.fillStyle = "#8a99b0";
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(activeTS, px + pad, cy);
-    cy += fs + Math.round(2 * sc);
-    ctx.fillText(periodLabel, px + pad, cy);
-    cy += fs + Math.round(4 * sc);
-
-    // Divider line
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(px + pad, cy);
-    ctx.lineTo(px + panelW - pad, cy);
-    ctx.stroke();
-    cy += Math.round(10 * sc);
-
-    // Draw gradient bar with rounded clip
+    // Draw horizontal gradient bar
     const colors = legendRows.map(r => r.color);
-    const gradBarX = px + pad;
-    const gradBarY = cy;
     const barR = Math.round(3 * sc);
     ctx.save();
-    roundRect(ctx, gradBarX, gradBarY, barW, barH, barR);
+    roundRect(ctx, barX, cy, barW, barH, barR);
     ctx.clip();
-    for (let i = 0; i < barH; i++) {
-      const t = 1 - (i / barH);
+    for (let i = 0; i < barW; i++) {
+      const t = i / barW;
       const cIdx = t * (colors.length - 1);
       const lo = Math.floor(cIdx);
       const hi = Math.min(lo + 1, colors.length - 1);
       const frac = cIdx - lo;
       const c = chroma.mix(colors[lo], colors[hi], frac).hex();
       ctx.fillStyle = c;
-      ctx.fillRect(gradBarX, gradBarY + i, barW, 1);
+      ctx.fillRect(barX + i, cy, 1, barH);
     }
     ctx.restore();
 
-    // Draw tick marks and labels (5 ticks)
+    const barBottom = cy + barH;
+
+    // 3 tick labels (min, mid, max) to avoid overlap
+    const minLabel = legendRows[0].label.split('\u2013')[0].trim();
+    const maxLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
+    const midIdx = Math.floor(legendRows.length / 2);
+    const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
+
     ctx.fillStyle = "#c8d4e0";
     ctx.strokeStyle = "#c8d4e0";
     ctx.lineWidth = Math.round(1 * sc);
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.textBaseline = "middle";
-    const tickX = gradBarX + barW;
-    const labelX = tickX + tickMarkLen + Math.round(4 * sc);
+    ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+
     const ticks = [
-      { y: gradBarY, label: topLabel },
-      { y: gradBarY + barH * 0.25, label: q3Label },
-      { y: gradBarY + barH * 0.5, label: midLabel },
-      { y: gradBarY + barH * 0.75, label: q1Label },
-      { y: gradBarY + barH, label: bottomLabel }
+      { x: barX, label: minLabel, align: "left" },
+      { x: barX + barW * 0.5, label: midLabel, align: "center" },
+      { x: barX + barW, label: maxLabel, align: "right" }
     ];
     ticks.forEach(t => {
       ctx.beginPath();
-      ctx.moveTo(tickX, t.y);
-      ctx.lineTo(tickX + tickMarkLen, t.y);
+      ctx.moveTo(t.x, barBottom);
+      ctx.lineTo(t.x, barBottom + tickMarkLen);
       ctx.stroke();
-      ctx.fillText(t.label, labelX, t.y);
+      ctx.textAlign = t.align;
+      ctx.fillText(t.label, t.x, barBottom + tickMarkLen + Math.round(2 * sc));
     });
+    ctx.textAlign = "left";
+
+    return barX + barW + Math.round(40 * sc);
   } else {
-    // Standard swatch rendering
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    const maxLW  = Math.max(...legendRows.map(r => ctx.measureText(r.label).width));
-    const swatchContentW = sw + Math.round(10 * sc) + maxLW;
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    const sub1W = ctx.measureText(activeTS).width;
-    const sub2W = ctx.measureText(periodLabel).width;
-    let innerW = Math.max(swatchContentW, sub1W, sub2W);
-    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    const titleLines = wrapLabel(ctx, cfg.label, innerW);
-    const maxTitleW = Math.max(...titleLines.map(l => ctx.measureText(l).width));
-    innerW = Math.max(innerW, maxTitleW);
-    const panelW = pad * 2 + innerW;
-    const titleBlockH = titleLines.length * (tfs + Math.round(2 * sc));
-    const panelH = pad * 2 + titleBlockH + Math.round(4 * sc) + fs * 2 + Math.round(4 * sc) + Math.round(14 * sc) + legendRows.length * lh;
-    const px     = Math.round(24 * sc);
-    const py     = ctx.canvas.height - panelH - Math.round(24 * sc);
+    // Horizontal swatches — size each cell to fit its label
+    const swH = Math.round(14 * sc);
+    const swatchR = Math.round(2 * sc);
+    const cellGap = Math.round(6 * sc);
+    const shortLabel = cfg.label;
 
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = 12 * sc;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4 * sc;
-    ctx.fillStyle = "rgba(18,24,34,0.93)";
-    roundRect(ctx, px, py, panelW, panelH, cornerR);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
-    ctx.lineWidth = Math.round(1.5 * sc);
-    roundRect(ctx, px, py, panelW, panelH, cornerR);
-    ctx.stroke();
-
-    let cy = py + pad;
-    ctx.textBaseline = "top";
-    ctx.textAlign    = "left";
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-    titleLines.forEach(line => {
-      ctx.fillText(line, px + pad, cy);
-      cy += tfs + Math.round(2 * sc);
+    // Measure each label to determine cell widths
+    ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+    const minCellW = Math.round(28 * sc);
+    const cellWidths = legendRows.map(row => {
+      const lw = ctx.measureText(row.label).width;
+      return Math.max(minCellW, Math.round(lw + 4 * sc));
     });
-    cy += Math.round(2 * sc);
+    const totalW = cellWidths.reduce((a, b) => a + b, 0) + cellGap * (legendRows.length - 1);
 
-    ctx.fillStyle = "#8a99b0";
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(activeTS, px + pad, cy);
-    cy += fs + Math.round(2 * sc);
-    ctx.fillText(periodLabel, px + pad, cy);
-    cy += fs + Math.round(4 * sc);
+    let cx = margin;
+    let cy = footerY + Math.round(8 * sc);
 
-    // Divider line
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(px + pad, cy);
-    ctx.lineTo(px + panelW - pad, cy);
-    ctx.stroke();
-    cy += Math.round(10 * sc);
+    // Title centered over the swatch strip
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(shortLabel, margin + totalW / 2, cy);
+    ctx.textAlign = "left";
+    cy += titleFS + Math.round(4 * sc);
 
-    const swatchR = Math.round(3 * sc);
-    legendRows.forEach(row => {
+    // Draw swatches — each sized to its label width
+    const swatchStartX = cx;
+    const swatchY = cy;
+    legendRows.forEach((row, i) => {
       ctx.fillStyle = row.color;
-      roundRect(ctx, px + pad, cy, sw, sh, swatchR);
+      roundRect(ctx, cx, cy, cellWidths[i], swH, swatchR);
       ctx.fill();
-      ctx.fillStyle = "#c8d4e0";
-      ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-      ctx.fillText(row.label, px + pad + sw + Math.round(10 * sc), cy + (sh - fs) / 2);
-      cy += lh;
+      cx += cellWidths[i] + cellGap;
     });
+
+    // Labels centered below each swatch
+    ctx.fillStyle = "#c8d4e0";
+    ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+    const labelY = swatchY + swH + Math.round(3 * sc);
+    cx = swatchStartX;
+    legendRows.forEach((row, i) => {
+      ctx.textAlign = "center";
+      ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+      cx += cellWidths[i] + cellGap;
+    });
+    ctx.textAlign = "left";
+
+    return cx + Math.round(40 * sc);
   }
 }
 
-function drawUsdmLegendOnCanvas(ctx, offsetY, sc) {
+function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
   if (!usdmLayer || !map.hasLayer(usdmLayer)) return;
 
-  const pad = Math.round(22 * sc);
-  const fs  = Math.round(12 * sc);
-  const tfs = Math.round(15 * sc);
-  const sw  = Math.round(22 * sc);
-  const sh  = Math.round(16 * sc);
-  const lh  = sh + Math.round(6 * sc);
-  const cornerR = Math.round(10 * sc);
-  const swatchR = Math.round(3 * sc);
-
   const rows = [
-    { color: "#FFFF00", label: "D0 — Abnormally Dry" },
-    { color: "#FCD37F", label: "D1 — Moderate Drought" },
-    { color: "#FFAA00", label: "D2 — Severe Drought" },
-    { color: "#E60000", label: "D3 — Extreme Drought" },
-    { color: "#730000", label: "D4 — Exceptional Drought" }
+    { color: "#FFFF00", label: "D0" },
+    { color: "#FCD37F", label: "D1" },
+    { color: "#FFAA00", label: "D2" },
+    { color: "#E60000", label: "D3" },
+    { color: "#730000", label: "D4" }
   ];
 
   const title = "U.S. Drought Monitor";
+  const titleFS = Math.round(11 * sc);
+  const labelFS = Math.round(10 * sc);
+  const swW = Math.round(24 * sc);
+  const swH = Math.round(14 * sc);
+  const gap = Math.round(6 * sc);
+  const swatchR = Math.round(2 * sc);
 
-  ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-  const maxLW = Math.max(...rows.map(r => ctx.measureText(r.label).width));
-  const swatchContentW = sw + Math.round(10 * sc) + maxLW;
-  ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-  const titleW = ctx.measureText(title).width;
-  const innerW = Math.max(swatchContentW, titleW);
+  const totalW = rows.length * swW + (rows.length - 1) * gap;
 
-  const panelW = pad * 2 + innerW;
-  const panelH = pad * 2 + tfs + Math.round(10 * sc) + rows.length * lh;
-  const margin = Math.round(24 * sc);
-  const px = ctx.canvas.width - panelW - margin;
-  const py = ctx.canvas.height - panelH - margin;
+  let cx = startX;
+  let cy = footerY + Math.round(8 * sc);
 
-  // Shadow
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 12 * sc;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 4 * sc;
-  ctx.fillStyle = "rgba(18,24,34,0.93)";
-  roundRect(ctx, px, py, panelW, panelH, cornerR);
-  ctx.fill();
-  ctx.restore();
-
-  ctx.strokeStyle = "rgba(255,255,255,0.10)";
-  ctx.lineWidth = Math.round(1.5 * sc);
-  roundRect(ctx, px, py, panelW, panelH, cornerR);
-  ctx.stroke();
-
-  let cy = py + pad;
   ctx.textBaseline = "top";
+
+  // Title centered over swatches
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(title, startX + totalW / 2, cy);
   ctx.textAlign = "left";
+  cy += titleFS + Math.round(4 * sc);
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${tfs}px 'Segoe UI', sans-serif`;
-  ctx.fillText(title, px + pad, cy);
-  cy += tfs + Math.round(10 * sc);
-
+  // Horizontal swatches
+  const swatchStartX = cx;
   rows.forEach(row => {
     ctx.fillStyle = row.color;
-    roundRect(ctx, px + pad, cy, sw, sh, swatchR);
+    roundRect(ctx, cx, cy, swW, swH, swatchR);
     ctx.fill();
-    ctx.fillStyle = "#c8d4e0";
-    ctx.font = `${fs}px 'Segoe UI', sans-serif`;
-    ctx.fillText(row.label, px + pad + sw + Math.round(10 * sc), cy + (sh - fs) / 2);
-    cy += lh;
+    cx += swW + gap;
   });
+
+  // Labels centered below each swatch
+  ctx.fillStyle = "#c8d4e0";
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const labelY = cy + swH + Math.round(3 * sc);
+  cx = swatchStartX;
+  rows.forEach(row => {
+    ctx.textAlign = "center";
+    ctx.fillText(row.label, cx + swW / 2, labelY);
+    cx += swW + gap;
+  });
+  ctx.textAlign = "left";
+}
+
+function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
+  // Only draw if the streamflow legend is visible on the map
+  const sfLeg = document.getElementById("sf-legend");
+  if (!sfLeg || sfLeg.style.display === "none") return 0;
+
+  const rows = [
+    { color: "#730000", label: "0–2%" },
+    { color: "#E60000", label: "2–5%" },
+    { color: "#FFAA00", label: "5–10%" },
+    { color: "#FCD37F", label: "10–20%" },
+    { color: "#FFFF00", label: "20–30%" },
+    { color: "#FFFFFF", label: "30–70%" },
+    { color: "#82FCF9", label: "70–80%" },
+    { color: "#32E1FA", label: "80–90%" },
+    { color: "#325CFE", label: "90–95%" },
+    { color: "#4030E3", label: "95–98%" },
+    { color: "#303B83", label: "98–100%" }
+  ];
+
+  const title = "Streamflow Percentile";
+  const titleFS = Math.round(11 * sc);
+  const labelFS = Math.round(9 * sc);
+  const circleR = Math.round(6 * sc);
+  const cellGap = Math.round(4 * sc);
+
+  // Measure cell widths based on labels
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const minCellW = circleR * 2 + Math.round(4 * sc);
+  const cellWidths = rows.map(row => {
+    const lw = ctx.measureText(row.label).width;
+    return Math.max(minCellW, Math.round(lw + 2 * sc));
+  });
+  const totalW = cellWidths.reduce((a, b) => a + b, 0) + cellGap * (rows.length - 1);
+
+  let cx = startX;
+  let cy = footerY + Math.round(8 * sc);
+
+  ctx.textBaseline = "top";
+
+  // Title centered over circles
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(title, startX + totalW / 2, cy);
+  ctx.textAlign = "left";
+  cy += titleFS + Math.round(4 * sc);
+
+  // Draw circles in a row (like map markers)
+  const circleY = cy + circleR;
+  rows.forEach((row, i) => {
+    const centerX = cx + cellWidths[i] / 2;
+    // Fill
+    ctx.beginPath();
+    ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
+    ctx.fillStyle = row.color;
+    ctx.fill();
+    // Stroke (black outline like on map)
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = Math.round(0.8 * sc);
+    ctx.stroke();
+    cx += cellWidths[i] + cellGap;
+  });
+
+  // Labels below circles
+  ctx.fillStyle = "#c8d4e0";
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const labelY = circleY + circleR + Math.round(3 * sc);
+  cx = startX;
+  rows.forEach((row, i) => {
+    ctx.textAlign = "center";
+    ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+    cx += cellWidths[i] + cellGap;
+  });
+  ctx.textAlign = "left";
+
+  return cx + Math.round(20 * sc);
 }
 
 async function takeScreenshot() {
@@ -3459,8 +3442,6 @@ async function takeScreenshot() {
     const SCALE    = 2;
     const mapW_px  = mapEl.offsetWidth  * SCALE;
     const mapH_px  = mapEl.offsetHeight * SCALE;
-    const HEADER_H = Math.round(68 * SCALE);
-
     /* ── 0. Force Leaflet to sync its internal state with the DOM ── */
     map.invalidateSize({ animate: false });
 
@@ -3494,42 +3475,70 @@ async function takeScreenshot() {
     if (svgPane) svgPane.style.visibility = svgPaneOrigVis;
     if (controlContainer) controlContainer.style.visibility = controlOrigVis;
 
-    /* ── 2. Build output canvas with header ────────────────────── */
+    /* ── 2. Build output canvas with title band + footer ──────── */
+    const TITLE_H  = Math.round(110 * SCALE);
+    const FOOTER_H = Math.round(70 * SCALE);
     const out = document.createElement("canvas");
     out.width  = mapW_px;
-    out.height = mapH_px + HEADER_H;
+    out.height = TITLE_H + mapH_px + FOOTER_H;
     const ctx  = out.getContext("2d");
 
-    // Header background
-    ctx.fillStyle = "#1e2530";
-    ctx.fillRect(0, 0, mapW_px, HEADER_H);
+    // ── Title band background ──
+    ctx.fillStyle = "#1a1f2a";
+    ctx.fillRect(0, 0, mapW_px, TITLE_H);
+    // Accent line at bottom of title band
     ctx.fillStyle = "#1a6faf";
-    ctx.fillRect(0, HEADER_H - Math.round(3 * SCALE), mapW_px, Math.round(3 * SCALE));
+    ctx.fillRect(0, TITLE_H - Math.round(3 * SCALE), mapW_px, Math.round(3 * SCALE));
 
-    // Logo
-    const logoH = HEADER_H - Math.round(16 * SCALE);
+    // Logo — 70px height at 1x
+    const logoH = Math.round(70 * SCALE);
     const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
-    ctx.drawImage(_logoCache, Math.round(14 * SCALE), Math.round(8 * SCALE), logoW, logoH);
+    const logoMargin = Math.round(24 * SCALE);
+    ctx.drawImage(_logoCache, logoMargin, Math.round((TITLE_H - Math.round(3 * SCALE) - logoH) / 2), logoW, logoH);
 
-    // Header text
+    // Title text block (3 lines)
     const cfg         = VAR_CONFIG[activeVar];
-    const periodLabel = activePeriod === "rolling-30" ? "Rolling 30yr" : "Full Period";
-    const dateTxt     = activeDate;
-    const titleFS     = Math.round(16 * SCALE);
-    const subFS       = Math.round(11 * SCALE);
-    const textX       = logoW + Math.round(22 * SCALE);
+    const periodLabel = activePeriod === "rolling-30" ? "Rolling 30-Year Baseline" : "Full Period of Record";
+    const dateTxt     = formatDate(activeDate);
+    const tsLabel     = TS_FULL[activeTS] || activeTS;
+    const fullVarName = getFullVarName(activeVar);
+
+    const textX = logoMargin + logoW + Math.round(20 * SCALE);
+    const line1FS = Math.round(22 * SCALE);
+    const line2FS = Math.round(14 * SCALE);
+    const line3FS = Math.round(12 * SCALE);
 
     ctx.textBaseline = "middle";
     ctx.textAlign    = "left";
-    ctx.fillStyle    = "#e8ecf0";
-    ctx.font         = `bold ${titleFS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`${cfg.label}  \u00b7  ${activeTS}  \u00b7  ${periodLabel}`, textX, HEADER_H * 0.38);
-    ctx.fillStyle = "#8a99b0";
-    ctx.font      = `${subFS}px 'Segoe UI', sans-serif`;
-    ctx.fillText(`MCO Drought Dashboard  |  Data through: ${dateTxt}`, textX, HEADER_H * 0.68);
 
-    /* ── 3a. Draw captured map — replaces captureBasemap + renderRasterDirect ── */
-    ctx.drawImage(mapCapture, 0, HEADER_H, mapW_px, mapH_px);
+    // Line 1: Full variable name
+    ctx.fillStyle = "#f0f2f5";
+    ctx.font = `bold ${line1FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText(fullVarName, textX, TITLE_H * 0.28);
+
+    // Line 2: Metadata
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = `${line2FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText(`Timescale: ${tsLabel}  |  Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
+
+    // Line 3: Source
+    ctx.fillStyle = "#64748b";
+    ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("Montana Climate Office Drought Dashboard", textX, TITLE_H * 0.74);
+
+    // Right-aligned: URL + generated date in title band
+    const rightMargin = mapW_px - logoMargin;
+    const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("https://drought.climate.umt.edu/", rightMargin, TITLE_H * 0.53);
+    ctx.fillStyle = "#64748b";
+    ctx.fillText(`Generated: ${generatedDate}`, rightMargin, TITLE_H * 0.74);
+    ctx.textAlign = "left";
+
+    /* ── 3a. Draw captured map ── */
+    ctx.drawImage(mapCapture, 0, TITLE_H, mapW_px, mapH_px);
 
     /* ── 3b. Composite SVG vector overlays (states, counties) ─────
        XMLSerializer + getBoundingClientRect correctly handles Leaflet's
@@ -3539,7 +3548,7 @@ async function takeScreenshot() {
     for (const svgEl of svgEls) {
       const svgRect = svgEl.getBoundingClientRect();
       const sx = (svgRect.left - mapRect.left) * SCALE;
-      const sy = (svgRect.top  - mapRect.top)  * SCALE + HEADER_H;
+      const sy = (svgRect.top  - mapRect.top)  * SCALE + TITLE_H;
       const sw = svgRect.width  * SCALE;
       const sh = svgRect.height * SCALE;
 
@@ -3572,28 +3581,29 @@ async function takeScreenshot() {
       });
     }
 
-    // Legend
-    drawLegendOnCanvas(ctx, HEADER_H, SCALE);
-    drawUsdmLegendOnCanvas(ctx, HEADER_H, SCALE);
+    /* ── 4. Draw footer band ── */
+    const footerTop = TITLE_H + mapH_px;
+    // Footer background
+    ctx.fillStyle = "#1a1f2a";
+    ctx.fillRect(0, footerTop, mapW_px, FOOTER_H);
+    // Accent line at top of footer
+    ctx.fillStyle = "#1a6faf";
+    ctx.fillRect(0, footerTop, mapW_px, Math.round(3 * SCALE));
 
-    // Attribution with dark background pill
-    const attrText = "Montana Climate Office  |  climate.umt.edu/drought";
-    const attrFS = Math.round(11 * SCALE);
-    ctx.font = `${attrFS}px 'Segoe UI', sans-serif`;
-    const attrW = ctx.measureText(attrText).width;
-    const attrPadX = Math.round(10 * SCALE);
-    const attrPadY = Math.round(5 * SCALE);
-    const attrPillR = Math.round(4 * SCALE);
-    const attrMargin = Math.round(24 * SCALE);
-    const attrX = mapW_px - attrMargin - attrW - attrPadX * 2;
-    const attrY = out.height - attrMargin - attrFS - attrPadY * 2;
-    ctx.fillStyle = "rgba(18,24,34,0.75)";
-    roundRect(ctx, attrX, attrY, attrW + attrPadX * 2, attrFS + attrPadY * 2, attrPillR);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.textBaseline = "top";
-    ctx.textAlign = "left";
-    ctx.fillText(attrText, attrX + attrPadX, attrY + attrPadY);
+    // Draw primary legend (horizontal) in footer — returns rightEdgeX
+    const footerContentY = footerTop + Math.round(3 * SCALE);
+    let legendRightX = Math.round(24 * SCALE);
+    if (!VAR_CONFIG[activeVar].noRaster) {
+      const rx = drawFooterLegend(ctx, footerContentY, SCALE);
+      if (rx) legendRightX = rx;
+    }
+
+    // Draw streamflow legend (circles like on map) if active
+    const sfRx = drawStreamflowFooterLegend(ctx, footerContentY, legendRightX, SCALE);
+    if (sfRx) legendRightX = sfRx;
+
+    // Draw USDM legend in footer (to right of other legends)
+    drawUsdmFooterLegend(ctx, footerContentY, legendRightX, SCALE);
 
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
