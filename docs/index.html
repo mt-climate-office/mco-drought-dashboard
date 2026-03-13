@@ -308,31 +308,6 @@
       user-select: all;
     }
 
-    #share-modal .share-label {
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin: 12px 0 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    #share-modal .share-label:first-of-type { margin-top: 0; }
-
-    #share-modal-export-url {
-      width: 100%;
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-mono);
-      word-break: break-all;
-      cursor: text;
-      user-select: all;
-    }
-
     #share-modal-actions {
       display: flex;
       gap: 8px;
@@ -351,12 +326,12 @@
       transition: var(--transition);
     }
 
-    #share-copy-btn, #share-copy-export-btn {
+    #share-copy-btn {
       background: var(--accent);
       color: #fff;
     }
 
-    #share-copy-btn:hover, #share-copy-export-btn:hover { background: var(--accent-dk); }
+    #share-copy-btn:hover { background: var(--accent-dk); }
 
     #share-close-btn {
       background: var(--bg-elevated);
@@ -3037,7 +3012,7 @@ function loadLayer(varKey, ts, period) {
     activeDate = dateCache[url] || "Date N/A";
     renderLayer(georasterCache[url], varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
       getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georasterCache[url]) : null));
-    window.dispatchEvent(new Event('mco-layer-ready'));
+
     return;
   }
 
@@ -3062,7 +3037,7 @@ function loadLayer(varKey, ts, period) {
       renderLayer(georaster, varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
         getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georaster) : null));
       hideSpinner();
-      window.dispatchEvent(new Event('mco-layer-ready'));
+  
       const idle = window.requestIdleCallback || (cb => setTimeout(cb, 200));
       const idx = TIMESCALES.indexOf(ts);
       [-1, 1].forEach(offset => {
@@ -3787,14 +3762,8 @@ function buildShareUrl() {
 
 document.getElementById("share-btn").addEventListener("click", function() {
   const url = buildShareUrl();
-  // Put ?export=png before the hash so both search and hash are parsed correctly
-  const hashIdx = url.indexOf('#');
-  const base = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
-  const hash = hashIdx >= 0 ? url.slice(hashIdx) : '';
-  const exportUrl = base + (base.includes('?') ? '&' : '?') + 'export=png' + hash;
   const overlay = document.getElementById("share-modal-overlay");
   document.getElementById("share-modal-url").textContent = url;
-  document.getElementById("share-modal-export-url").textContent = exportUrl;
   overlay.classList.add("active");
 });
 
@@ -3802,17 +3771,7 @@ document.getElementById("share-copy-btn").addEventListener("click", function() {
   const url = document.getElementById("share-modal-url").textContent;
   navigator.clipboard.writeText(url).then(() => {
     this.textContent = "Copied!";
-    setTimeout(() => { this.textContent = "Copy Dashboard Link"; }, 1500);
-  }).catch(() => {
-    prompt("Copy this link:", url);
-  });
-});
-
-document.getElementById("share-copy-export-btn").addEventListener("click", function() {
-  const url = document.getElementById("share-modal-export-url").textContent;
-  navigator.clipboard.writeText(url).then(() => {
-    this.textContent = "Copied!";
-    setTimeout(() => { this.textContent = "Copy Export Link"; }, 1500);
+    setTimeout(() => { this.textContent = "Copy to Clipboard"; }, 1500);
   }).catch(() => {
     prompt("Copy this link:", url);
   });
@@ -3828,7 +3787,7 @@ document.getElementById("share-modal-overlay").addEventListener("click", functio
 window.buildShareUrl = buildShareUrl;
 
 function loadState() {
-  const hash = window.location.hash.slice(1).split('?')[0];
+  const hash = window.location.hash.slice(1);
   if (!hash) return null;
   const parts = hash.split('/');
   const v = parts[0], ts = parts[1], period = parts[2], zoomSt = parts[3] || '';
@@ -4002,7 +3961,7 @@ if (activeVar === 'hhp') {
     if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
     document.getElementById("sf-legend").style.display = "block";
     stackRightLegends();
-    window.dispatchEvent(new Event('mco-layer-ready'));
+
   })();
 } else {
   loadLayer(activeVar, activeTS, activePeriod);
@@ -4046,31 +4005,6 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
   if (sidebarOpen) toggleSidebar();
 });
 
-/* ── Auto-export mode: ?export=png triggers screenshot on load ── */
-// Support ?export=png before or after the hash
-const _exportSearch = window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '');
-const _exportParams = new URLSearchParams(_exportSearch);
-if (_exportParams.get('export') === 'png') {
-  const params = _exportParams;
-  const expW = parseInt(params.get('width'))  || null;
-  const expH = parseInt(params.get('height')) || null;
-  // Hide sidebar for clean export
-  const sidebar = document.getElementById('sidebar');
-  const mapEl   = document.getElementById('map');
-  if (sidebar) sidebar.style.display = 'none';
-  if (mapEl) mapEl.style.left = '0';
-  if (expW && expH) {
-    mapEl.style.width  = expW + 'px';
-    mapEl.style.height = expH + 'px';
-  }
-  map.invalidateSize({ animate: false });
-  // Wait for layer to load, then screenshot
-  window.addEventListener('mco-layer-ready', function autoExport() {
-    window.removeEventListener('mco-layer-ready', autoExport);
-    // Small delay to let tiles finish rendering
-    setTimeout(() => { takeScreenshot(); }, 2000);
-  }, { once: true });
-}
 
 }); // end DOMContentLoaded
 </script>
@@ -4079,14 +4013,10 @@ if (_exportParams.get('export') === 'png') {
 <div id="share-modal-overlay">
   <div id="share-modal">
     <h3>Share this view</h3>
-    <div class="share-label">Dashboard Link</div>
     <div id="share-modal-url"></div>
-    <div class="share-label">Screenshot Export Link</div>
-    <div id="share-modal-export-url"></div>
     <div id="share-modal-actions">
       <button id="share-close-btn">Close</button>
-      <button id="share-copy-export-btn">Copy Export Link</button>
-      <button id="share-copy-btn">Copy Dashboard Link</button>
+      <button id="share-copy-btn">Copy to Clipboard</button>
     </div>
   </div>
 </div>
