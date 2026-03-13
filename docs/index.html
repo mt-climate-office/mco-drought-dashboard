@@ -217,6 +217,31 @@
 
     #methods-btn svg { flex-shrink: 0; }
 
+    #explorer-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    #explorer-btn:hover {
+      background: rgba(26,111,175,0.1);
+      border-color: var(--accent);
+    }
+
+    #explorer-btn svg { flex-shrink: 0; }
+
     #share-btn {
       background: none;
       border: 1px solid var(--border);
@@ -1439,6 +1464,12 @@
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
     </svg>
     Methods
+  </a>
+  <a href="https://d2cs6zlcfp21pz.cloudfront.net/" target="_blank" rel="noopener" id="explorer-btn" title="Explore drought data interactively">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Data Explorer
   </a>
   <button id="share-btn" title="Copy shareable link to clipboard">
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
