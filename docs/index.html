@@ -1565,8 +1565,8 @@
       <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
-          <button class="period-btn active" data-period="rolling-30">Rolling 30yr</button>
-          <button class="period-btn" data-period="full">Full Period</button>
+          <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling"></button>
+          <button class="period-btn" data-period="full" id="period-btn-full"></button>
         </div>
       </div>
 
@@ -2164,6 +2164,15 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
 /* ════════════════════════════════════════════════════════════════
    PERIOD TOGGLE
    ════════════════════════════════════════════════════════════════ */
+const _currentYear = new Date().getFullYear();
+const _rolling30Start = _currentYear - 29;
+function getPeriodLabel(period) {
+  if (period === "rolling-30") return `Rolling 30-Year (${_rolling30Start}\u2013${_currentYear})`;
+  return `Full Period (1979\u2013${_currentYear})`;
+}
+document.getElementById("period-btn-rolling").textContent = getPeriodLabel("rolling-30");
+document.getElementById("period-btn-full").textContent = getPeriodLabel("full");
+
 document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.dataset.period === activePeriod) return;
@@ -2345,9 +2354,9 @@ function updateVarInfo(varKey) {
   // Reference period in plain English
   let periodText;
   if (activePeriod === "rolling-30")
-    periodText = "Anomalies are calculated relative to the most recent 30 years of data, which tracks the contemporary climate.";
+    periodText = `Anomalies are calculated relative to a rolling 30-year baseline (${_rolling30Start}\u2013${_currentYear}), which tracks the contemporary climate.`;
   else
-    periodText = "Anomalies are calculated relative to the entire historical record (since 1979), providing a long-term perspective.";
+    periodText = `Anomalies are calculated relative to the full historical record (1979\u2013${_currentYear}), providing a long-term perspective.`;
 
   const isRaw = (varKey === "precip-in");
 
@@ -2939,7 +2948,7 @@ function buildLegend(varKey, ts, period, legendRows) {
   if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
 
   const cfg         = VAR_CONFIG[varKey];
-  const periodLabel = period === "rolling-30" ? "Rolling 30yr" : "Full Period";
+  const periodLabel = getPeriodLabel(period);
 
   legendCtrl = L.control({ position: "bottomleft" });
   legendCtrl.onAdd = function() {
@@ -3575,16 +3584,38 @@ async function takeScreenshot() {
     const logoH = Math.round(70 * SCALE);
     const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
     const logoMargin = Math.round(24 * SCALE);
-    ctx.drawImage(_logoCache, logoMargin, Math.round((TITLE_H - Math.round(3 * SCALE) - logoH) / 2), logoW, logoH);
+    const logoPad = Math.round(6 * SCALE);
+    const logoX = logoMargin;
+    const logoY = Math.round((TITLE_H - Math.round(3 * SCALE) - logoH - logoPad * 2) / 2);
+    const logoR = Math.round(10 * SCALE);
+    // White background with rounded corners
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
+    ctx.fill();
+    ctx.restore();
+    // Black border
+    ctx.save();
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = Math.round(1.5 * SCALE);
+    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
+    ctx.stroke();
+    ctx.restore();
+    // Draw logo inside the padded area, clipped to rounded rect
+    ctx.save();
+    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
+    ctx.clip();
+    ctx.drawImage(_logoCache, logoX + logoPad, logoY + logoPad, logoW, logoH);
+    ctx.restore();
 
     // Title text block (3 lines)
     const cfg         = VAR_CONFIG[activeVar];
-    const periodLabel = activePeriod === "rolling-30" ? "Rolling 30-Year Baseline" : "Full Period of Record";
+    const periodLabel = getPeriodLabel(activePeriod);
     const dateTxt     = formatDate(activeDate);
     const tsLabel     = TS_FULL[activeTS] || activeTS;
     const fullVarName = getFullVarName(activeVar);
 
-    const textX = logoMargin + logoW + Math.round(20 * SCALE);
+    const textX = logoMargin + logoW + logoPad * 2 + Math.round(20 * SCALE);
     const line1FS = Math.round(22 * SCALE);
     const line2FS = Math.round(14 * SCALE);
     const line3FS = Math.round(12 * SCALE);
