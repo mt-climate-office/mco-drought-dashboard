@@ -1207,6 +1207,7 @@
 
     .hide-county-tooltips .county-tooltip { display: none !important; }
 
+
     /* ================================================================
        Variable Info
        ================================================================ */
@@ -2256,6 +2257,25 @@ function updateCountyTooltips() {
 }
 map.on("zoomend", updateCountyTooltips);
 updateCountyTooltips();
+
+var mapMoving = false;
+var origOpenTooltip = L.Layer.prototype.openTooltip;
+L.Layer.prototype.openTooltip = function () {
+  if (mapMoving) return this;
+  return origOpenTooltip.apply(this, arguments);
+};
+map.on("movestart zoomstart", function () {
+  mapMoving = true;
+  map.eachLayer(function (l) {
+    if (l.getTooltip && l.getTooltip()) l.closeTooltip();
+  });
+});
+map.on("moveend zoomend", function () {
+  map.eachLayer(function (l) {
+    if (l.getTooltip && l.getTooltip()) l.closeTooltip();
+  });
+  setTimeout(function () { mapMoving = false; }, 50);
+});
 
 /* ════════════════════════════════════════════════════════════════
    TIMESCALE STRIP
