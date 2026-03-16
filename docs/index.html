@@ -1991,11 +1991,11 @@ const VAR_CONFIG = {
   spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
   eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
-  'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
+  'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
   'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
   'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
   'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-mm_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', mmToIn: true, description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
-  'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
+  'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
   'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
   'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
@@ -2066,15 +2066,19 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
   if (cfg.dynamicType === 'diverging_centered') {
     const ctr    = cfg.center || 0;
     const absMax = Math.max(Math.abs(dMin - ctr), Math.abs(dMax - ctr));
+    const domainMin = cfg.clampMin != null ? Math.max(cfg.clampMin, ctr - absMax) : ctr - absMax;
+    const domainMax = ctr + absMax;
     const cs     = chroma.scale(colors).domain([ctr - absMax, ctr, ctr + absMax]).mode("lab");
     const steps  = 6;
+    const span   = domainMax - domainMin;
     return {
       scaleFn: v => cs(v),
       legendRows: Array.from({ length: steps * 2 }, (_, i) => {
-        const lo = (ctr - absMax) + absMax * 2 / (steps * 2) * i;
-        const hi = lo + absMax * 2 / (steps * 2);
-        return { color: cs((lo + hi) / 2).hex(), label: `${lo.toFixed(0)} – ${hi.toFixed(0)}` };
-      }),
+        const lo = domainMin + span / (steps * 2) * i;
+        const hi = domainMin + span / (steps * 2) * (i + 1);
+        if (hi <= domainMin) return null;
+        return { color: cs((lo + hi) / 2).hex(), label: `${Math.max(lo, domainMin).toFixed(0)} – ${hi.toFixed(0)}` };
+      }).filter(Boolean),
     };
   } else if (cfg.dynamicType === 'sequential') {
     const seqMin = Math.max(0, dMin);
@@ -2164,7 +2168,8 @@ function symmetrizeRange(cfg, mn, mx) {
   if (cfg.dynamicType === 'diverging_centered') {
     const ctr = cfg.center || 0;
     const absMax = Math.max(Math.abs(mn - ctr), Math.abs(mx - ctr));
-    return { min: ctr - absMax, max: ctr + absMax };
+    const lo = cfg.clampMin != null ? Math.max(cfg.clampMin, ctr - absMax) : ctr - absMax;
+    return { min: lo, max: ctr + absMax };
   } else if (cfg.dynamicType === 'diverging') {
     const absMax = Math.max(Math.abs(mn), Math.abs(mx));
     return { min: -absMax, max: absMax };
@@ -2655,8 +2660,10 @@ document.getElementById("tribal-chk").addEventListener("change", async function(
    ════════════════════════════════════════════════════════════════ */
 let queryActive = false;
 let queryPopup = null;
+let queryLastLatLng = null;
 
 function queryRasterAt(latlng) {
+  queryLastLatLng = latlng;
   const cfg = VAR_CONFIG[activeVar];
   if (!cfg || cfg.noRaster) {
     // HHP vector — query feature properties instead
@@ -2756,6 +2763,7 @@ document.getElementById("query-chk").addEventListener("change", function() {
   if (!queryActive && queryPopup) {
     map.closePopup(queryPopup);
     queryPopup = null;
+    queryLastLatLng = null;
   }
 });
 
@@ -3194,6 +3202,9 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   buildLegend(varKey, ts, period, legendRows);
   if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
   if (statesLayer) statesLayer.bringToFront();
+
+  // Re-query the pinned point so the popup updates with the new dataset
+  if (queryActive && queryLastLatLng) queryRasterAt(queryLastLatLng);
 }
 
 /* ════════════════════════════════════════════════════════════════
