@@ -2591,8 +2591,9 @@ document.getElementById("var-select").addEventListener("change", function() {
       }
       hhpLayer.addTo(map);
       document.getElementById('map-skeleton')?.remove();
-      if (statesLayer) statesLayer.bringToFront();
       if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+      if (statesLayer) statesLayer.bringToFront();
+      hhpLayer.bringToFront();
       document.getElementById("sf-legend").style.display = "block";
       stackRightLegends();
     })();
@@ -2748,7 +2749,7 @@ async function loadCounties() {
 
 document.getElementById("counties-chk").addEventListener("change", function() {
   if (!countiesLayer) return;
-  if (this.checked) { countiesLayer.addTo(map); if (statesLayer) statesLayer.bringToFront(); }
+  if (this.checked) { countiesLayer.addTo(map); if (statesLayer) statesLayer.bringToFront(); if (hhpLayer && map.hasLayer(hhpLayer)) hhpLayer.bringToFront(); }
   else              map.removeLayer(countiesLayer);
 });
 
@@ -4214,11 +4215,11 @@ function saveState() {
 }
 
 function buildShareUrl() {
+  let query = '';
+  if (activeTheme && activeTheme !== 'dark') query = '?theme=' + activeTheme;
   let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
   if (activeZoomState) hash += '/' + activeZoomState;
-  let url = window.location.origin + window.location.pathname + hash;
-  if (activeTheme && activeTheme !== 'dark') url += '?theme=' + activeTheme;
-  return url;
+  return window.location.origin + window.location.pathname + query + hash;
 }
 
 document.getElementById("share-btn").addEventListener("click", function() {
@@ -4430,8 +4431,9 @@ if (activeVar === 'hhp') {
     }
     hhpLayer.addTo(map);
     document.getElementById('map-skeleton')?.remove();
-    if (statesLayer) statesLayer.bringToFront();
     if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+    if (statesLayer) statesLayer.bringToFront();
+    hhpLayer.bringToFront();
     document.getElementById("sf-legend").style.display = "block";
     stackRightLegends();
 
