@@ -67,6 +67,7 @@
       --text-muted: #8a99b0;
       --text-dim: #6b7a90;
       --text-body: #aab4c0;
+      --text-on-accent: #fff;
       --glass: rgba(30,37,48,0.82);
       --glass-blur: 16px;
       --sidebar-w: 290px;
@@ -80,6 +81,109 @@
       --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       --font-display: 'Outfit', sans-serif;
       --font-mono: 'Space Mono', monospace;
+      /* Accent tints */
+      --accent-hover: rgba(26,111,175,0.1);
+      --accent-active: rgba(26,111,175,0.15);
+      --accent-active-strong: rgba(26,111,175,0.2);
+      --accent-active-border: rgba(26,111,175,0.3);
+      --accent-focus-ring: rgba(26,111,175,0.2);
+      --accent-glow: rgba(90,174,232,0.4);
+      --accent-glow-sm: rgba(90,174,232,0.3);
+      /* Overlay tints */
+      --overlay-hover-xs: rgba(255,255,255,0.02);
+      --overlay-hover-sm: rgba(255,255,255,0.03);
+      --overlay-hover-md: rgba(255,255,255,0.04);
+      --overlay-hover-lg: rgba(255,255,255,0.08);
+      --overlay-divider: rgba(255,255,255,0.04);
+      --overlay-dark: rgba(0,0,0,0.55);
+      --overlay-spinner: rgba(13,17,23,0.5);
+      --spinner-ring: rgba(255,255,255,0.1);
+      /* Error */
+      --error: #ff6b6b;
+      --error-bg: rgba(255, 80, 80, 0.15);
+      --error-border: rgba(255, 80, 80, 0.4);
+      /* Scrollbar */
+      --scrollbar-hover: #4a5568;
+    }
+
+    /* ── Light Theme ─────────────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg-deep: #f0f2f5;
+      --bg-surface: #ffffff;
+      --bg-elevated: #e8ecf0;
+      --accent: #1a6faf;
+      --accent-light: #1563a0;
+      --accent-dk: #0d4f7a;
+      --border: #c8cdd5;
+      --border-glass: rgba(0,0,0,0.08);
+      --text-primary: #1a1a2e;
+      --text-secondary: #3a3f4b;
+      --text-muted: #5a6070;
+      --text-dim: #7a8190;
+      --text-body: #4a4f5c;
+      --text-on-accent: #fff;
+      --glass: rgba(255,255,255,0.88);
+      --shadow: 0 4px 24px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+      --accent-hover: rgba(26,111,175,0.08);
+      --accent-active: rgba(26,111,175,0.12);
+      --accent-active-strong: rgba(26,111,175,0.16);
+      --accent-active-border: rgba(26,111,175,0.3);
+      --accent-focus-ring: rgba(26,111,175,0.15);
+      --accent-glow: rgba(26,111,175,0.25);
+      --accent-glow-sm: rgba(26,111,175,0.2);
+      --overlay-hover-xs: rgba(0,0,0,0.015);
+      --overlay-hover-sm: rgba(0,0,0,0.025);
+      --overlay-hover-md: rgba(0,0,0,0.035);
+      --overlay-hover-lg: rgba(0,0,0,0.06);
+      --overlay-divider: rgba(0,0,0,0.06);
+      --overlay-dark: rgba(0,0,0,0.35);
+      --overlay-spinner: rgba(240,242,245,0.6);
+      --spinner-ring: rgba(0,0,0,0.1);
+      --error: #d44;
+      --error-bg: rgba(220, 60, 60, 0.1);
+      --error-border: rgba(220, 60, 60, 0.3);
+      --scrollbar-hover: #a0a8b4;
+    }
+
+    /* ── High Contrast Theme ─────────────────────────────────────── */
+    [data-theme="high-contrast"] {
+      --bg-deep: #000000;
+      --bg-surface: #0a0a0a;
+      --bg-elevated: #1a1a1a;
+      --accent: #3b9ede;
+      --accent-light: #6ec0ff;
+      --accent-dk: #2070a8;
+      --border: #555;
+      --border-glass: rgba(255,255,255,0.15);
+      --text-primary: #ffffff;
+      --text-secondary: #e0e0e0;
+      --text-muted: #b0b0b0;
+      --text-dim: #909090;
+      --text-body: #d0d0d0;
+      --text-on-accent: #fff;
+      --glass: rgba(10,10,10,0.92);
+      --shadow: 0 4px 24px rgba(0,0,0,0.7);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.8);
+      --accent-hover: rgba(59,158,222,0.15);
+      --accent-active: rgba(59,158,222,0.2);
+      --accent-active-strong: rgba(59,158,222,0.25);
+      --accent-active-border: rgba(59,158,222,0.4);
+      --accent-focus-ring: rgba(59,158,222,0.3);
+      --accent-glow: rgba(110,192,255,0.5);
+      --accent-glow-sm: rgba(110,192,255,0.4);
+      --overlay-hover-xs: rgba(255,255,255,0.03);
+      --overlay-hover-sm: rgba(255,255,255,0.05);
+      --overlay-hover-md: rgba(255,255,255,0.07);
+      --overlay-hover-lg: rgba(255,255,255,0.12);
+      --overlay-divider: rgba(255,255,255,0.08);
+      --overlay-dark: rgba(0,0,0,0.7);
+      --overlay-spinner: rgba(0,0,0,0.65);
+      --spinner-ring: rgba(255,255,255,0.15);
+      --error: #ff7777;
+      --error-bg: rgba(255, 80, 80, 0.2);
+      --error-border: rgba(255, 80, 80, 0.5);
+      --scrollbar-hover: #666;
     }
 
     /* ================================================================
@@ -190,7 +294,7 @@
     }
 
     #screenshot-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -220,7 +324,7 @@
     }
 
     #methods-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -245,7 +349,7 @@
     }
 
     #explorer-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -270,7 +374,7 @@
     }
 
     #github-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -295,7 +399,7 @@
     }
 
     #feedback-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -330,7 +434,7 @@
     }
 
     #nav-more-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -370,7 +474,7 @@
 
     #nav-more-dropdown a:hover,
     #nav-more-dropdown button:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       color: var(--text-primary);
     }
 
@@ -395,7 +499,7 @@
     }
 
     #share-btn:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       border-color: var(--accent);
     }
 
@@ -406,7 +510,7 @@
       top: calc(100% + 6px);
       right: 0;
       background: var(--accent);
-      color: #fff;
+      color: var(--text-on-accent);
       font-size: 0.72rem;
       padding: 4px 10px;
       border-radius: var(--radius-sm);
@@ -427,7 +531,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.55);
+      background: var(--overlay-dark);
       z-index: 2000;
       align-items: center;
       justify-content: center;
@@ -487,7 +591,7 @@
 
     #share-copy-btn {
       background: var(--accent);
-      color: #fff;
+      color: var(--text-on-accent);
     }
 
     #share-copy-btn:hover { background: var(--accent-dk); }
@@ -497,7 +601,7 @@
       color: var(--text-secondary);
     }
 
-    #share-close-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+    #share-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
 
     /* ── Raster query popup ────────────────────────────────────── */
     .query-popup .leaflet-popup-content-wrapper {
@@ -590,7 +694,7 @@
       letter-spacing: 0.1em;
       color: var(--text-dim);
       padding: 14px 6px 6px;
-      border-top: 1px solid rgba(255,255,255,0.04);
+      border-top: 1px solid var(--overlay-divider);
       margin-top: 4px;
       display: flex;
       align-items: center;
@@ -610,7 +714,7 @@
     }
 
     .section-label:hover {
-      background: rgba(255,255,255,0.03);
+      background: var(--overlay-hover-sm);
       color: var(--text-muted);
     }
 
@@ -665,7 +769,7 @@
     }
 
     .cs-trigger:hover { border-color: var(--accent); }
-    .cs-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(26,111,175,0.2); }
+    .cs-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-focus-ring); }
 
     .cs-label {
       flex: 1;
@@ -731,14 +835,14 @@
     }
 
     .cs-item:hover {
-      background: rgba(26,111,175,0.1);
+      background: var(--accent-hover);
       color: var(--text-primary);
     }
 
     .cs-item.active {
       border-left-color: var(--accent);
       color: var(--accent-light);
-      background: rgba(26,111,175,0.08);
+      background: var(--accent-hover);
     }
 
     /* ── Native select (hidden) ────────────────────────────────── */
@@ -750,7 +854,7 @@
     #range-section {
       margin-top: 10px;
       padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.04);
+      border-top: 1px solid var(--overlay-divider);
     }
 
     .subsec-label {
@@ -815,7 +919,7 @@
     }
 
     #range-reset:hover {
-      background: rgba(255,255,255,0.08);
+      background: var(--overlay-hover-lg);
       color: var(--text-primary);
     }
 
@@ -841,12 +945,12 @@
       text-align: center;
     }
 
-    .ts-btn:hover { background: rgba(255,255,255,0.04); }
+    .ts-btn:hover { background: var(--overlay-hover-md); }
 
     .ts-btn.active {
-      background: rgba(26,111,175,0.15);
+      background: var(--accent-active);
       color: var(--accent-light);
-      border: 1px solid rgba(26,111,175,0.3);
+      border: 1px solid var(--accent-active-border);
       box-shadow: inset 0 -2px 0 0 var(--accent-light);
       font-weight: 600;
     }
@@ -878,10 +982,10 @@
     }
 
     .period-btn:last-child { border-right: none; }
-    .period-btn:hover { background: rgba(255,255,255,0.03); }
+    .period-btn:hover { background: var(--overlay-hover-sm); }
 
     .period-btn.active {
-      background: rgba(26,111,175,0.2);
+      background: var(--accent-active-strong);
       color: var(--accent-light);
       font-weight: 600;
     }
@@ -892,6 +996,12 @@
     #basemap-strip {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    #theme-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 6px;
     }
 
@@ -908,11 +1018,11 @@
       transition: var(--transition);
     }
 
-    .basemap-btn:hover { background: rgba(255,255,255,0.04); }
+    .basemap-btn:hover { background: var(--overlay-hover-md); }
 
     .basemap-btn.active {
       border-color: var(--accent);
-      background: rgba(26,111,175,0.08);
+      background: var(--accent-hover);
       color: var(--accent-light);
     }
 
@@ -950,7 +1060,7 @@
       height: 16px;
       background: var(--accent-light);
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(90,174,232,0.4);
+      box-shadow: 0 0 8px var(--accent-glow);
       cursor: pointer;
       margin-top: 0;
     }
@@ -960,7 +1070,7 @@
       height: 16px;
       background: var(--accent-light);
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(90,174,232,0.4);
+      box-shadow: 0 0 8px var(--accent-glow);
       cursor: pointer;
       border: none;
     }
@@ -978,7 +1088,7 @@
       height: 14px;
       background: var(--accent-light);
       border-radius: 50%;
-      box-shadow: 0 0 6px rgba(90,174,232,0.3);
+      box-shadow: 0 0 6px var(--accent-glow-sm);
       cursor: pointer;
       margin-top: 0;
     }
@@ -989,7 +1099,7 @@
       height: 14px;
       background: var(--accent-light);
       border-radius: 50%;
-      box-shadow: 0 0 6px rgba(90,174,232,0.3);
+      box-shadow: 0 0 6px var(--accent-glow-sm);
       cursor: pointer;
       border: none;
     }
@@ -1034,7 +1144,7 @@
 
     .custom-check input[type="checkbox"]:checked::after {
       content: '\2713';
-      color: white;
+      color: var(--text-on-accent);
       font-size: 11px;
       position: absolute;
       top: 50%;
@@ -1097,7 +1207,7 @@
       left: -100%;
       width: 200%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+      background: linear-gradient(90deg, transparent, var(--overlay-hover-xs), transparent);
       animation: shimmer 2s infinite;
     }
 
@@ -1111,7 +1221,7 @@
       left: var(--sidebar-w);
       right: 0; bottom: 0;
       z-index: 900;
-      background: rgba(13,17,23,0.5);
+      background: var(--overlay-spinner);
       backdrop-filter: blur(4px);
       align-items: center;
       justify-content: center;
@@ -1125,7 +1235,7 @@
     .spin-ring {
       width: 52px;
       height: 52px;
-      border: 3px solid rgba(255,255,255,0.1);
+      border: 3px solid var(--spinner-ring);
       border-top-color: var(--accent-light);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -1158,7 +1268,7 @@
       font-family: var(--font-display);
       font-size: 0.85rem;
       font-weight: 600;
-      color: #fff;
+      color: var(--text-primary);
       margin-bottom: 2px;
     }
 
@@ -1326,13 +1436,13 @@
     }
 
     #usgs-btn:hover {
-      background: rgba(255,255,255,0.04);
+      background: var(--overlay-hover-md);
     }
 
     #usgs-btn.is-on {
-      background: rgba(26,111,175,0.15);
+      background: var(--accent-active);
       color: var(--accent-light);
-      border-color: rgba(26,111,175,0.3);
+      border-color: var(--accent-active-border);
     }
 
     /* ================================================================
@@ -1408,9 +1518,9 @@
     }
 
     #flow-panel-close:hover {
-      background: rgba(255, 80, 80, 0.15);
-      border-color: rgba(255, 80, 80, 0.4);
-      color: #ff6b6b;
+      background: var(--error-bg);
+      border-color: var(--error-border);
+      color: var(--error);
     }
 
     #flow-panel-body {
@@ -1472,8 +1582,8 @@
 
     .leaflet-control-zoom a:hover,
     .leaflet-bar a:hover {
-      background: rgba(26,111,175,0.2) !important;
-      color: #fff !important;
+      background: var(--accent-active-strong) !important;
+      color: var(--text-on-accent) !important;
     }
 
     /* ================================================================
@@ -1484,7 +1594,7 @@
       position: fixed;
       top: var(--navbar-h);
       left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: var(--overlay-dark);
       backdrop-filter: blur(2px);
       z-index: 1040;
     }
@@ -1497,7 +1607,7 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
     /* ================================================================
        Focus Reset
@@ -1780,7 +1890,7 @@
         </div>
         <div style="margin-bottom:8px;">
           <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
-          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-2);color:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:13px;cursor:pointer;">
+          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
             <option value="">Loading…</option>
           </select>
         </div>
@@ -1796,7 +1906,7 @@
       <!-- Zoom to Location — section index 6 -->
       <div class="section-label" data-sec="sec-zoom-state" style="--i:6">Zoom to Location <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-zoom-state">
-        <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-2);color:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:6px;font-size:13px;cursor:pointer;">
+        <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
           <option value="">CONUS (default)</option>
           <optgroup label="States">
             <option value="AL">Alabama</option>
@@ -1853,13 +1963,19 @@
       </div>
 
       <!-- Basemap — section index 7 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:7">Basemap <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:7">Basemap & Theme <span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-basemap">
         <div id="basemap-strip">
           <button class="basemap-btn" data-basemap="light">Light</button>
           <button class="basemap-btn" data-basemap="dark">Dark</button>
           <button class="basemap-btn active" data-basemap="voyager">Voyager</button>
           <button class="basemap-btn" data-basemap="satellite">Satellite</button>
+        </div>
+        <div class="subsec-label" style="margin-top:10px">Theme</div>
+        <div id="theme-strip">
+          <button class="basemap-btn active" data-theme="dark">Dark</button>
+          <button class="basemap-btn" data-theme="light">Light</button>
+          <button class="basemap-btn" data-theme="high-contrast">High Contrast</button>
         </div>
       </div>
 
@@ -2402,15 +2518,31 @@ document.getElementById("state-select").addEventListener("change", function() {
   autoEnableLayerForZoom(activeZoomState);
 });
 
-document.querySelectorAll(".basemap-btn").forEach(btn => {
+document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.classList.contains("active")) return;
-    document.querySelectorAll(".basemap-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     const bm = BASEMAPS[btn.dataset.basemap];
     map.removeLayer(baseTile);
     baseTile = L.tileLayer(bm.url, bm.opts).addTo(map);
     baseTile.bringToBack();
+  });
+});
+
+/* ── Theme toggle ─────────────────────────────────────────────── */
+let activeTheme = "dark";
+document.querySelectorAll("#theme-strip .basemap-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.classList.contains("active")) return;
+    document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTheme = btn.dataset.theme;
+    if (activeTheme === "dark") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", activeTheme);
+    }
   });
 });
 
@@ -2769,7 +2901,7 @@ function queryRasterAt(latlng) {
   const html = `
     <div style="text-align:center;min-width:120px">
       <div class="query-val">
-        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${hex};vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.2)"></span>
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${hex};vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>
         ${displayVal}
       </div>
       <div class="query-label">${cfg.label} &middot; ${activeTS}</div>
@@ -3432,10 +3564,37 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+/* ── Export theme palettes ─────────────────────────────────────── */
+const EXPORT_THEMES = {
+  dark: {
+    bandBg: "#1a1f2a", accent: "#1a6faf",
+    title: "#f0f2f5", subtitle: "#94a3b8", dim: "#64748b",
+    legendTitle: "#e2e8f0", legendLabel: "#c8d4e0",
+    logoBg: "#ffffff", logoBorder: "#000000",
+    circleStroke: "#000"
+  },
+  light: {
+    bandBg: "#f0f2f5", accent: "#1a6faf",
+    title: "#1a1a2e", subtitle: "#4a5568", dim: "#6b7a90",
+    legendTitle: "#1a1a2e", legendLabel: "#3a3f4b",
+    logoBg: "#ffffff", logoBorder: "#c8cdd5",
+    circleStroke: "#333"
+  },
+  "high-contrast": {
+    bandBg: "#000000", accent: "#3b9ede",
+    title: "#ffffff", subtitle: "#b0b0b0", dim: "#909090",
+    legendTitle: "#ffffff", legendLabel: "#e0e0e0",
+    logoBg: "#ffffff", logoBorder: "#555",
+    circleStroke: "#fff"
+  }
+};
+function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.dark; }
+
 /* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
    screenshot export now uses html2canvas for pixel-perfect capture) */
 
 function drawFooterLegend(ctx, footerY, sc) {
+  const et = getExportTheme();
   const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
   const geo = georasterCache[url];
   if (!geo) return 0;
@@ -3466,7 +3625,7 @@ function drawFooterLegend(ctx, footerY, sc) {
     let cy = footerY + Math.round(8 * sc);
 
     // Title centered over bar
-    ctx.fillStyle = "#e2e8f0";
+    ctx.fillStyle = et.legendTitle;
     ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText(shortLabel, barX + barW / 2, cy);
@@ -3499,8 +3658,8 @@ function drawFooterLegend(ctx, footerY, sc) {
     const midIdx = Math.floor(legendRows.length / 2);
     const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
 
-    ctx.fillStyle = "#c8d4e0";
-    ctx.strokeStyle = "#c8d4e0";
+    ctx.fillStyle = et.legendLabel;
+    ctx.strokeStyle = et.legendLabel;
     ctx.lineWidth = Math.round(1 * sc);
     ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
 
@@ -3540,7 +3699,7 @@ function drawFooterLegend(ctx, footerY, sc) {
     let cy = footerY + Math.round(8 * sc);
 
     // Title centered over the swatch strip
-    ctx.fillStyle = "#e2e8f0";
+    ctx.fillStyle = et.legendTitle;
     ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText(shortLabel, margin + totalW / 2, cy);
@@ -3558,7 +3717,7 @@ function drawFooterLegend(ctx, footerY, sc) {
     });
 
     // Labels centered below each swatch
-    ctx.fillStyle = "#c8d4e0";
+    ctx.fillStyle = et.legendLabel;
     ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
     const labelY = swatchY + swH + Math.round(3 * sc);
     cx = swatchStartX;
@@ -3574,6 +3733,7 @@ function drawFooterLegend(ctx, footerY, sc) {
 }
 
 function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
+  const et = getExportTheme();
   if (!usdmLayer || !map.hasLayer(usdmLayer)) return;
 
   const rows = [
@@ -3600,7 +3760,7 @@ function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
   ctx.textBaseline = "top";
 
   // Title centered over swatches
-  ctx.fillStyle = "#e2e8f0";
+  ctx.fillStyle = et.legendTitle;
   ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
   ctx.textAlign = "center";
   ctx.fillText(title, startX + totalW / 2, cy);
@@ -3617,7 +3777,7 @@ function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
   });
 
   // Labels centered below each swatch
-  ctx.fillStyle = "#c8d4e0";
+  ctx.fillStyle = et.legendLabel;
   ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
   const labelY = cy + swH + Math.round(3 * sc);
   cx = swatchStartX;
@@ -3630,6 +3790,7 @@ function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
 }
 
 function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
+  const et = getExportTheme();
   // Only draw if the streamflow legend is visible on the map
   const sfLeg = document.getElementById("sf-legend");
   if (!sfLeg || sfLeg.style.display === "none") return 0;
@@ -3669,7 +3830,7 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
   ctx.textBaseline = "top";
 
   // Title centered over circles
-  ctx.fillStyle = "#e2e8f0";
+  ctx.fillStyle = et.legendTitle;
   ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
   ctx.textAlign = "center";
   ctx.fillText(title, startX + totalW / 2, cy);
@@ -3685,15 +3846,15 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
     ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
     ctx.fillStyle = row.color;
     ctx.fill();
-    // Stroke (black outline like on map)
-    ctx.strokeStyle = "#000";
+    // Stroke
+    ctx.strokeStyle = et.circleStroke;
     ctx.lineWidth = Math.round(0.8 * sc);
     ctx.stroke();
     cx += cellWidths[i] + cellGap;
   });
 
   // Labels below circles
-  ctx.fillStyle = "#c8d4e0";
+  ctx.fillStyle = et.legendLabel;
   ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
   const labelY = circleY + circleR + Math.round(3 * sc);
   cx = startX;
@@ -3761,10 +3922,11 @@ async function takeScreenshot() {
     const ctx  = out.getContext("2d");
 
     // ── Title band background ──
-    ctx.fillStyle = "#1a1f2a";
+    const et = getExportTheme();
+    ctx.fillStyle = et.bandBg;
     ctx.fillRect(0, 0, mapW_px, TITLE_H);
     // Accent line at bottom of title band
-    ctx.fillStyle = "#1a6faf";
+    ctx.fillStyle = et.accent;
     ctx.fillRect(0, TITLE_H - Math.round(3 * SCALE), mapW_px, Math.round(3 * SCALE));
 
     // Logo — 70px height at 1x
@@ -3775,15 +3937,15 @@ async function takeScreenshot() {
     const logoX = logoMargin;
     const logoY = Math.round((TITLE_H - Math.round(3 * SCALE) - logoH - logoPad * 2) / 2);
     const logoR = Math.round(10 * SCALE);
-    // White background with rounded corners
+    // Logo background with rounded corners
     ctx.save();
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = et.logoBg;
     roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
     ctx.fill();
     ctx.restore();
-    // Black border
+    // Logo border
     ctx.save();
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = et.logoBorder;
     ctx.lineWidth = Math.round(1.5 * SCALE);
     roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
     ctx.stroke();
@@ -3811,17 +3973,17 @@ async function takeScreenshot() {
     ctx.textAlign    = "left";
 
     // Line 1: Full variable name
-    ctx.fillStyle = "#f0f2f5";
+    ctx.fillStyle = et.title;
     ctx.font = `bold ${line1FS}px 'Segoe UI', sans-serif`;
     ctx.fillText(`${fullVarName} \u2014 ${tsLabel}`, textX, TITLE_H * 0.28);
 
     // Line 2: Metadata
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = et.subtitle;
     ctx.font = `${line2FS}px 'Segoe UI', sans-serif`;
     ctx.fillText(`Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
 
     // Line 3: Source
-    ctx.fillStyle = "#64748b";
+    ctx.fillStyle = et.dim;
     ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
     ctx.fillText("Montana Climate Office Drought Dashboard", textX, TITLE_H * 0.74);
 
@@ -3829,10 +3991,10 @@ async function takeScreenshot() {
     const rightMargin = mapW_px - logoMargin;
     const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     ctx.textAlign = "right";
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = et.subtitle;
     ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
     ctx.fillText("https://drought.climate.umt.edu/", rightMargin, TITLE_H * 0.53);
-    ctx.fillStyle = "#64748b";
+    ctx.fillStyle = et.dim;
     ctx.fillText(`Generated: ${generatedDate}`, rightMargin, TITLE_H * 0.74);
     ctx.textAlign = "left";
 
@@ -3883,10 +4045,10 @@ async function takeScreenshot() {
     /* ── 4. Draw footer band ── */
     const footerTop = TITLE_H + mapH_px;
     // Footer background
-    ctx.fillStyle = "#1a1f2a";
+    ctx.fillStyle = et.bandBg;
     ctx.fillRect(0, footerTop, mapW_px, FOOTER_H);
     // Accent line at top of footer
-    ctx.fillStyle = "#1a6faf";
+    ctx.fillStyle = et.accent;
     ctx.fillRect(0, footerTop, mapW_px, Math.round(3 * SCALE));
 
     // Draw primary legend (horizontal) in footer — returns rightEdgeX
@@ -4054,7 +4216,9 @@ function saveState() {
 function buildShareUrl() {
   let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
   if (activeZoomState) hash += '/' + activeZoomState;
-  return window.location.origin + window.location.pathname + hash;
+  let url = window.location.origin + window.location.pathname + hash;
+  if (activeTheme && activeTheme !== 'dark') url += '?theme=' + activeTheme;
+  return url;
 }
 
 document.getElementById("share-btn").addEventListener("click", function() {
@@ -4092,7 +4256,10 @@ function loadState() {
   if (ts && !TIMESCALES.includes(ts)) return null;
   if (period && !['rolling-30','full'].includes(period)) return null;
   if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt };
+  const params = new URLSearchParams(window.location.search);
+  const theme = params.get('theme') || 'dark';
+  if (theme !== 'dark' && !['light','high-contrast'].includes(theme)) return null;
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4238,6 +4405,15 @@ if (savedState) {
     prLabel.style.display = "none";
     prBody.style.display = "none";
   }
+
+  // Restore theme
+  if (savedState.theme && savedState.theme !== 'dark') {
+    activeTheme = savedState.theme;
+    document.documentElement.setAttribute("data-theme", activeTheme);
+    document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.theme === activeTheme);
+    });
+  }
 }
 
 updateRangeSection(activeVar, null);
@@ -4292,6 +4468,13 @@ window.addEventListener('popstate', function() {
   prBody.style.display  = isHhp ? "none" : "";
   tsLabel.style.display = isHhp ? "none" : "";
   tsBody.style.display  = isHhp ? "none" : "";
+  // Restore theme
+  activeTheme = st.theme || 'dark';
+  if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", activeTheme);
+  document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.theme === activeTheme);
+  });
   updateRangeSection(activeVar, null);
   updateVarInfo(activeVar);
   loadLayer(activeVar, activeTS, activePeriod);
