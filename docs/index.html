@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Montana Climate Office Drought Dashboard — interactive maps of drought indices, soil moisture, precipitation, and streamflow across Montana.">
-  <title>MCO Drought Dashboard</title>
+  <meta name="description" content="Open Drought Dashboard — interactive maps of drought indices, precipitation, temperature, and streamflow across the CONUS.">
+  <title>Open Drought Dashboard</title>
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-5ERLJYJQC5"></script>
@@ -1695,7 +1695,7 @@
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
   </a>
-  <div class="brand"><span>MCO</span> Drought Dashboard</div>
+  <div class="brand"><span>Open</span> Drought Dashboard</div>
   <div id="nav-actions">
     <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3986,7 +3986,7 @@ async function takeScreenshot() {
     // Line 3: Source
     ctx.fillStyle = et.dim;
     ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText("Montana Climate Office Drought Dashboard", textX, TITLE_H * 0.74);
+    ctx.fillText("Open Drought Dashboard", textX, TITLE_H * 0.74);
 
     // Right-aligned: URL + generated date in title band
     const rightMargin = mapW_px - logoMargin;
@@ -4070,7 +4070,7 @@ async function takeScreenshot() {
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     const a = document.createElement("a");
-    a.download = `mco_drought_${safeName}_${activeTS}_${activePeriod}.png`;
+    a.download = `odd_${safeName}_${activeTS}_${activePeriod}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
 
