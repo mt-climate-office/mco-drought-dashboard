@@ -234,7 +234,7 @@
       flex: 1;
       overflow: hidden;
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
       white-space: nowrap;
     }
@@ -256,12 +256,28 @@
       align-self: center;
     }
 
+    #navbar .brand .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
     #navbar .brand .brand-full {
       font-size: 0.65rem;
       font-weight: 500;
       color: var(--text-muted);
       letter-spacing: 0.08em;
       text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    #navbar .brand .brand-sub {
+      font-size: 0.55rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      font-style: italic;
+      line-height: 1.2;
     }
 
     #mco-logo-link {
@@ -1722,7 +1738,7 @@
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
   </a>
-  <div class="brand"><span class="brand-acronym">DAMP</span><span class="brand-sep"></span><span class="brand-full">Drought Analysis &amp; Monitoring Platform</span></div>
+  <div class="brand"><span class="brand-acronym">DAMP</span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Analysis &amp; Monitoring Platform</span><span class="brand-sub">A service of the Montana Climate Office</span></span></div>
   <div id="nav-actions">
     <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
