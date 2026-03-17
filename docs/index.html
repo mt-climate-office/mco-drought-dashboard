@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Open Drought Dashboard — interactive maps of drought indices, precipitation, temperature, and streamflow across the CONUS.">
-  <title>Open Drought Dashboard</title>
+  <meta name="description" content="DAMP — Drought Analysis &amp; Monitoring Platform. Interactive maps of drought indices, precipitation, temperature, and streamflow across the CONUS.">
+  <title>DAMP - Drought Analysis</title>
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-5ERLJYJQC5"></script>
@@ -104,6 +104,8 @@
       --error-border: rgba(255, 80, 80, 0.4);
       /* Scrollbar */
       --scrollbar-hover: #4a5568;
+      /* Brand */
+      --brand-gradient: linear-gradient(135deg, #1a8cff, #5aaee8, #8ad4ff, #5aaee8, #1a8cff);
     }
 
     /* ── Light Theme ─────────────────────────────────────────────── */
@@ -144,6 +146,7 @@
       --error-bg: rgba(220, 60, 60, 0.1);
       --error-border: rgba(220, 60, 60, 0.3);
       --scrollbar-hover: #a0a8b4;
+      --brand-gradient: linear-gradient(135deg, #0a4a7a, #1266a8, #0d7fd4, #1266a8, #0a4a7a);
     }
 
     /* ── High Contrast Theme ─────────────────────────────────────── */
@@ -184,6 +187,7 @@
       --error-bg: rgba(255, 80, 80, 0.2);
       --error-border: rgba(255, 80, 80, 0.5);
       --scrollbar-hover: #666;
+      --brand-gradient: linear-gradient(135deg, #2a9aff, #6ec0ff, #a0d8ff, #6ec0ff, #2a9aff);
     }
 
     /* ================================================================
@@ -226,16 +230,39 @@
 
     #navbar .brand {
       font-family: var(--font-display);
-      font-size: 1.35rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
       flex: 1;
-      white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;
     }
 
-    #navbar .brand span { color: var(--accent-light); }
+    #navbar .brand .brand-acronym {
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+      background: var(--brand-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #navbar .brand .brand-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    #navbar .brand .brand-full {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
     #mco-logo-link {
       display: flex;
@@ -1695,7 +1722,7 @@
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
   </a>
-  <div class="brand"><span>Open</span> Drought Dashboard</div>
+  <div class="brand"><span class="brand-acronym">DAMP</span><span class="brand-sep"></span><span class="brand-full">Drought Analysis &amp; Monitoring Platform</span></div>
   <div id="nav-actions">
     <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3986,7 +4013,7 @@ async function takeScreenshot() {
     // Line 3: Source
     ctx.fillStyle = et.dim;
     ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText("Open Drought Dashboard", textX, TITLE_H * 0.74);
+    ctx.fillText("DAMP \u2014 Drought Analysis & Monitoring Platform", textX, TITLE_H * 0.74);
 
     // Right-aligned: URL + generated date in title band
     const rightMargin = mapW_px - logoMargin;
@@ -4070,7 +4097,7 @@ async function takeScreenshot() {
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     const a = document.createElement("a");
-    a.download = `odd_${safeName}_${activeTS}_${activePeriod}.png`;
+    a.download = `damp_${safeName}_${activeTS}_${activePeriod}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
 
