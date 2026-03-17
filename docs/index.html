@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="DAMP — Drought Analysis &amp; Monitoring Platform. Interactive maps of drought indices, precipitation, temperature, and streamflow across the CONUS.">
-  <title>DAMP - Drought Analysis</title>
+  <meta name="description" content="D³ — Drought Data Dashboard. Interactive maps of drought indices, precipitation, temperature, and streamflow across the CONUS.">
+  <title>D³ - Drought Data</title>
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-5ERLJYJQC5"></script>
@@ -1738,7 +1738,7 @@
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
   </a>
-  <div class="brand"><span class="brand-acronym">DAMP</span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Analysis &amp; Monitoring Platform</span><span class="brand-sub">A service of the Montana Climate Office</span></span></div>
+  <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the Montana Climate Office &amp; the NGP-RIDR</span></span></div>
   <div id="nav-actions">
     <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1813,9 +1813,9 @@
             <option value="svpdi">Standardized Vapor Pressure Deficit Index (SVPDI)</option>
           </optgroup>
           <optgroup label="── Precipitation ──">
+            <option value="precip-pctile">Precipitation — Percentile</option>
             <option value="precip-pon">Precipitation — Percent of Normal</option>
             <option value="precip-dev">Precipitation — Departure (in)</option>
-            <option value="precip-pctile">Precipitation — Percentile</option>
             <option value="precip-in">Precipitation — Accumulation (in)</option>
           </optgroup>
           <optgroup label="── Temperature ──">
@@ -1823,9 +1823,9 @@
             <option value="tmax-dev">Maximum Temperature — Departure (°F)</option>
           </optgroup>
           <optgroup label="── VPD ──">
+            <option value="vpd-pctile">VPD — Percentile</option>
             <option value="vpd-pon">VPD — Percent of Normal</option>
             <option value="vpd-dev">VPD — Departure</option>
-            <option value="vpd-pctile">VPD — Percentile</option>
           </optgroup>
           <optgroup label="── Streamflow ──">
             <option value="hhp">HHP Streamflow Basins</option>
@@ -1880,75 +1880,9 @@
         </div>
       </div>
 
-      <!-- Station Data — section index 3 -->
-      <div class="section-label" data-sec="sec-station" style="--i:3">Station Data <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-station">
-        <div id="usgs-btn-row">
-          <button id="usgs-btn" type="button">
-            <span>Add Current USGS Percentiles</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Layer Opacity — section index 4 -->
-      <div class="section-label" data-sec="sec-opacity" style="--i:4">Layer Opacity <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-opacity">
-        <div id="opacity-row">
-          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
-          <span id="opacity-val">0.75</span>
-        </div>
-      </div>
-
-      <!-- Overlays — section index 5 -->
-      <div class="section-label" data-sec="sec-overlays" style="--i:5">Overlays <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-overlays">
-        <label class="custom-check" id="states-row">
-          <input type="checkbox" id="states-chk" checked>
-          State boundaries
-        </label>
-        <label class="custom-check" id="counties-row">
-          <input type="checkbox" id="counties-chk" checked>
-          County boundaries
-        </label>
-        <label class="custom-check" id="tribal-row">
-          <input type="checkbox" id="tribal-chk">
-          Tribal Nations
-        </label>
-        <label class="custom-check" id="usdm-row">
-          <input type="checkbox" id="usdm-chk">
-          U.S. Drought Monitor
-        </label>
-      </div>
-
-      <!-- U.S. Drought Monitor — section index 7 -->
-      <div class="section-label" data-sec="sec-usdm" style="--i:7;display:none;">U.S. Drought Monitor <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-usdm" style="display:none;">
-        <div style="margin-bottom:8px;">
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
-            <datalist id="usdm-week-ticks"></datalist>
-            <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
-          </div>
-        </div>
-        <div style="margin-bottom:8px;">
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
-          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
-            <option value="">Loading…</option>
-          </select>
-        </div>
-        <div>
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
-            <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Zoom to Location — section index 6 -->
-      <div class="section-label" data-sec="sec-zoom-state" style="--i:6">Zoom to Location <span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-zoom-state">
+      <!-- Zoom to Location — section index 3 -->
+      <div class="section-label sec-collapsed" data-sec="sec-zoom-state" style="--i:3">Zoom to Location <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-zoom-state">
         <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
           <option value="">CONUS (default)</option>
           <optgroup label="States">
@@ -2005,8 +1939,74 @@
         </select>
       </div>
 
-      <!-- Basemap — section index 7 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:7">Basemap & Theme <span class="caret">&#9660;</span></div>
+      <!-- Overlays — section index 4 -->
+      <div class="section-label sec-collapsed" data-sec="sec-overlays" style="--i:4">Overlays <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-overlays">
+        <label class="custom-check" id="states-row">
+          <input type="checkbox" id="states-chk" checked>
+          State boundaries
+        </label>
+        <label class="custom-check" id="counties-row">
+          <input type="checkbox" id="counties-chk" checked>
+          County boundaries
+        </label>
+        <label class="custom-check" id="tribal-row">
+          <input type="checkbox" id="tribal-chk">
+          Tribal Nations
+        </label>
+        <label class="custom-check" id="usdm-row">
+          <input type="checkbox" id="usdm-chk">
+          U.S. Drought Monitor
+        </label>
+      </div>
+
+      <!-- U.S. Drought Monitor — section index 5 (conditional) -->
+      <div class="section-label" data-sec="sec-usdm" style="--i:5;display:none;">U.S. Drought Monitor <span class="caret">&#9660;</span></div>
+      <div class="section-body" id="sec-usdm" style="display:none;">
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+            <datalist id="usdm-week-ticks"></datalist>
+            <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
+          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+            <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Station Data — section index 6 -->
+      <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:6">Station Data <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-station">
+        <div id="usgs-btn-row">
+          <button id="usgs-btn" type="button">
+            <span>Add Current USGS Percentiles</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Layer Opacity — section index 7 -->
+      <div class="section-label sec-collapsed" data-sec="sec-opacity" style="--i:7">Layer Opacity <span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-opacity">
+        <div id="opacity-row">
+          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
+          <span id="opacity-val">0.75</span>
+        </div>
+      </div>
+
+      <!-- Basemap & Theme — section index 8 (collapsed by default) -->
+      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:8">Basemap & Theme <span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-basemap">
         <div id="basemap-strip">
           <button class="basemap-btn" data-basemap="light">Light</button>
@@ -2022,8 +2022,8 @@
         </div>
       </div>
 
-      <!-- Information — section index 8 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-info" style="--i:8">Information <span class="caret">&#9660;</span></div>
+      <!-- Information — section index 9 (collapsed by default) -->
+      <div class="section-label sec-collapsed" data-sec="sec-info" style="--i:9">Information <span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-info">
         <div id="var-info-text"></div>
       </div>
@@ -2177,20 +2177,20 @@ function getPaletteColors(key, n, reversed) {
 
 /* ── Variable catalog ─────────────────────────────────────────── */
 const VAR_CONFIG = {
-  spi:          { label: "SPI",                             prefix: "spi_",          paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation Index (SPI) measures precipitation anomalies relative to a long-term climatology. Negative values indicate drought conditions; positive values indicate wet conditions." },
-  spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
-  eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
-  svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
-  'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
-  'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
-  'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
-  'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-mm_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', mmToIn: true, description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
-  'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
-  'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
-  'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
-  'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
-  'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
-  hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
+  spi:          { label: "SPI",                             prefix: "spi_",          paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Precipitation Index (SPI) measures precipitation anomalies relative to a long-term climatology. Negative values indicate drought conditions; positive values indicate wet conditions." },
+  spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
+  eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
+  svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
+  'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
+  'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, attribution: "gridMET", description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
+  'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
+  'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-mm_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', mmToIn: true, attribution: "gridMET", description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
+  'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
+  'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  attribution: "gridMET", description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
+  'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
+  'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
+  'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
+  hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
 };
 
 /* ── Screenshot helpers: full names & timescale labels ──────── */
@@ -3615,24 +3615,40 @@ const EXPORT_THEMES = {
     title: "#f0f2f5", subtitle: "#94a3b8", dim: "#64748b",
     legendTitle: "#e2e8f0", legendLabel: "#c8d4e0",
     logoBg: "#ffffff", logoBorder: "#000000",
-    circleStroke: "#000"
+    circleStroke: "#000",
+    brandGrad: ["#1a8cff", "#5aaee8", "#8ad4ff", "#5aaee8", "#1a8cff"]
   },
   light: {
     bandBg: "#f0f2f5", accent: "#1a6faf",
     title: "#1a1a2e", subtitle: "#4a5568", dim: "#6b7a90",
     legendTitle: "#1a1a2e", legendLabel: "#3a3f4b",
     logoBg: "#ffffff", logoBorder: "#c8cdd5",
-    circleStroke: "#333"
+    circleStroke: "#333",
+    brandGrad: ["#0a4a7a", "#1266a8", "#0d7fd4", "#1266a8", "#0a4a7a"]
   },
   "high-contrast": {
     bandBg: "#000000", accent: "#3b9ede",
     title: "#ffffff", subtitle: "#b0b0b0", dim: "#909090",
     legendTitle: "#ffffff", legendLabel: "#e0e0e0",
     logoBg: "#ffffff", logoBorder: "#555",
-    circleStroke: "#fff"
+    circleStroke: "#fff",
+    brandGrad: ["#2a9aff", "#6ec0ff", "#a0d8ff", "#6ec0ff", "#2a9aff"]
   }
 };
 function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.dark; }
+
+/* ── Export attribution builder ────────────────────────────────── */
+function getExportAttribution() {
+  const sources = new Set();
+  // Active data layer
+  const cfg = VAR_CONFIG[activeVar];
+  if (cfg && cfg.attribution) sources.add(cfg.attribution);
+  // USGS streamflow overlay
+  if (usgsStreamLayer && map.hasLayer(usgsStreamLayer)) sources.add("USGS");
+  // USDM overlay
+  if (usdmLayer && map.hasLayer(usdmLayer)) sources.add("USDM/NDMC");
+  return sources.size ? "Data: " + [...sources].join(", ") : "";
+}
 
 /* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
    screenshot export now uses html2canvas for pixel-perfect capture) */
@@ -3973,42 +3989,58 @@ async function takeScreenshot() {
     ctx.fillStyle = et.accent;
     ctx.fillRect(0, TITLE_H - Math.round(3 * SCALE), mapW_px, Math.round(3 * SCALE));
 
-    // Logo — 70px height at 1x
-    const logoH = Math.round(70 * SCALE);
-    const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
     const logoMargin = Math.round(24 * SCALE);
-    const logoPad = Math.round(6 * SCALE);
-    const logoX = logoMargin;
-    const logoY = Math.round((TITLE_H - Math.round(3 * SCALE) - logoH - logoPad * 2) / 2);
-    const logoR = Math.round(10 * SCALE);
-    // Logo background with rounded corners
-    ctx.save();
-    ctx.fillStyle = et.logoBg;
-    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
-    ctx.fill();
-    ctx.restore();
-    // Logo border
-    ctx.save();
-    ctx.strokeStyle = et.logoBorder;
-    ctx.lineWidth = Math.round(1.5 * SCALE);
-    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
-    ctx.stroke();
-    ctx.restore();
-    // Draw logo inside the padded area, clipped to rounded rect
-    ctx.save();
-    roundRect(ctx, logoX, logoY, logoW + logoPad * 2, logoH + logoPad * 2, logoR);
-    ctx.clip();
-    ctx.drawImage(_logoCache, logoX + logoPad, logoY + logoPad, logoW, logoH);
-    ctx.restore();
+    const bandContentH = TITLE_H - Math.round(3 * SCALE);
+    const bandCenterY = bandContentH / 2;
 
-    // Title text block (3 lines)
+    // ── D³ brand mark with gradient (95% header height) ──
+    const brandDFS = Math.round(bandContentH * 0.7);
+    const brandSupFS = Math.round(brandDFS * 0.5);
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    let bx = logoMargin;
+    // Measure total width for gradient
+    ctx.font = `bold ${brandDFS}px 'Segoe UI', sans-serif`;
+    const dW = ctx.measureText("D").width;
+    ctx.font = `bold ${brandSupFS}px 'Segoe UI', sans-serif`;
+    const threeW = ctx.measureText("3").width;
+    const brandTotalW = dW + threeW + Math.round(3 * SCALE);
+    // Create gradient
+    const brandGrad = ctx.createLinearGradient(bx, 0, bx + brandTotalW, brandTotalW * 0.5);
+    const gc = et.brandGrad;
+    brandGrad.addColorStop(0, gc[0]);
+    brandGrad.addColorStop(0.25, gc[1]);
+    brandGrad.addColorStop(0.5, gc[2]);
+    brandGrad.addColorStop(0.75, gc[3]);
+    brandGrad.addColorStop(1, gc[4]);
+    ctx.fillStyle = brandGrad;
+    // "D"
+    ctx.font = `bold ${brandDFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("D", bx, bandCenterY);
+    bx += dW + Math.round(1 * SCALE);
+    // superscript "3"
+    ctx.font = `bold ${brandSupFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("3", bx, bandCenterY - Math.round(brandDFS * 0.28));
+    bx += threeW + Math.round(12 * SCALE);
+
+    // ── Vertical separator line ──
+    const sepPad = Math.round(10 * SCALE);
+    ctx.strokeStyle = et.logoBorder;
+    ctx.lineWidth = Math.round(1 * SCALE);
+    ctx.beginPath();
+    ctx.moveTo(bx, sepPad);
+    ctx.lineTo(bx, bandContentH - sepPad);
+    ctx.stroke();
+    bx += Math.round(12 * SCALE);
+
+    // Title text block (3 lines) — after separator
     const cfg         = VAR_CONFIG[activeVar];
     const periodLabel = getPeriodLabel(activePeriod);
     const dateTxt     = formatDate(activeDate);
     const tsLabel     = TS_FULL[activeTS] || activeTS;
     const fullVarName = getFullVarName(activeVar);
 
-    const textX = logoMargin + logoW + logoPad * 2 + Math.round(20 * SCALE);
+    const textX = bx;
     const line1FS = Math.round(22 * SCALE);
     const line2FS = Math.round(14 * SCALE);
     const line3FS = Math.round(12 * SCALE);
@@ -4026,23 +4058,70 @@ async function takeScreenshot() {
     ctx.font = `${line2FS}px 'Segoe UI', sans-serif`;
     ctx.fillText(`Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
 
-    // Line 3: Source
+    // Line 3: D³ brand with superscript
+    const srcFS = Math.round(12 * SCALE);
+    const srcSupFS = Math.round(8 * SCALE);
+    const srcY = TITLE_H * 0.74;
+    let sx = textX;
+    // "D"
     ctx.fillStyle = et.dim;
-    ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText("DAMP \u2014 Drought Analysis & Monitoring Platform", textX, TITLE_H * 0.74);
+    ctx.font = `bold ${srcFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("D", sx, srcY);
+    sx += ctx.measureText("D").width;
+    // superscript "3"
+    ctx.font = `bold ${srcSupFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("3", sx, srcY - Math.round(4 * SCALE));
+    sx += ctx.measureText("3").width + Math.round(4 * SCALE);
+    // rest of text
+    ctx.font = `${srcFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("\u2014 Drought Data Dashboard", sx, srcY);
 
-    // Right-aligned: URL + generated date in title band
+    // ── MCO Logo (right side, upper) ──
     const rightMargin = mapW_px - logoMargin;
-    const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    ctx.textAlign = "right";
-    ctx.fillStyle = et.subtitle;
-    ctx.font = `${line3FS}px 'Segoe UI', sans-serif`;
-    ctx.fillText("https://drought.climate.umt.edu/", rightMargin, TITLE_H * 0.53);
-    ctx.fillStyle = et.dim;
-    ctx.fillText(`Generated: ${generatedDate}`, rightMargin, TITLE_H * 0.74);
-    ctx.textAlign = "left";
+    const logoH = Math.round(42 * SCALE);
+    const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
+    const logoPad = Math.round(4 * SCALE);
+    const logoTotalW = logoW + logoPad * 2;
+    const logoCenterX = rightMargin - logoTotalW / 2;
+    const logoX = rightMargin - logoTotalW;
+    const logoY = Math.round(bandContentH * 0.12);
+    const logoR = Math.round(8 * SCALE);
+    ctx.save();
+    ctx.fillStyle = et.logoBg;
+    roundRect(ctx, logoX, logoY, logoTotalW, logoH + logoPad * 2, logoR);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = et.logoBorder;
+    ctx.lineWidth = Math.round(1.5 * SCALE);
+    roundRect(ctx, logoX, logoY, logoTotalW, logoH + logoPad * 2, logoR);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    roundRect(ctx, logoX, logoY, logoTotalW, logoH + logoPad * 2, logoR);
+    ctx.clip();
+    ctx.drawImage(_logoCache, logoX + logoPad, logoY + logoPad, logoW, logoH);
+    ctx.restore();
 
-    /* ── 3a. Draw captured map ── */
+    // URL + generated date below logo, centered
+    const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const infoFS = Math.round(9 * SCALE);
+    const infoY = logoY + logoH + logoPad * 2 + Math.round(6 * SCALE);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = et.subtitle;
+    ctx.font = `${infoFS}px 'Segoe UI', sans-serif`;
+    ctx.fillText("drought.climate.umt.edu", logoCenterX, infoY);
+    ctx.fillStyle = et.dim;
+    ctx.fillText(`Generated: ${generatedDate}`, logoCenterX, infoY + infoFS + Math.round(2 * SCALE));
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    /* ── 3a. Clip to map region and draw captured map ── */
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, TITLE_H, mapW_px, mapH_px);
+    ctx.clip();
     ctx.drawImage(mapCapture, 0, TITLE_H, mapW_px, mapH_px);
 
     /* ── 3b. Composite SVG vector overlays (states, counties) ─────
@@ -4085,6 +4164,7 @@ async function takeScreenshot() {
         img.src = 'data:image/svg+xml;base64,' + b64;
       });
     }
+    ctx.restore();
 
     /* ── 4. Draw footer band ── */
     const footerTop = TITLE_H + mapH_px;
@@ -4110,10 +4190,23 @@ async function takeScreenshot() {
     // Draw USDM legend in footer (to right of other legends)
     drawUsdmFooterLegend(ctx, footerContentY, legendRightX, SCALE);
 
+    // Attribution text (right-aligned in footer)
+    const attrText = getExportAttribution();
+    if (attrText) {
+      const attrFS = Math.round(9 * SCALE);
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = et.dim;
+      ctx.font = `${attrFS}px 'Segoe UI', sans-serif`;
+      ctx.fillText(attrText, mapW_px - Math.round(14 * SCALE), footerTop + FOOTER_H - Math.round(6 * SCALE));
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+    }
+
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     const a = document.createElement("a");
-    a.download = `damp_${safeName}_${activeTS}_${activePeriod}.png`;
+    a.download = `D3_${safeName}_${activeTS}_${activePeriod}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
 
