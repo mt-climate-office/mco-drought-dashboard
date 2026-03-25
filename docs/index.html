@@ -771,6 +771,46 @@
 
     .section-label.sec-collapsed .caret { transform: rotate(-90deg); }
 
+    .info-tip {
+      display: inline-block;
+      cursor: help;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-left: 2px;
+      margin-right: 2px;
+      position: relative;
+      vertical-align: middle;
+    }
+    .info-tip:hover, .info-tip:focus {
+      color: var(--accent-light);
+    }
+    .info-tip .info-tip-text {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--panel-bg);
+      color: var(--text-main);
+      font-size: 0.65rem;
+      font-family: var(--font-body);
+      line-height: 1.45;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      border: 1px solid var(--border-glass);
+      z-index: 9999;
+      pointer-events: none;
+      font-weight: normal;
+      letter-spacing: normal;
+      text-transform: none;
+    }
+    .info-tip:hover .info-tip-text,
+    .info-tip:focus .info-tip-text {
+      display: block;
+    }
+
     /* ================================================================
        Section Bodies
        ================================================================ */
@@ -1303,7 +1343,7 @@
       font-size: 0.78rem;
       line-height: 1.4;
       box-shadow: var(--shadow);
-      min-width: 160px;
+      min-width: 180px;
       max-width: 220px;
       border: 1px solid var(--border-glass);
     }
@@ -1352,7 +1392,7 @@
 
     .legend-gradient {
       width: 20px;
-      height: 160px;
+      height: 200px;
       border-radius: 3px;
       flex-shrink: 0;
     }
@@ -1361,7 +1401,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      height: 160px;
+      height: 200px;
       font-family: var(--font-mono);
       font-size: 0.65rem;
       color: var(--text-muted);
@@ -1861,7 +1901,7 @@
         </div>
 
         <label class="custom-check" id="query-row" style="margin-top:8px;">
-          <input type="checkbox" id="query-chk">
+          <input type="checkbox" id="query-chk" checked>
           Point query (click map)
         </label>
       </div>
@@ -1873,7 +1913,7 @@
       </div>
 
       <!-- Reference Period — section index 2 -->
-      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="caret">&#9660;</span></div>
+      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0">&#9432;<span class="info-tip-text"><strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data, which updates annually. This is the WMO-recommended approach for climate normals and best reflects current climate conditions.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present). This provides a longer historical baseline but may not represent current climate as well due to long-term trends.<br><br>For most drought monitoring purposes, the <strong>rolling 30-year period is recommended</strong>.</span></span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
           <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling"></button>
@@ -2184,12 +2224,12 @@ const VAR_CONFIG = {
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
   'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
   'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, attribution: "gridMET", description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
-  'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
+  'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
   'precip-in':    { label: "Precipitation — Accumulation (in)",prefix: "precip-mm_",   paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true,  dynamicType: 'sequential', mmToIn: true, attribution: "gridMET", description: "Total accumulated precipitation over the selected period, expressed in inches. This is the raw precipitation total without comparison to a historical baseline." },
   'vpd-pon':      { label: "VPD — Percent of Normal",         prefix: "vpd-pon_",      paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentage of the long-term normal. Values above 100% indicate higher-than-normal atmospheric dryness; values below 100% indicate lower-than-normal dryness." },
   'vpd-dev':      { label: "VPD — Departure",                 prefix: "vpd-dev_",      paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: true,  dynamic: true,  dynamicType: 'diverging',  attribution: "gridMET", description: "Vapor pressure deficit departure from the long-term normal. Positive values indicate anomalously high atmospheric dryness; negative values indicate anomalously moist atmospheric conditions." },
-  'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
-  'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
+  'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
+  'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
 };
@@ -2423,6 +2463,7 @@ const STATE_BOUNDS = {
 };
 let legendCtrl       = null;
 const georasterCache = {};   // url → georaster, avoids re-fetching on palette/range change
+const usdmLayerCache = {};   // dateStr → L.geoJson layer, avoids re-parsing parquet
 
 /* ════════════════════════════════════════════════════════════════
    MAP INIT
@@ -2628,6 +2669,8 @@ document.getElementById("var-select").addEventListener("change", function() {
     prBody.style.display  = "none";
     // Remove any active raster layer; load HHP vector layer
     if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null; }
+    if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
+    if (queryPopup) { map.closePopup(queryPopup); queryPopup = null; queryLastLatLng = null; }
     (async () => {
       if (!hhpLoaded) {
         document.getElementById("spinner").style.display = "flex";
@@ -2866,9 +2909,10 @@ document.getElementById("tribal-chk").addEventListener("change", async function(
 /* ════════════════════════════════════════════════════════════════
    POINT QUERY (click-to-inspect raster value)
    ════════════════════════════════════════════════════════════════ */
-let queryActive = false;
+let queryActive = true;
 let queryPopup = null;
 let queryLastLatLng = null;
+document.getElementById("map").style.cursor = "crosshair";
 
 function queryRasterAt(latlng) {
   queryLastLatLng = latlng;
@@ -2964,6 +3008,14 @@ function onMapQueryClick(e) {
 }
 
 map.on("click", onMapQueryClick);
+
+// When user dismisses popup via the X button, clear state so it doesn't reappear on layer switch
+map.on("popupclose", function(e) {
+  if (queryPopup && e.popup === queryPopup) {
+    queryPopup = null;
+    queryLastLatLng = null;
+  }
+});
 
 document.getElementById("query-chk").addEventListener("change", function() {
   queryActive = this.checked;
@@ -3149,6 +3201,20 @@ async function loadUsdmForDate(dateStr) {
   usdmActiveDate = dateStr;
   document.getElementById("usdm-date").textContent = formatDate(dateStr);
 
+  // Check cache first
+  if (usdmLayerCache[dateStr]) {
+    if (usdmLayer && map.hasLayer(usdmLayer)) map.removeLayer(usdmLayer);
+    usdmLayer = usdmLayerCache[dateStr];
+    usdmLayer.setStyle({ fillOpacity: usdmOpacity });
+    usdmLoaded = true;
+    if (document.getElementById("usdm-chk").checked) {
+      usdmLayer.addTo(map);
+      if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
+      if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+    }
+    return;
+  }
+
   // Fetch and parse geoparquet
   const pqResp = await fetch(USDM_BASE + "/data/parquet/USDM_" + dateStr + ".parquet");
   const buffer = await pqResp.arrayBuffer();
@@ -3213,6 +3279,7 @@ async function loadUsdmForDate(dateStr) {
       layer.bindTooltip(USDM_DM_LABELS[dm] || `D${dm}`, { direction: "auto", sticky: true });
     }
   });
+  usdmLayerCache[dateStr] = usdmLayer;
   usdmLoaded = true;
 
   // If USDM is currently visible, swap on map
@@ -3246,7 +3313,7 @@ document.getElementById("usdm-week-slider").addEventListener("input", function()
     try { await loadUsdmForDate(dateStr); } finally {
       usdmSliderLoading = false;
     }
-  }, 80);
+  }, 250);
 });
 
 // ── USDM date dropdown ──
@@ -3322,14 +3389,20 @@ function buildLegend(varKey, ts, period, legendRows) {
       const gradient = `linear-gradient(to top, ${colors.join(', ')})`;
       const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
       const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
-      const midIdx = Math.floor(legendRows.length / 2);
+      const q1Idx = Math.floor(legendRows.length * 0.25);
+      const midIdx = Math.floor(legendRows.length * 0.5);
+      const q3Idx = Math.floor(legendRows.length * 0.75);
+      const q1Label = legendRows[q1Idx].label.split('\u2013')[0].trim();
       const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
+      const q3Label = legendRows[q3Idx].label.split('\u2013')[0].trim();
       legendBody = `
         <div style="display:flex;gap:8px;align-items:stretch;">
           <div class="legend-gradient" style="background:${gradient}"></div>
           <div class="legend-gradient-labels">
             <span>${topLabel}</span>
+            <span>${q3Label}</span>
             <span>${midLabel}</span>
+            <span>${q1Label}</span>
             <span>${bottomLabel}</span>
           </div>
         </div>`;
@@ -3412,7 +3485,8 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   if (statesLayer) statesLayer.bringToFront();
 
   // Re-query the pinned point so the popup updates with the new dataset
-  if (queryActive && queryLastLatLng) queryRasterAt(queryLastLatLng);
+  // Only if the popup is still open (user hasn't dismissed it)
+  if (queryActive && queryLastLatLng && queryPopup) queryRasterAt(queryLastLatLng);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -3667,8 +3741,8 @@ function drawFooterLegend(ctx, footerY, sc) {
   const cfg = VAR_CONFIG[activeVar];
   const useGradient = cfg.dynamic && legendRows.length > 4;
   const margin = Math.round(24 * sc);
-  const titleFS = Math.round(11 * sc);
-  const labelFS = Math.round(10 * sc);
+  const titleFS = Math.round(13 * sc);
+  const labelFS = Math.round(11 * sc);
   const tickMarkLen = Math.round(4 * sc);
 
   ctx.textBaseline = "top";
@@ -3676,7 +3750,7 @@ function drawFooterLegend(ctx, footerY, sc) {
 
   if (useGradient) {
     // Horizontal gradient bar
-    const maxBarW = Math.round(200 * sc);
+    const maxBarW = Math.round(280 * sc);
     const barH = Math.round(14 * sc);
     const availW = ctx.canvas.width - margin * 4;
     const barW = Math.min(maxBarW, Math.round(availW * 0.4));
@@ -3806,8 +3880,8 @@ function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
   ];
 
   const title = "U.S. Drought Monitor";
-  const titleFS = Math.round(11 * sc);
-  const labelFS = Math.round(10 * sc);
+  const titleFS = Math.round(13 * sc);
+  const labelFS = Math.round(11 * sc);
   const swW = Math.round(24 * sc);
   const swH = Math.round(14 * sc);
   const gap = Math.round(6 * sc);
@@ -3871,8 +3945,8 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
   ];
 
   const title = "Streamflow Percentile";
-  const titleFS = Math.round(11 * sc);
-  const labelFS = Math.round(9 * sc);
+  const titleFS = Math.round(13 * sc);
+  const labelFS = Math.round(11 * sc);
   const circleR = Math.round(6 * sc);
   const cellGap = Math.round(4 * sc);
 
