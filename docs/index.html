@@ -753,6 +753,61 @@
     }
     #tips-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
 
+    /* ── Feedback modal ───────────────────────────────────────── */
+    #feedback-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--overlay-dark);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    #feedback-modal-overlay.active { display: flex; }
+
+    #feedback-modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 24px 24px 18px;
+      width: 620px;
+      max-width: 92vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-display);
+    }
+    #feedback-modal h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    #feedback-modal iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 480px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: #fff;
+    }
+    #feedback-close-btn {
+      display: block;
+      margin: 12px 0 0 auto;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 8px 22px;
+      font-size: 0.82rem;
+      font-family: var(--font-display);
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+    #feedback-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
+
     /* ── Raster query popup ────────────────────────────────────── */
     .query-popup .leaflet-popup-content-wrapper {
       background: var(--glass);
@@ -1917,12 +1972,12 @@
       </svg>
       GitHub
     </a>
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLScDObvowrbB4njNZeqJDXj_BzCQqnkqndVXeIwC6bKVxpgsKw/viewform" target="_blank" rel="noopener" id="feedback-btn" class="nav-action-item" title="Submit feedback or report a bug">
+    <button id="feedback-btn" class="nav-action-item" title="Submit feedback or report a bug" onclick="document.getElementById('feedback-modal-overlay').classList.add('active')">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
       Feedback
-    </a>
+    </button>
     <button id="tips-btn" class="nav-action-item" title="Tips & shortcuts" onclick="document.getElementById('tips-modal-overlay').classList.add('active')">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
@@ -2020,6 +2075,11 @@
           <input type="checkbox" id="query-chk" checked>
           Point query (click map)
         </label>
+
+        <div id="opacity-row" style="margin-top:8px;">
+          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
+          <span id="opacity-val">0.75</span>
+        </div>
       </div>
 
       <!-- Timescale — section index 1 -->
@@ -2153,14 +2213,6 @@
         </div>
       </div>
 
-      <!-- Layer Opacity — section index 7 -->
-      <div class="section-label sec-collapsed" data-sec="sec-opacity" style="--i:7">Layer Opacity <span class="info-tip" tabindex="0" data-tip="opacity">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body sec-collapsed" id="sec-opacity">
-        <div id="opacity-row">
-          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
-          <span id="opacity-val">0.75</span>
-        </div>
-      </div>
 
       <!-- Basemap & Theme — section index 8 (collapsed by default) -->
       <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:8">Basemap & Theme <span class="info-tip" tabindex="0" data-tip="basemap">&#9432;</span><span class="caret">&#9660;</span></div>
@@ -3154,10 +3206,9 @@ document.getElementById("query-chk").addEventListener("change", function() {
     'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing a longer historical baseline but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. Both may be valid based on your use case.',
     'zoom': 'Quickly zoom the map to a specific state or back to the full CONUS view. Select a state from the dropdown to center and zoom to its bounds.',
     'station': 'Load real-time USGS streamgage observations onto the map. Stations are colored by their current flow percentile relative to historical conditions at each site.',
-    'opacity': 'Adjust the transparency of the active data layer. Lower values let the basemap show through more clearly, which can help with geographic orientation.',
     'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
     'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
-    'overlays': 'Toggle geographic boundaries and additional data layers on the map. USGS Streamflow Percentiles show real-time streamgage data colored by flow percentile.',
+    'overlays': 'Toggle geographic boundaries and reference layers on the map, including state and county lines, tribal nation boundaries, and the U.S. Drought Monitor.',
     'usdm': 'The U.S. Drought Monitor is a weekly map of drought conditions produced jointly by NOAA, USDA, and the National Drought Mitigation Center. Categories range from D0 (abnormally dry) to D4 (exceptional drought). Use the slider or dropdown to view recent weeks.'
   };
 
@@ -4620,6 +4671,14 @@ document.getElementById("tips-modal-overlay").addEventListener("click", function
   if (e.target === this) this.classList.remove("active");
 });
 
+// Feedback modal close
+document.getElementById("feedback-close-btn").addEventListener("click", function() {
+  document.getElementById("feedback-modal-overlay").classList.remove("active");
+});
+document.getElementById("feedback-modal-overlay").addEventListener("click", function(e) {
+  if (e.target === this) this.classList.remove("active");
+});
+
 function loadState() {
   const hash = window.location.hash.slice(1);
   if (!hash) return null;
@@ -4986,6 +5045,14 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
       <div class="tips-text"><strong>Open source.</strong> Click <strong>GitHub</strong> to view the source code and data pipeline behind this dashboard.</div>
     </div>
     <button id="tips-close-btn">Got it</button>
+  </div>
+</div>
+
+<div id="feedback-modal-overlay">
+  <div id="feedback-modal">
+    <h3>Feedback</h3>
+    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScDObvowrbB4njNZeqJDXj_BzCQqnkqndVXeIwC6bKVxpgsKw/viewform?embedded=true" loading="lazy"></iframe>
+    <button id="feedback-close-btn">Close</button>
   </div>
 </div>
 
