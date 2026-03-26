@@ -45,8 +45,7 @@
   <!-- topojson -->
   <script defer src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
 
-  <!-- html2canvas for pixel-perfect screenshot export -->
-  <script defer src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- html2canvas loaded on demand when user exports -->
 
 
   <style>
@@ -1775,7 +1774,7 @@
 <nav id="navbar">
   <button id="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
-    <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO">
+    <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO" width="36" height="36">
   </a>
   <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the Montana Climate Office &amp; the NGP-RIDR</span></span></div>
   <div id="nav-actions">
@@ -1857,7 +1856,7 @@
       <div class="section-label" data-sec="sec-variable" style="--i:0">Data Layer <span class="info-tip" tabindex="0" data-tip="data-layer">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-variable">
         <!-- Hidden native select (still used by JS) -->
-        <select id="var-select">
+        <select id="var-select" aria-label="Data layer">
           <optgroup label="── Drought Metrics ──">
             <option value="spi" selected>Standardized Precipitation Index (SPI)</option>
             <option value="spei">Standardized Precipitation Evapotranspiration Index (SPEI)</option>
@@ -1886,7 +1885,7 @@
 
         <!-- Custom dropdown (populated by JS) -->
         <div class="custom-select" id="custom-var-select" tabindex="0">
-          <button type="button" class="cs-trigger">
+          <button type="button" class="cs-trigger" aria-label="Select data layer">
             <span class="cs-label">Standardized Precipitation Index (SPI)</span>
             <svg class="cs-chevron" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1901,11 +1900,11 @@
           <div id="range-row">
             <div class="range-field">
               <span class="range-lbl">Min</span>
-              <input type="number" id="range-min" class="range-input" step="any" placeholder="auto">
+              <input type="number" id="range-min" class="range-input" step="any" placeholder="auto" aria-label="Color range minimum">
             </div>
             <div class="range-field">
               <span class="range-lbl">Max</span>
-              <input type="number" id="range-max" class="range-input" step="any" placeholder="auto">
+              <input type="number" id="range-max" class="range-input" step="any" placeholder="auto" aria-label="Color range maximum">
             </div>
             <button id="range-reset">Auto</button>
           </div>
@@ -1918,7 +1917,7 @@
 
         <div style="margin-top:10px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Layer Opacity</div>
         <div id="opacity-row">
-          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
+          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75" aria-label="Layer opacity">
           <span id="opacity-val">0.75</span>
         </div>
       </div>
@@ -1933,15 +1932,15 @@
       <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0" data-tip="ref-period">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
-          <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling"></button>
-          <button class="period-btn" data-period="full" id="period-btn-full"></button>
+          <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling" aria-label="Rolling 30-year reference period"></button>
+          <button class="period-btn" data-period="full" id="period-btn-full" aria-label="Full period of record"></button>
         </div>
       </div>
 
       <!-- Zoom to Location — section index 3 -->
       <div class="section-label sec-collapsed" data-sec="sec-zoom-state" style="--i:3">Zoom to Location <span class="info-tip" tabindex="0" data-tip="zoom">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-zoom-state">
-        <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
+        <select id="state-select" aria-label="Zoom to location" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
           <option value="">CONUS (default)</option>
           <optgroup label="States">
             <option value="AL">Alabama</option>
@@ -2024,21 +2023,21 @@
         <div style="margin-bottom:8px;">
           <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" aria-label="USDM week" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
             <datalist id="usdm-week-ticks"></datalist>
             <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
           </div>
         </div>
         <div style="margin-bottom:8px;">
           <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
-          <select id="usdm-date-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
+          <select id="usdm-date-select" aria-label="USDM date" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
             <option value="">Loading…</option>
           </select>
         </div>
         <div>
           <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+            <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="USDM opacity" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
             <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
           </div>
         </div>
@@ -2133,7 +2132,7 @@
       <div id="flow-panel-title"></div>
       <div id="flow-panel-sub"></div>
     </div>
-    <button id="flow-panel-close">&times;</button>
+    <button id="flow-panel-close" aria-label="Close panel">&times;</button>
   </div>
   <div id="flow-panel-content"></div>
   <div id="flow-panel-resize"></div>
@@ -4132,6 +4131,16 @@ async function takeScreenshot(exportScale) {
   btn.querySelector("svg").style.animation = "spin 0.8s linear infinite";
 
   try {
+    // Lazy-load html2canvas on first export
+    if (typeof html2canvas === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load html2canvas'));
+        document.head.appendChild(s);
+      });
+    }
     if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
