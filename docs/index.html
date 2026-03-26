@@ -1106,6 +1106,8 @@
       color: var(--accent-light);
     }
 
+    .basemap-grey img { filter: grayscale(1); }
+
     /* ================================================================
        Opacity Slider
        ================================================================ */
@@ -1777,13 +1779,20 @@
   </a>
   <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the Montana Climate Office &amp; the NGP-RIDR</span></span></div>
   <div id="nav-actions">
-    <button id="screenshot-btn" onclick="takeScreenshot()" title="Export map as PNG" class="nav-action-item">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-      Export
-    </button>
+    <div id="export-wrap" class="nav-action-item" style="position:relative;padding:0;">
+      <button id="screenshot-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Export map as PNG">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Export &#9662;
+      </button>
+      <div id="export-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:140px;padding:4px 0;">
+        <button onclick="takeScreenshot(1); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Low (1x)</button>
+        <button onclick="takeScreenshot(2); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Medium (2x)</button>
+        <button onclick="takeScreenshot(3); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">High (3x)</button>
+      </div>
+    </div>
     <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" class="nav-action-item" title="View methodology documentation">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -2051,8 +2060,9 @@
         <div id="basemap-strip">
           <button class="basemap-btn" data-basemap="light">Light</button>
           <button class="basemap-btn" data-basemap="dark">Dark</button>
-          <button class="basemap-btn active" data-basemap="voyager">Voyager</button>
+          <button class="basemap-btn" data-basemap="voyager">Voyager</button>
           <button class="basemap-btn" data-basemap="satellite">Satellite</button>
+          <button class="basemap-btn active" data-basemap="natgeo">NatGeo (Topo)</button>
         </div>
         <div class="subsec-label" style="margin-top:10px">Theme</div>
         <div id="theme-strip">
@@ -2467,7 +2477,7 @@ const usdmLayerCache = {};   // dateStr → L.geoJson layer, avoids re-parsing p
 /* ════════════════════════════════════════════════════════════════
    MAP INIT
    ════════════════════════════════════════════════════════════════ */
-const map = L.map("map", { zoomControl: false, zoomSnap: 0.5, zoomDelta: 0.5 });
+const map = L.map("map", { zoomControl: false, zoomSnap: 0.5, zoomDelta: 0.5, minZoom: 4.5 });
 L.control.zoom({ position: 'topright' }).addTo(map);
 L.control.scale({ position: 'bottomright', imperial: true, metric: false }).addTo(map);
 
@@ -2498,9 +2508,10 @@ const BASEMAPS = {
   dark:      { url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",   opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
   voyager:   { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opts: { maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.esri.com/">Esri</a>' } },
+  natgeo:    { url: "https://services.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", opts: { maxZoom: 16, crossOrigin: true, className: 'basemap-grey', attribution: '&copy; <a href="https://www.esri.com/">Esri</a> &copy; National Geographic' } },
 };
 
-let baseTile = L.tileLayer(BASEMAPS.voyager.url, BASEMAPS.voyager.opts).addTo(map);
+let baseTile = L.tileLayer(BASEMAPS.natgeo.url, BASEMAPS.natgeo.opts).addTo(map);
 
 // Initial fit: temporarily allow fractional zoom for a precise CONUS fit
 map.options.zoomSnap = 0;
@@ -2626,19 +2637,37 @@ function autoEnableLayerForZoom(code) {
   }
 }
 
-document.getElementById("state-select").addEventListener("change", function() {
+// Use both change (for new selections) and a re-select workaround:
+// Temporarily reset to a sentinel so re-picking the same state triggers change
+const stateSelect = document.getElementById("state-select");
+// Wrap select in a container that shows the label independently of the select value
+const stateSelectWrap = stateSelect.parentElement;
+const stateLabel = document.createElement('div');
+stateLabel.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;padding:0 10px;font-size:13px;color:var(--text-primary);pointer-events:none;';
+stateLabel.textContent = 'CONUS (default)';
+stateSelectWrap.style.position = 'relative';
+stateSelect.style.color = 'transparent';
+stateSelectWrap.insertBefore(stateLabel, stateSelect.nextSibling);
+
+stateSelect.addEventListener("change", function() {
   activeZoomState = this.value;
+  // Update the visible label
+  stateLabel.textContent = this.selectedOptions[0]?.textContent || 'CONUS (default)';
   saveState();
   zoomToState(activeZoomState);
   autoEnableLayerForZoom(activeZoomState);
+  // Reset value so re-selecting the same state triggers change again
+  setTimeout(() => { this.value = ''; }, 100);
 });
 
+let activeBasemap = 'natgeo';
 document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.classList.contains("active")) return;
     document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    const bm = BASEMAPS[btn.dataset.basemap];
+    activeBasemap = btn.dataset.basemap;
+    const bm = BASEMAPS[activeBasemap];
     map.removeLayer(baseTile);
     baseTile = L.tileLayer(bm.url, bm.opts).addTo(map);
     baseTile.bringToBack();
@@ -4096,7 +4125,7 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
   return cx + Math.round(20 * sc);
 }
 
-async function takeScreenshot() {
+async function takeScreenshot(exportScale) {
   const btn = document.getElementById("screenshot-btn");
   btn.disabled = true;
   btn.querySelector("svg").style.animation = "spin 0.8s linear infinite";
@@ -4105,7 +4134,7 @@ async function takeScreenshot() {
     if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
-    const SCALE    = 2;
+    const SCALE    = exportScale || 2;
     const mapW_px  = mapEl.offsetWidth  * SCALE;
     const mapH_px  = mapEl.offsetHeight * SCALE;
     /* ── 0. Force Leaflet to sync its internal state with the DOM ── */
@@ -4286,11 +4315,109 @@ async function takeScreenshot() {
     ctx.textBaseline = "middle";
 
     /* ── 3a. Clip to map region and draw captured map ── */
+    const isGreyBasemap = mapEl.querySelector('.leaflet-tile-pane .basemap-grey') !== null;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, TITLE_H, mapW_px, mapH_px);
     ctx.clip();
+    if (isGreyBasemap) {
+      ctx.filter = 'grayscale(1)';
+    }
     ctx.drawImage(mapCapture, 0, TITLE_H, mapW_px, mapH_px);
+    if (isGreyBasemap) {
+      ctx.filter = 'none';
+      // Re-draw GeoRasterLayer canvases on top in full color.
+      // Edge tiles have small buffers (24x16, 11x179 etc.) but getBoundingClientRect
+      // returns their full transformed box which is wrong for sizing.
+      // Strategy: find a full-size reference tile to compute the Leaflet transform scale,
+      // then position each tile using its grid index × scaled tile size.
+      // Re-draw GeoRasterLayer canvases on top in full color.
+      // Edge tiles have small buffers but Leaflet's CSS transform inflates their
+      // getBoundingClientRect to full cell size. We establish a grid from full tiles
+      // and compute each tile's true position from its grid coordinates.
+      const rasterCanvases = Array.from(mapEl.querySelectorAll('.leaflet-tile-pane canvas'));
+      const fullTiles = rasterCanvases.filter(rc => rc.width === 256 && rc.height === 256);
+      if (fullTiles.length >= 2) {
+        // Get grid step from adjacent full tiles
+        fullTiles.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        let cellW = 0, cellH = 0;
+        const ftRects = fullTiles.map(ft => ft.getBoundingClientRect());
+        for (let i = 1; i < ftRects.length; i++) {
+          if (Math.abs(ftRects[i].top - ftRects[0].top) < 2) {
+            cellW = ftRects[i].left - ftRects[0].left;
+            break;
+          }
+        }
+        fullTiles.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+        const ftRectsV = fullTiles.map(ft => ft.getBoundingClientRect());
+        for (let i = 1; i < ftRectsV.length; i++) {
+          if (Math.abs(ftRectsV[i].left - ftRectsV[0].left) < 2) {
+            cellH = ftRectsV[i].top - ftRectsV[0].top;
+            break;
+          }
+        }
+        if (!cellW) cellW = ftRects[0].width;
+        if (!cellH) cellH = ftRectsV[0].height;
+
+        // Use a full tile as grid origin
+        const refRect = fullTiles[0].getBoundingClientRect();
+        const gridOriginX = refRect.left;
+        const gridOriginY = refRect.top;
+
+        // Collect all unique grid column X positions and row Y positions from full tiles
+        const colXs = [...new Set(fullTiles.map(ft => Math.round(ft.getBoundingClientRect().left)))].sort((a,b) => a-b);
+        const rowYs = [...new Set(fullTiles.map(ft => Math.round(ft.getBoundingClientRect().top)))].sort((a,b) => a-b);
+
+        rasterCanvases.forEach(rc => {
+          const rcRect = rc.getBoundingClientRect();
+          if (rc.width === 0 || rc.height === 0) return;
+          const styleW = parseFloat(rc.style.width) || rc.width;
+          const styleH = parseFloat(rc.style.height) || rc.height;
+          const dispW = cellW * (styleW / 256);
+          const dispH = cellH * (styleH / 256);
+
+          // Determine which grid column/row this tile belongs to by matching BCR position
+          const bcrL = Math.round(rcRect.left);
+          const bcrT = Math.round(rcRect.top);
+
+          // Find the grid column: which colX matches, or is this tile left/right of all full tiles?
+          let contentLeft, contentTop;
+
+          // Horizontal: check if tile aligns with a known full-tile column
+          const matchCol = colXs.find(cx => Math.abs(cx - bcrL) < 2);
+          if (matchCol !== undefined) {
+            // Same column as a full tile - content starts at left edge
+            contentLeft = bcrL;
+          } else if (bcrL < colXs[0]) {
+            // Left of all full tiles - this is a left-edge tile, content is at the RIGHT of BCR
+            contentLeft = rcRect.right - dispW;
+          } else {
+            // Right of all full tiles - right-edge tile, content starts at BCR left
+            contentLeft = bcrL;
+          }
+
+          // Vertical: same logic
+          const matchRow = rowYs.find(ry => Math.abs(ry - bcrT) < 2);
+          if (matchRow !== undefined) {
+            contentTop = bcrT;
+          } else if (bcrT < rowYs[0]) {
+            // Above all full tiles - top-edge tile, content at BOTTOM of BCR
+            contentTop = rcRect.bottom - dispH;
+          } else {
+            // Below all full tiles - bottom-edge tile, content starts at BCR top
+            contentTop = bcrT;
+          }
+
+          const dx = (contentLeft - mapRect.left) * SCALE;
+          const dy = (contentTop - mapRect.top) * SCALE + TITLE_H;
+          const dw = dispW * SCALE;
+          const dh = dispH * SCALE;
+          ctx.globalAlpha = parseFloat(opacitySlider.value);
+          ctx.drawImage(rc, dx, dy, dw, dh);
+          ctx.globalAlpha = 1.0;
+        });
+      }
+    }
 
     /* ── 3b. Composite SVG vector overlays (states, counties) ─────
        XMLSerializer + getBoundingClientRect correctly handles Leaflet's
@@ -4387,6 +4514,31 @@ async function takeScreenshot() {
   }
 }
 window.takeScreenshot = takeScreenshot;
+
+// Export dropdown toggle
+document.getElementById("screenshot-btn").addEventListener("click", function(e) {
+  e.stopPropagation();
+  const dd = document.getElementById("export-dropdown");
+  if (dd.style.display === 'none') {
+    const rect = this.getBoundingClientRect();
+    dd.style.top = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.style.display = 'block';
+  } else {
+    dd.style.display = 'none';
+  }
+});
+document.addEventListener("click", function(e) {
+  const wrap = document.getElementById("export-wrap");
+  if (!wrap || !wrap.contains(e.target)) {
+    document.getElementById("export-dropdown").style.display = 'none';
+  }
+});
+// Hover style for export dropdown buttons
+document.querySelectorAll('#export-dropdown button').forEach(btn => {
+  btn.addEventListener('mouseenter', () => { btn.style.background = 'var(--accent-hover)'; btn.style.color = 'var(--text-primary)'; });
+  btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; btn.style.color = 'var(--text-secondary)'; });
+});
 
 /* ════════════════════════════════════════════════════════════════
    HHP FLOW PANEL
@@ -4519,8 +4671,10 @@ function saveState() {
 }
 
 function buildShareUrl() {
-  let query = '';
-  if (activeTheme && activeTheme !== 'dark') query = '?theme=' + activeTheme;
+  const qp = new URLSearchParams();
+  if (activeTheme && activeTheme !== 'dark') qp.set('theme', activeTheme);
+  if (activeBasemap && activeBasemap !== 'natgeo') qp.set('basemap', activeBasemap);
+  const query = qp.toString() ? '?' + qp.toString() : '';
   let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
   hash += '/' + (activeZoomState || '');
   if (customMapView) {
@@ -4583,9 +4737,11 @@ function loadState() {
   const params = new URLSearchParams(window.location.search);
   const theme = params.get('theme') || 'dark';
   if (theme !== 'dark' && !['light','high-contrast'].includes(theme)) return null;
+  const basemap = params.get('basemap') || 'natgeo';
+  if (!BASEMAPS[basemap]) return null;
   const mapView = (zoom !== null && lat !== null && lng !== null && !isNaN(zoom) && !isNaN(lat) && !isNaN(lng))
     ? { zoom, lat, lng } : null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, mapView: mapView };
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4748,6 +4904,17 @@ if (savedState) {
       b.classList.toggle("active", b.dataset.theme === activeTheme);
     });
   }
+
+  // Restore basemap
+  if (savedState.basemap && savedState.basemap !== 'natgeo' && BASEMAPS[savedState.basemap]) {
+    activeBasemap = savedState.basemap;
+    map.removeLayer(baseTile);
+    baseTile = L.tileLayer(BASEMAPS[activeBasemap].url, BASEMAPS[activeBasemap].opts).addTo(map);
+    baseTile.bringToBack();
+    document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.basemap === activeBasemap);
+    });
+  }
 }
 
 updateRangeSection(activeVar, null);
@@ -4857,9 +5024,10 @@ window.addEventListener('popstate', function() {
       clone.classList.remove('nav-action-item');
       clone.style.display = '';
       // For screenshot button, wire up the onclick
-      if (el.id === 'screenshot-btn') {
-        clone.removeAttribute('onclick');
-        clone.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(); });
+      if (el.id === 'export-wrap') {
+        clone.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Export (2x)';
+        clone.style.cursor = 'pointer';
+        clone.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(2); });
       }
       // For share button, wire up click
       if (el.id === 'share-btn') {
