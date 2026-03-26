@@ -318,9 +318,9 @@
     #hamburger:hover { background: var(--bg-elevated); }
 
     /* ================================================================
-       Screenshot Button
+       Nav Action Buttons (shared)
        ================================================================ */
-    #screenshot-btn {
+    .nav-action-item {
       background: none;
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
@@ -335,119 +335,20 @@
       white-space: nowrap;
       flex-shrink: 0;
       transition: var(--transition);
+      text-decoration: none;
     }
 
-    #screenshot-btn:hover {
+    .nav-action-item:hover {
       background: var(--accent-hover);
       border-color: var(--accent);
     }
+
+    .nav-action-item svg { flex-shrink: 0; }
 
     #screenshot-btn:disabled {
       opacity: 0.5;
       cursor: wait;
     }
-
-    #screenshot-btn svg { flex-shrink: 0; }
-
-    #methods-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-      text-decoration: none;
-    }
-
-    #methods-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #methods-btn svg { flex-shrink: 0; }
-
-    #explorer-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-      text-decoration: none;
-    }
-
-    #explorer-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #explorer-btn svg { flex-shrink: 0; }
-
-    #github-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-      text-decoration: none;
-    }
-
-    #github-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #github-btn svg { flex-shrink: 0; }
-
-    #feedback-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-      text-decoration: none;
-    }
-
-    #feedback-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #feedback-btn svg { flex-shrink: 0; }
 
     /* ── Nav actions overflow → More dropdown ───────────────────── */
     #nav-actions {
@@ -524,54 +425,7 @@
 
     #nav-more-dropdown svg { flex-shrink: 0; }
 
-    #tips-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-    }
-
-    #tips-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #tips-btn svg { flex-shrink: 0; }
-
-    #share-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: var(--transition);
-      position: relative;
-    }
-
-    #share-btn:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent);
-    }
-
-    #share-btn svg { flex-shrink: 0; }
+    #share-btn { position: relative; }
 
     #share-btn .share-toast {
       position: absolute;
@@ -594,8 +448,8 @@
       transform: translateY(0);
     }
 
-    /* ── Share modal ───────────────────────────────────────────── */
-    #share-modal-overlay {
+    /* ── Modal overlays (shared) ─────────────────────────────── */
+    .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
@@ -604,8 +458,7 @@
       align-items: center;
       justify-content: center;
     }
-
-    #share-modal-overlay.active { display: flex; }
+    .modal-overlay.active { display: flex; }
 
     #share-modal {
       background: var(--bg-surface);
@@ -672,17 +525,6 @@
     #share-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
 
     /* ── Tips modal ────────────────────────────────────────────── */
-    #tips-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: var(--overlay-dark);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-    }
-    #tips-modal-overlay.active { display: flex; }
-
     #tips-modal {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -754,17 +596,6 @@
     #tips-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
 
     /* ── Feedback modal ───────────────────────────────────────── */
-    #feedback-modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: var(--overlay-dark);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-    }
-    #feedback-modal-overlay.active { display: flex; }
-
     #feedback-modal {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -2638,6 +2469,29 @@ const usdmLayerCache = {};   // dateStr → L.geoJson layer, avoids re-parsing p
    ════════════════════════════════════════════════════════════════ */
 const map = L.map("map", { zoomControl: false, zoomSnap: 0.5, zoomDelta: 0.5 });
 L.control.zoom({ position: 'topright' }).addTo(map);
+L.control.scale({ position: 'bottomright', imperial: true, metric: false }).addTo(map);
+
+// Geolocation control
+const LocateControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function() {
+    const btn = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    btn.innerHTML = '<a href="#" title="Find my location" role="button" aria-label="Find my location" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;font-size:16px;text-decoration:none;color:#333;background:#fff;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></a>';
+    L.DomEvent.disableClickPropagation(btn);
+    btn.querySelector('a').addEventListener('click', function(e) {
+      e.preventDefault();
+      map.locate({ setView: true, maxZoom: 8 });
+    });
+    return btn;
+  }
+});
+new LocateControl().addTo(map);
+
+let locMarker = null;
+map.on('locationfound', function(e) {
+  if (locMarker) map.removeLayer(locMarker);
+  locMarker = L.circleMarker(e.latlng, { radius: 8, fillColor: '#4285f4', fillOpacity: 0.9, color: '#fff', weight: 2 }).addTo(map);
+});
 
 const BASEMAPS = {
   light:     { url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",  opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
@@ -2741,7 +2595,11 @@ document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
 /* ════════════════════════════════════════════════════════════════
    ZOOM TO STATE
    ════════════════════════════════════════════════════════════════ */
+let customMapView = false;
+let _programmaticMove = false;
 function zoomToState(code) {
+  customMapView = false;
+  _programmaticMove = true;
   if (code && code.startsWith("LAR:") && tribalBounds[code]) {
     map.fitBounds(tribalBounds[code], { padding: [20, 20] });
   } else if (code && STATE_BOUNDS[code]) {
@@ -2752,7 +2610,11 @@ function zoomToState(code) {
     map.fitBounds([[24, -126], [50, -66]]);
     map.options.zoomSnap = 0.5;
   }
+  setTimeout(function() { _programmaticMove = false; }, 500);
 }
+map.on('moveend', function() {
+  if (!_programmaticMove) customMapView = true;
+});
 
 function autoEnableLayerForZoom(code) {
   if (code && code.startsWith("LAR:")) {
@@ -2799,6 +2661,13 @@ document.querySelectorAll("#theme-strip .basemap-btn").forEach(btn => {
   });
 });
 
+/* ── Layer z-order helper ─────────────────────────────────────── */
+function ensureLayerStack() {
+  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
+  if (hhpLayer && map.hasLayer(hhpLayer)) hhpLayer.bringToFront();
+}
+
 /* ════════════════════════════════════════════════════════════════
    VARIABLE SELECT
    ════════════════════════════════════════════════════════════════ */
@@ -2839,16 +2708,21 @@ document.getElementById("var-select").addEventListener("change", function() {
     if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null; }
     if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
     if (queryPopup) { map.closePopup(queryPopup); queryPopup = null; queryLastLatLng = null; }
+    // Hide counties for HHP (streamflow basins are easier to see without them)
+    const countiesChk = document.getElementById("counties-chk");
+    hhpCountiesRestore = countiesChk.checked;
+    if (hhpCountiesRestore && countiesLayer && map.hasLayer(countiesLayer)) {
+      map.removeLayer(countiesLayer);
+      countiesChk.checked = false;
+    }
     (async () => {
       if (!hhpLoaded) {
-        document.getElementById("spinner").style.display = "flex";
-        try { await loadHhpStreamflow(); } finally { document.getElementById("spinner").style.display = "none"; }
+        showSpinner();
+        try { await loadHhpStreamflow(); } finally { hideSpinner(); }
       }
       hhpLayer.addTo(map);
       document.getElementById('map-skeleton')?.remove();
-      if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
-      if (statesLayer) statesLayer.bringToFront();
-      hhpLayer.bringToFront();
+      ensureLayerStack();
       document.getElementById("sf-legend").style.display = "block";
       stackRightLegends();
     })();
@@ -2860,6 +2734,16 @@ document.getElementById("var-select").addEventListener("change", function() {
   tsBody.style.display  = "";
   prLabel.style.display = "";
   prBody.style.display  = "";
+
+  // Restore counties if they were on before switching to HHP
+  if (hhpCountiesRestore) {
+    const countiesChk = document.getElementById("counties-chk");
+    if (!countiesChk.checked) {
+      countiesChk.checked = true;
+      countiesChk.dispatchEvent(new Event("change"));
+    }
+    hhpCountiesRestore = false;
+  }
 
   loadLayer(activeVar, activeTS, activePeriod);
 });
@@ -2996,7 +2880,7 @@ async function loadCounties() {
       }
     });
     countiesLayer.addTo(map);
-    if (statesLayer) statesLayer.bringToFront();
+    ensureLayerStack();
   } catch(e) {
     console.warn("County boundary load failed:", e);
   }
@@ -3004,7 +2888,7 @@ async function loadCounties() {
 
 document.getElementById("counties-chk").addEventListener("change", function() {
   if (!countiesLayer) return;
-  if (this.checked) { countiesLayer.addTo(map); if (statesLayer) statesLayer.bringToFront(); if (hhpLayer && map.hasLayer(hhpLayer)) hhpLayer.bringToFront(); }
+  if (this.checked) { countiesLayer.addTo(map); ensureLayerStack(); }
   else              map.removeLayer(countiesLayer);
 });
 
@@ -3066,18 +2950,18 @@ document.getElementById("tribal-chk").addEventListener("change", async function(
     return;
   }
   if (!tribalLoaded) {
-    document.getElementById("spinner").style.display = "flex";
-    try { await loadTribalNations(); } finally { document.getElementById("spinner").style.display = "none"; }
+    showSpinner();
+    try { await loadTribalNations(); } finally { hideSpinner(); }
   }
   tribalLayer.addTo(map);
-  if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
-  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  ensureLayerStack();
 });
 
 /* ════════════════════════════════════════════════════════════════
    POINT QUERY (click-to-inspect raster value)
    ════════════════════════════════════════════════════════════════ */
 let queryActive = true;
+let hhpCountiesRestore = false;
 let queryPopup = null;
 let queryLastLatLng = null;
 document.getElementById("map").style.cursor = "crosshair";
@@ -3165,23 +3049,32 @@ function queryRasterAt(latlng) {
       <div class="query-coords">${lat.toFixed(4)}&deg;${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}&deg;${lng < 0 ? 'W' : 'E'}</div>
     </div>`;
 
+  queryReplacing = true;
   queryPopup = L.popup({ className: "query-popup" })
     .setLatLng(latlng)
     .setContent(html)
     .openOn(map);
+  queryReplacing = false;
 }
 
 function onMapQueryClick(e) {
-  if (queryActive) queryRasterAt(e.latlng);
+  if (queryActive) {
+    queryDismissed = false;
+    queryRasterAt(e.latlng);
+  }
 }
 
 map.on("click", onMapQueryClick);
 
 // When user dismisses popup via the X button, clear state so it doesn't reappear on layer switch
+// Track whether the user manually dismissed the popup (vs. it being replaced by a re-query)
+let queryDismissed = false;
+let queryReplacing = false;
 map.on("popupclose", function(e) {
+  if (queryReplacing) return;
   if (queryPopup && e.popup === queryPopup) {
+    queryDismissed = true;
     queryPopup = null;
-    queryLastLatLng = null;
   }
 });
 
@@ -3305,8 +3198,8 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
   }
 
   if (!usgsStreamLoaded) {
-    document.getElementById("spinner").style.display = "flex";
-    try { await loadUsgsStreamflow(); } finally { document.getElementById("spinner").style.display = "none"; }
+    showSpinner();
+    try { await loadUsgsStreamflow(); } finally { hideSpinner(); }
   }
   usgsStreamLayer.addTo(map);
   this.querySelector("span").textContent = "Remove Current USGS Percentiles";
@@ -3413,8 +3306,7 @@ async function loadUsdmForDate(dateStr) {
     usdmLoaded = true;
     if (document.getElementById("usdm-chk").checked) {
       usdmLayer.addTo(map);
-      if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
-      if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+      ensureLayerStack();
     }
     return;
   }
@@ -3489,8 +3381,7 @@ async function loadUsdmForDate(dateStr) {
   // If USDM is currently visible, swap on map
   if (document.getElementById("usdm-chk").checked) {
     usdmLayer.addTo(map);
-    if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
-    if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+    ensureLayerStack();
   }
 }
 
@@ -3534,8 +3425,8 @@ document.getElementById("usdm-date-select").addEventListener("change", async fun
     slider.value = 0;
   }
   updateUsdmWeekLabel();
-  document.getElementById("spinner").style.display = "flex";
-  try { await loadUsdmForDate(dateStr); } finally { document.getElementById("spinner").style.display = "none"; }
+  showSpinner();
+  try { await loadUsdmForDate(dateStr); } finally { hideSpinner(); }
 });
 
 function stackRightLegends() {
@@ -3562,13 +3453,12 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
   usdmLabel.style.display = "";
   usdmSection.style.display = "";
   if (!usdmLoaded) {
-    document.getElementById("spinner").style.display = "flex";
-    try { await loadUsdm(); } finally { document.getElementById("spinner").style.display = "none"; }
+    showSpinner();
+    try { await loadUsdm(); } finally { hideSpinner(); }
   }
   usdmLayer.setStyle({ fillOpacity: usdmOpacity });
   usdmLayer.addTo(map);
-  if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
-  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  ensureLayerStack();
   document.getElementById("usdm-legend").style.display = "block";
   stackRightLegends();
 });
@@ -3654,8 +3544,8 @@ function extractDateFromTiff(buffer) {
 /* ════════════════════════════════════════════════════════════════
    SPINNER
    ════════════════════════════════════════════════════════════════ */
-function showSpinner() { document.getElementById("spinner").classList.add("active"); }
-function hideSpinner() { document.getElementById("spinner").classList.remove("active"); }
+function showSpinner() { document.getElementById("spinner").style.display = "flex"; }
+function hideSpinner() { document.getElementById("spinner").style.display = "none"; }
 
 /* ════════════════════════════════════════════════════════════════
    RENDER LAYER  (uses a cached georaster — no fetch)
@@ -3685,12 +3575,11 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   activeLayer.addTo(map);
   document.getElementById('map-skeleton')?.remove();
   buildLegend(varKey, ts, period, legendRows);
-  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
-  if (statesLayer) statesLayer.bringToFront();
+  ensureLayerStack();
 
   // Re-query the pinned point so the popup updates with the new dataset
-  // Only if the popup is still open (user hasn't dismissed it)
-  if (queryActive && queryLastLatLng && queryPopup) queryRasterAt(queryLastLatLng);
+  // Only if the user hasn't manually dismissed the popup
+  if (queryActive && queryLastLatLng && !queryDismissed) queryRasterAt(queryLastLatLng);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4633,7 +4522,11 @@ function buildShareUrl() {
   let query = '';
   if (activeTheme && activeTheme !== 'dark') query = '?theme=' + activeTheme;
   let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
-  if (activeZoomState) hash += '/' + activeZoomState;
+  hash += '/' + (activeZoomState || '');
+  if (customMapView) {
+    const c = map.getCenter();
+    hash += '/' + map.getZoom().toFixed(1) + '/' + c.lat.toFixed(4) + '/' + c.lng.toFixed(4);
+  }
   return window.location.origin + window.location.pathname + query + hash;
 }
 
@@ -4654,29 +4547,25 @@ document.getElementById("share-copy-btn").addEventListener("click", function() {
   });
 });
 
-document.getElementById("share-close-btn").addEventListener("click", function() {
-  document.getElementById("share-modal-overlay").classList.remove("active");
-});
-
-document.getElementById("share-modal-overlay").addEventListener("click", function(e) {
-  if (e.target === this) this.classList.remove("active");
-});
+// Modal close handlers (shared)
+function setupModal(overlayId, closeBtnId) {
+  document.getElementById(closeBtnId).addEventListener("click", () => {
+    document.getElementById(overlayId).classList.remove("active");
+  });
+  document.getElementById(overlayId).addEventListener("click", function(e) {
+    if (e.target === this) this.classList.remove("active");
+  });
+}
+setupModal("share-modal-overlay", "share-close-btn");
+setupModal("tips-modal-overlay", "tips-close-btn");
+setupModal("feedback-modal-overlay", "feedback-close-btn");
 window.buildShareUrl = buildShareUrl;
 
-// Tips modal close
-document.getElementById("tips-close-btn").addEventListener("click", function() {
-  document.getElementById("tips-modal-overlay").classList.remove("active");
-});
-document.getElementById("tips-modal-overlay").addEventListener("click", function(e) {
-  if (e.target === this) this.classList.remove("active");
-});
-
-// Feedback modal close
-document.getElementById("feedback-close-btn").addEventListener("click", function() {
-  document.getElementById("feedback-modal-overlay").classList.remove("active");
-});
-document.getElementById("feedback-modal-overlay").addEventListener("click", function(e) {
-  if (e.target === this) this.classList.remove("active");
+// Escape key closes any open modal
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
+  }
 });
 
 function loadState() {
@@ -4684,6 +4573,9 @@ function loadState() {
   if (!hash) return null;
   const parts = hash.split('/');
   const v = parts[0], ts = parts[1], period = parts[2], zoomSt = parts[3] || '';
+  const zoom = parts[4] ? parseFloat(parts[4]) : null;
+  const lat = parts[5] ? parseFloat(parts[5]) : null;
+  const lng = parts[6] ? parseFloat(parts[6]) : null;
   if (!VAR_CONFIG[v]) return null;
   if (ts && !TIMESCALES.includes(ts)) return null;
   if (period && !['rolling-30','full'].includes(period)) return null;
@@ -4691,7 +4583,9 @@ function loadState() {
   const params = new URLSearchParams(window.location.search);
   const theme = params.get('theme') || 'dark';
   if (theme !== 'dark' && !['light','high-contrast'].includes(theme)) return null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme };
+  const mapView = (zoom !== null && lat !== null && lng !== null && !isNaN(zoom) && !isNaN(lat) && !isNaN(lng))
+    ? { zoom, lat, lng } : null;
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, mapView: mapView };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4826,6 +4720,14 @@ if (savedState) {
     }
   }
 
+  // Restore precise map view from share URL (overrides state zoom)
+  if (savedState.mapView) {
+    _programmaticMove = true;
+    map.setView([savedState.mapView.lat, savedState.mapView.lng], savedState.mapView.zoom);
+    customMapView = true;
+    setTimeout(function() { _programmaticMove = false; }, 500);
+  }
+
   // Handle HHP — hide timescale and period sections
   if (activeVar === 'hhp') {
     const tsLabel = document.querySelector(".section-label[data-sec='sec-timescale']");
@@ -4857,14 +4759,12 @@ opacitySlider.style.setProperty('--fill', (parseFloat(opacitySlider.value) * 100
 if (activeVar === 'hhp') {
   (async () => {
     if (!hhpLoaded) {
-      document.getElementById("spinner").style.display = "flex";
-      try { await loadHhpStreamflow(); } finally { document.getElementById("spinner").style.display = "none"; }
+      showSpinner();
+      try { await loadHhpStreamflow(); } finally { hideSpinner(); }
     }
     hhpLayer.addTo(map);
     document.getElementById('map-skeleton')?.remove();
-    if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
-    if (statesLayer) statesLayer.bringToFront();
-    hhpLayer.bringToFront();
+    ensureLayerStack();
     document.getElementById("sf-legend").style.display = "block";
     stackRightLegends();
 
@@ -4998,7 +4898,7 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
 </script>
 
 <!-- Share Modal -->
-<div id="share-modal-overlay">
+<div id="share-modal-overlay" class="modal-overlay">
   <div id="share-modal">
     <h3>Share this view</h3>
     <div id="share-modal-url"></div>
@@ -5009,7 +4909,7 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
   </div>
 </div>
 
-<div id="tips-modal-overlay">
+<div id="tips-modal-overlay" class="modal-overlay">
   <div id="tips-modal">
     <h3>Tips & Shortcuts</h3>
     <div class="tips-item">
@@ -5048,7 +4948,7 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
   </div>
 </div>
 
-<div id="feedback-modal-overlay">
+<div id="feedback-modal-overlay" class="modal-overlay">
   <div id="feedback-modal">
     <h3>Feedback</h3>
     <iframe src="https://docs.google.com/forms/d/e/1FAIpQLScDObvowrbB4njNZeqJDXj_BzCQqnkqndVXeIwC6bKVxpgsKw/viewform?embedded=true" loading="lazy"></iframe>
