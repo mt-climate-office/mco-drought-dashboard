@@ -772,43 +772,47 @@
     .section-label.sec-collapsed .caret { transform: rotate(-90deg); }
 
     .info-tip {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: help;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      margin-left: 2px;
-      margin-right: 2px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--accent-light);
+      background: var(--overlay-hover-sm);
+      border: 1px solid var(--border-glass);
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      margin-left: auto;
+      margin-right: 6px;
+      flex-shrink: 0;
       position: relative;
       vertical-align: middle;
+      transition: background 0.15s ease, color 0.15s ease;
     }
     .info-tip:hover, .info-tip:focus {
-      color: var(--accent-light);
+      color: var(--text-primary);
+      background: var(--accent-light);
     }
-    .info-tip .info-tip-text {
+    #info-tip-portal {
       display: none;
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      width: 260px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: var(--panel-bg);
-      color: var(--text-main);
-      font-size: 0.65rem;
+      position: fixed;
+      width: 280px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.68rem;
       font-family: var(--font-body);
-      line-height: 1.45;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      line-height: 1.5;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.4);
       border: 1px solid var(--border-glass);
       z-index: 9999;
       pointer-events: none;
       font-weight: normal;
       letter-spacing: normal;
       text-transform: none;
-    }
-    .info-tip:hover .info-tip-text,
-    .info-tip:focus .info-tip-text {
-      display: block;
     }
 
     /* ================================================================
@@ -1843,7 +1847,7 @@
     <div class="sidebar-inner">
 
       <!-- Data Layer — section index 0 -->
-      <div class="section-label" data-sec="sec-variable" style="--i:0">Data Layer <span class="caret">&#9660;</span></div>
+      <div class="section-label" data-sec="sec-variable" style="--i:0">Data Layer <span class="info-tip" tabindex="0" data-tip="data-layer">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-variable">
         <!-- Hidden native select (still used by JS) -->
         <select id="var-select">
@@ -1907,13 +1911,13 @@
       </div>
 
       <!-- Timescale — section index 1 -->
-      <div class="section-label" data-sec="sec-timescale" style="--i:1">Timescale <span class="caret">&#9660;</span></div>
+      <div class="section-label" data-sec="sec-timescale" style="--i:1">Timescale <span class="info-tip" tabindex="0" data-tip="timescale">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-timescale">
         <div id="timescale-strip"></div>
       </div>
 
       <!-- Reference Period — section index 2 -->
-      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0">&#9432;<span class="info-tip-text"><strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data, which updates annually. This is the WMO-recommended approach for climate normals and best reflects current climate conditions.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present). This provides a longer historical baseline but may not represent current climate as well due to long-term trends.<br><br>For most drought monitoring purposes, the <strong>rolling 30-year period is recommended</strong>.</span></span><span class="caret">&#9660;</span></div>
+      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0" data-tip="ref-period">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-period">
         <div id="period-strip">
           <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling"></button>
@@ -1922,7 +1926,7 @@
       </div>
 
       <!-- Zoom to Location — section index 3 -->
-      <div class="section-label sec-collapsed" data-sec="sec-zoom-state" style="--i:3">Zoom to Location <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-zoom-state" style="--i:3">Zoom to Location <span class="info-tip" tabindex="0" data-tip="zoom">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-zoom-state">
         <select id="state-select" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
           <option value="">CONUS (default)</option>
@@ -1981,7 +1985,7 @@
       </div>
 
       <!-- Overlays — section index 4 -->
-      <div class="section-label sec-collapsed" data-sec="sec-overlays" style="--i:4">Overlays <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-overlays" style="--i:4">Overlays <span class="info-tip" tabindex="0" data-tip="overlays">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-overlays">
         <label class="custom-check" id="states-row">
           <input type="checkbox" id="states-chk" checked>
@@ -2002,7 +2006,7 @@
       </div>
 
       <!-- U.S. Drought Monitor — section index 5 (conditional) -->
-      <div class="section-label" data-sec="sec-usdm" style="--i:5;display:none;">U.S. Drought Monitor <span class="caret">&#9660;</span></div>
+      <div class="section-label" data-sec="sec-usdm" style="--i:5;display:none;">U.S. Drought Monitor <span class="info-tip" tabindex="0" data-tip="usdm">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-usdm" style="display:none;">
         <div style="margin-bottom:8px;">
           <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
@@ -2028,7 +2032,7 @@
       </div>
 
       <!-- Station Data — section index 6 -->
-      <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:6">Station Data <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:6">Station Data <span class="info-tip" tabindex="0" data-tip="station">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-station">
         <div id="usgs-btn-row">
           <button id="usgs-btn" type="button">
@@ -2038,7 +2042,7 @@
       </div>
 
       <!-- Layer Opacity — section index 7 -->
-      <div class="section-label sec-collapsed" data-sec="sec-opacity" style="--i:7">Layer Opacity <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-opacity" style="--i:7">Layer Opacity <span class="info-tip" tabindex="0" data-tip="opacity">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-opacity">
         <div id="opacity-row">
           <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75">
@@ -2047,7 +2051,7 @@
       </div>
 
       <!-- Basemap & Theme — section index 8 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:8">Basemap & Theme <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:8">Basemap & Theme <span class="info-tip" tabindex="0" data-tip="basemap">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-basemap">
         <div id="basemap-strip">
           <button class="basemap-btn" data-basemap="light">Light</button>
@@ -2064,7 +2068,7 @@
       </div>
 
       <!-- Information — section index 9 (collapsed by default) -->
-      <div class="section-label sec-collapsed" data-sec="sec-info" style="--i:9">Information <span class="caret">&#9660;</span></div>
+      <div class="section-label sec-collapsed" data-sec="sec-info" style="--i:9">Information <span class="info-tip" tabindex="0" data-tip="information">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-info">
         <div id="var-info-text"></div>
       </div>
@@ -3026,6 +3030,43 @@ document.getElementById("query-chk").addEventListener("change", function() {
     queryLastLatLng = null;
   }
 });
+
+// Show info-tip portal to the right of the sidebar on hover/focus
+(function() {
+  const portal = document.getElementById('info-tip-portal');
+  if (!portal) return;
+
+  const tipContent = {
+    'data-layer': 'Select a drought metric or climate variable to display on the map. Each layer represents a different way of characterizing drought or climate conditions. Descriptions for each variable appear below the dropdown when selected.',
+    'timescale': 'The time window over which the selected variable is calculated. Shorter timescales (15&ndash;30 days) capture recent conditions, while longer timescales (90&ndash;365 days) reveal persistent trends. Water Year (WY) runs October 1 through September 30; Year to Date (YTD) runs January 1 through today.',
+    'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing a longer historical baseline but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. Both may be valid based on your use case.',
+    'zoom': 'Quickly zoom the map to a specific state or back to the full CONUS view. Select a state from the dropdown to center and zoom to its bounds.',
+    'station': 'Load real-time USGS streamgage observations onto the map. Stations are colored by their current flow percentile relative to historical conditions at each site.',
+    'opacity': 'Adjust the transparency of the active data layer. Lower values let the basemap show through more clearly, which can help with geographic orientation.',
+    'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
+    'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
+    'overlays': 'Toggle geographic boundaries and additional data layers on the map. USGS Streamflow Percentiles show real-time streamgage data colored by flow percentile.',
+    'usdm': 'The U.S. Drought Monitor is a weekly map of drought conditions produced jointly by NOAA, USDA, and the National Drought Mitigation Center. Categories range from D0 (abnormally dry) to D4 (exceptional drought). Use the slider or dropdown to view recent weeks.'
+  };
+
+  document.querySelectorAll('.info-tip[data-tip]').forEach(tip => {
+    function show() {
+      const key = tip.getAttribute('data-tip');
+      portal.innerHTML = tipContent[key] || '';
+      const rect = tip.getBoundingClientRect();
+      const sidebar = document.getElementById('sidebar');
+      const sidebarRight = sidebar ? sidebar.getBoundingClientRect().right : 290;
+      portal.style.left = (sidebarRight + 10) + 'px';
+      portal.style.top = Math.max(10, rect.top - 10) + 'px';
+      portal.style.display = 'block';
+    }
+    function hide() { portal.style.display = 'none'; }
+    tip.addEventListener('mouseenter', show);
+    tip.addEventListener('mouseleave', hide);
+    tip.addEventListener('focus', show);
+    tip.addEventListener('blur', hide);
+  });
+})();
 
 /* ════════════════════════════════════════════════════════════════
    HHP STREAMFLOW OVERLAY
@@ -4789,5 +4830,6 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
   </div>
 </div>
 
+<div id="info-tip-portal"></div>
 </body>
 </html>
