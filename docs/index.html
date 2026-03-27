@@ -1070,6 +1070,61 @@
     }
 
     /* ================================================================
+       State Plugin Sections
+       ================================================================ */
+    @keyframes pluginPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(90,174,232,0.45); }
+      70%  { box-shadow: 0 0 0 7px rgba(90,174,232,0); }
+      100% { box-shadow: 0 0 0 0 rgba(90,174,232,0); }
+    }
+    .section-label.plugin-highlight {
+      animation: pluginPulse 1.5s ease-out 2;
+      border-left: 3px solid var(--accent-light);
+    }
+    .depth-strip {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .depth-btn {
+      flex: 1;
+      background: transparent;
+      color: var(--text-body);
+      border: none;
+      border-right: 1px solid var(--border);
+      padding: 7px 6px;
+      font-size: 0.68rem;
+      font-family: var(--font-display);
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .depth-btn:last-child { border-right: none; }
+    .depth-btn:hover { background: var(--overlay-hover-sm); }
+    .depth-btn.active {
+      background: var(--accent-active-strong);
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+    .mesonet-popup .leaflet-popup-content-wrapper {
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+      font-family: var(--font-display);
+    }
+    .mesonet-popup .leaflet-popup-tip {
+      background: var(--glass);
+      border: 1px solid var(--border);
+    }
+    .mesonet-popup .leaflet-popup-close-button {
+      color: var(--text-muted);
+    }
+
+    /* ================================================================
        Basemap Grid
        ================================================================ */
     #basemap-strip {
@@ -1533,7 +1588,8 @@
       position: fixed;
       top: 60px;
       right: 10px;
-      width: 380px;
+      width: 420px;
+      max-width: calc(100vw - 320px);
       min-width: 280px;
       min-height: 180px;
       background: var(--glass);
@@ -2440,6 +2496,9 @@ let activeVar        = "spi";
 let activeTS         = DEFAULT_TS;
 let activePeriod     = "rolling-30";
 let activeZoomState  = "";
+const STATE_PLUGINS  = { MT: './plugins/mt.js' };
+let _activePlugin    = null;
+let _activePluginCode = null;
 let activeDate       = "Loading\u2026";
 let activeLayer      = null;
 let statesLayer      = null;
@@ -2637,6 +2696,23 @@ function autoEnableLayerForZoom(code) {
   }
 }
 
+// State plugin loader — activates/deactivates plugins when zoom state changes
+async function handleStatePlugin(newCode) {
+  if (_activePlugin && _activePluginCode !== newCode) {
+    _activePlugin.deactivate(map, document.querySelector('.sidebar-inner'));
+    _activePlugin = null;
+    _activePluginCode = null;
+  }
+  if (newCode && STATE_PLUGINS[newCode] && _activePluginCode !== newCode) {
+    try {
+      const mod = await import(STATE_PLUGINS[newCode]);
+      _activePlugin = mod;
+      _activePluginCode = newCode;
+      mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack });
+    } catch (e) { console.error('Plugin ' + newCode + ' failed:', e); }
+  }
+}
+
 // Use both change (for new selections) and a re-select workaround:
 // Temporarily reset to a sentinel so re-picking the same state triggers change
 const stateSelect = document.getElementById("state-select");
@@ -2656,6 +2732,7 @@ stateSelect.addEventListener("change", function() {
   saveState();
   zoomToState(activeZoomState);
   autoEnableLayerForZoom(activeZoomState);
+  handleStatePlugin(activeZoomState);
   // Reset value so re-selecting the same state triggers change again
   setTimeout(() => { this.value = ''; }, 100);
 });
@@ -4659,13 +4736,11 @@ document.getElementById("flow-panel-close").addEventListener("click", function (
   document.addEventListener("mousemove", function (e) {
     if (!resizing) return;
     const panelLeft = parseInt(panel.style.left) || 0;
-    const panelTop  = parseInt(panel.style.top)  || 0;
-    const maxW = window.innerWidth  - panelLeft;
-    const maxH = window.innerHeight - panelTop;
+    const maxW = window.innerWidth - panelLeft;
     const newW = clamp(rsW + (e.clientX - rsX), 280, maxW);
-    const newH = clamp(rsH + (e.clientY - rsY), 180, maxH);
-    panel.style.width  = newW + "px";
-    panel.style.height = newH + "px";
+    panel.style.width = newW + "px";
+    // Auto-height: let the content (image) determine height
+    panel.style.height = "auto";
   });
 
   document.addEventListener("mouseup", function () {
@@ -4883,6 +4958,7 @@ if (savedState) {
       document.getElementById('state-select').value = activeZoomState;
       zoomToState(activeZoomState);
       autoEnableLayerForZoom(activeZoomState);
+      handleStatePlugin(activeZoomState);
     }
   }
 
@@ -4967,6 +5043,7 @@ window.addEventListener('popstate', function() {
     document.getElementById('state-select').value = activeZoomState;
     zoomToState(activeZoomState);
     autoEnableLayerForZoom(activeZoomState);
+    handleStatePlugin(activeZoomState);
   }
   // Show/hide period section based on variable
   const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
