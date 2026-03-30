@@ -1,5 +1,5 @@
 /**
- * Montana Mesonet Soil Moisture Plugin for D³ Dashboard
+ * Montana Mesonet Soil Moisture Plugin for D³ Dashboard (OpenLayers version)
  * Loads soil moisture anomaly data from the Montana Mesonet network
  * at three sensor depths, displayed as circle markers with time series popups.
  */
@@ -59,7 +59,7 @@ async function fetchDepthData(depthKey) {
   return geojson;
 }
 
-// ── Layer rendering ──────────────────────────────────────────────
+// ── Layer rendering (OpenLayers) ─────────────────────────────────
 async function loadDepthLayer(map) {
   if (markerLayer) {
     map.removeLayer(markerLayer);
@@ -71,53 +71,87 @@ async function loadDepthLayer(map) {
     const geojson = await fetchDepthData(activeDepth);
     const depth = DEPTHS.find(d => d.key === activeDepth);
 
-    // Create a custom pane above all other layers for clickable markers
-    if (!map.getPane('mesonetPane')) {
-      map.createPane('mesonetPane');
-      map.getPane('mesonetPane').style.zIndex = 650;
-    }
-
-    markerLayer = L.geoJson(geojson, {
-      pane: 'mesonetPane',
-      pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-        pane: 'mesonetPane',
-        radius: 6,
-        fillColor: f.properties.fillColor || '#888',
-        color: '#000',
-        weight: 0.8,
-        opacity: 1,
-        fillOpacity: 0.85,
-        bubblingMouseEvents: false
-      }),
-      onEachFeature: (f, layer) => {
-        const name = f.properties.name || f.properties.NAME || 'Unknown Station';
-        const stationId = f.properties.station || '';
-        const plotUrl = PLOT_BASE + stationId + '_' + depth.plot + '_current.png';
-
-        layer.bindTooltip(name, { direction: 'top', offset: [0, -6] });
-
-        // Open plot in the flow panel (same as HHP), stop map click propagation
-        layer.on('click', () => {
-          document.getElementById('flow-panel-title').textContent = name;
-          document.getElementById('flow-panel-sub').textContent = 'Soil Moisture \u2014 ' + depth.label;
-          const content = document.getElementById('flow-panel-content');
-          content.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = plotUrl + '?cacheBust=' + Date.now();
-          img.alt = 'Soil moisture time series for ' + name;
-          img.onerror = function() { content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim)">Plot not available for this station</div>'; };
-          content.appendChild(img);
-          document.getElementById('flow-panel').classList.add('visible');
-        });
-      }
+    // Add tooltip and plot URL as properties
+    geojson.features.forEach(f => {
+      const name = f.properties.name || f.properties.NAME || 'Unknown Station';
+      const stationId = f.properties.station || '';
+      f.properties._name = name;
+      f.properties._plotUrl = PLOT_BASE + stationId + '_' + depth.plot + '_current.png';
     });
 
-    markerLayer.addTo(map);
+    markerLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
+      }),
+      style: function(feature) {
+        return new ol.style.Style({
+          image: new ol.style.Circle({
+            radius: 6,
+            fill: new ol.style.Fill({ color: feature.get('fillColor') || '#888' }),
+            stroke: new ol.style.Stroke({ color: '#000', width: 0.8 })
+          })
+        });
+      },
+      zIndex: 50
+    });
+
+    map.addLayer(markerLayer);
+
+    // Hover tooltip
+    map.on('pointermove', _onPointerMove);
+
+    // Click to show plot
+    map.on('click', _onMarkerClick);
+
     if (_helpers.ensureLayerStack) _helpers.ensureLayerStack();
-    markerLayer.bringToFront();
   } finally {
     _helpers.hideSpinner();
   }
+}
+
+// Pointer move handler for tooltips
+function _onPointerMove(e) {
+  if (e.dragging) return;
+  const hit = _map.forEachFeatureAtPixel(e.pixel, function(feature, layer) {
+    if (layer === markerLayer) return feature;
+  });
+  const tooltipEl = document.querySelector('.county-tooltip');
+  const tooltipOverlay = _map.getOverlays().getArray().find(o => o.getElement() === tooltipEl);
+  if (hit && hit.get('_name')) {
+    if (tooltipEl) tooltipEl.innerHTML = hit.get('_name');
+    if (tooltipOverlay) tooltipOverlay.setPosition(e.coordinate);
+    _map.getTargetElement().style.cursor = 'pointer';
+  } else {
+    if (tooltipOverlay) tooltipOverlay.setPosition(undefined);
+  }
+}
+
+// Click handler for station plots
+function _onMarkerClick(e) {
+  const hit = _map.forEachFeatureAtPixel(e.pixel, function(feature, layer) {
+    if (layer === markerLayer) return feature;
+  });
+  if (!hit) return;
+
+  const name = hit.get('_name') || 'Unknown Station';
+  const plotUrl = hit.get('_plotUrl');
+  const depth = DEPTHS.find(d => d.key === activeDepth);
+
+  if (!plotUrl) return;
+
+  // Open in the flow panel (same as HHP)
+  document.getElementById('flow-panel-title').textContent = name;
+  document.getElementById('flow-panel-sub').textContent = 'Soil Moisture \u2014 ' + depth.label;
+  const content = document.getElementById('flow-panel-content');
+  content.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = plotUrl + '?cacheBust=' + Date.now();
+  img.alt = 'Soil moisture time series for ' + name;
+  img.onerror = function() {
+    content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-dim)">Plot not available for this station</div>';
+  };
+  content.appendChild(img);
+  document.getElementById('flow-panel').classList.add('visible');
 }
 
 // ── Sidebar injection ────────────────────────────────────────────
@@ -185,7 +219,6 @@ function injectSidebar(sidebar) {
   revertBtn.addEventListener('mouseenter', () => { revertBtn.style.background = 'var(--accent-hover)'; revertBtn.style.color = 'var(--text-primary)'; });
   revertBtn.addEventListener('mouseleave', () => { revertBtn.style.background = 'var(--overlay-hover-sm)'; revertBtn.style.color = 'var(--text-muted)'; });
   revertBtn.addEventListener('click', () => {
-    // Trigger the state-select change to CONUS
     const sel = document.getElementById('state-select');
     const label = sel.parentElement.querySelector('div');
     if (label) label.textContent = 'CONUS (default)';
@@ -200,7 +233,6 @@ function injectSidebar(sidebar) {
 
   // Wire collapsible
   sectionLabelEl.addEventListener('click', (e) => {
-    // Don't collapse when clicking the info-tip
     if (e.target.closest('.info-tip')) return;
     const collapsed = sectionBodyEl.classList.toggle('sec-collapsed');
     sectionLabelEl.classList.toggle('sec-collapsed', collapsed);
@@ -241,6 +273,11 @@ export async function activate(map, sidebar, helpers) {
 }
 
 export function deactivate(map, sidebar) {
+  // Remove event listeners
+  if (_map) {
+    _map.un('pointermove', _onPointerMove);
+    _map.un('click', _onMarkerClick);
+  }
   if (markerLayer) {
     map.removeLayer(markerLayer);
     markerLayer = null;
