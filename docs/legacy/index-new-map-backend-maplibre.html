@@ -29,13 +29,15 @@
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 
-  <!-- OpenLayers CSS + JS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.5.0/ol.css">
-  <script src="https://cdn.jsdelivr.net/npm/ol@10.5.0/dist/ol.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 
-  <!-- geotiff.js (required by ol/source/GeoTIFF) -->
-  <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+  <!-- Leaflet JS (render-blocking is acceptable) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
+  <!-- georaster + georaster-layer-for-leaflet -->
+  <script defer src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+  <script defer src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
 
   <!-- chroma.js -->
   <script defer src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
@@ -637,7 +639,7 @@
     #feedback-close-btn:hover { background: var(--overlay-hover-lg); color: var(--text-primary); }
 
     /* ── Raster query popup ────────────────────────────────────── */
-    .query-popup {
+    .query-popup .leaflet-popup-content-wrapper {
       background: var(--glass);
       backdrop-filter: blur(var(--glass-blur));
       color: var(--text-primary);
@@ -646,17 +648,15 @@
       box-shadow: var(--shadow);
       font-family: var(--font-display);
       font-size: 0.82rem;
-      padding: 10px 14px;
-      pointer-events: auto;
     }
 
-    .query-popup .ol-popup-closer {
+    .query-popup .leaflet-popup-tip {
+      background: var(--glass);
+      border: 1px solid var(--border);
+    }
+
+    .query-popup .leaflet-popup-close-button {
       color: var(--text-muted);
-      text-decoration: none;
-      position: absolute;
-      top: 4px; right: 8px;
-      font-size: 18px;
-      cursor: pointer;
     }
 
     .query-val { font-size: 1.1rem; font-weight: 700; color: var(--accent-light); }
@@ -1107,7 +1107,7 @@
       color: var(--accent-light);
       font-weight: 600;
     }
-    .mesonet-popup {
+    .mesonet-popup .leaflet-popup-content-wrapper {
       background: var(--glass);
       backdrop-filter: blur(var(--glass-blur));
       color: var(--text-primary);
@@ -1115,7 +1115,13 @@
       border-radius: var(--radius-md);
       box-shadow: var(--shadow);
       font-family: var(--font-display);
-      padding: 10px 14px;
+    }
+    .mesonet-popup .leaflet-popup-tip {
+      background: var(--glass);
+      border: 1px solid var(--border);
+    }
+    .mesonet-popup .leaflet-popup-close-button {
+      color: var(--text-muted);
     }
 
     /* ================================================================
@@ -1155,7 +1161,6 @@
     }
 
     .basemap-grey img { filter: grayscale(1); }
-    .basemap-grey canvas { filter: grayscale(1); }
 
     /* ================================================================
        Opacity Slider
@@ -1316,7 +1321,7 @@
     /* ================================================================
        Map
        ================================================================ */
-    #map { flex: 1; height: 100%; position: relative; }
+    #map { flex: 1; height: 100%; }
 
     /* ================================================================
        Map Skeleton Loader
@@ -1381,12 +1386,7 @@
     /* ================================================================
        Legend
        ================================================================ */
-    .map-legend {
-      position: absolute;
-      bottom: 30px;
-      left: 10px;
-      z-index: 10;
-      pointer-events: auto;
+    .leaflet-legend {
       background: var(--glass);
       backdrop-filter: blur(var(--glass-blur));
       color: var(--text-primary);
@@ -1400,7 +1400,7 @@
       border: 1px solid var(--border-glass);
     }
 
-    .map-legend h4 {
+    .leaflet-legend h4 {
       font-family: var(--font-display);
       font-size: 0.85rem;
       font-weight: 600;
@@ -1706,52 +1706,21 @@
     }
 
     /* ================================================================
-       OpenLayers Controls
+       Leaflet Controls
        ================================================================ */
-    .ol-zoom button,
-    .ol-control button {
+    .leaflet-control-zoom a,
+    .leaflet-bar a {
       background: var(--glass) !important;
       backdrop-filter: blur(12px);
       border: 1px solid var(--border-glass) !important;
       color: var(--text-secondary) !important;
       transition: var(--transition);
-      font-size: 1.2rem;
     }
 
-    .ol-zoom button:hover,
-    .ol-control button:hover {
+    .leaflet-control-zoom a:hover,
+    .leaflet-bar a:hover {
       background: var(--accent-active-strong) !important;
       color: var(--text-on-accent) !important;
-    }
-
-    .ol-attribution { display: none; }
-
-    /* Crisp pixel rendering for convergence composite and non-interpolated rasters */
-    .conv-layer-crisp img,
-    .conv-layer-crisp canvas,
-    .conv-layer-crisp {
-      image-rendering: pixelated !important;
-      image-rendering: -moz-crisp-edges !important;
-      image-rendering: crisp-edges !important;
-    }
-    .conv-layer-crisp * {
-      image-rendering: pixelated !important;
-    }
-
-    /* OpenLayers popup overlay */
-    .ol-popup {
-      position: absolute;
-      transform: translate(-50%, -100%);
-      margin-top: -12px;
-    }
-    .ol-popup::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 8px solid transparent;
-      border-top-color: var(--glass);
     }
 
     /* ================================================================
@@ -1780,8 +1749,7 @@
     /* ================================================================
        Focus Reset
        ================================================================ */
-    .ol-viewport:focus { outline: none; }
-    .ol-viewport canvas { cursor: crosshair; }
+    .leaflet-interactive:focus { outline: none; }
 
     /* ================================================================
        Animations
@@ -2002,10 +1970,6 @@
           <input type="checkbox" id="query-chk" checked>
           Point query (click map)
         </label>
-        <label class="custom-check" style="margin-top:4px;">
-          <input type="checkbox" id="interpolate-chk">
-          Interpolate raster
-        </label>
 
         <div style="margin-top:10px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Layer Opacity</div>
         <div id="opacity-row">
@@ -2027,31 +1991,6 @@
           <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling" aria-label="Rolling 30-year reference period"></button>
           <button class="period-btn" data-period="full" id="period-btn-full" aria-label="Full period of record"></button>
         </div>
-      </div>
-
-      <!-- Convergence of Evidence — section index 2.5 -->
-      <div class="section-label sec-collapsed" data-sec="sec-convergence" style="--i:2.5">Convergence of Evidence <span class="info-tip" tabindex="0" data-tip="convergence">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body sec-collapsed" id="sec-convergence">
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">
-          Select drought indices and timescales to composite. Median or mean is computed per pixel across selected layers.
-        </div>
-        <div id="conv-layers"></div>
-        <button id="conv-add-btn" type="button" style="width:100%;margin-top:6px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">+ Add Layer</button>
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
-          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Period</div>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-period" value="rolling-30" checked> Rolling 30-Year</label>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-period" value="full"> Full Period</label>
-        </div>
-        <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Method</div>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="median" checked> Median</label>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="mean"> Mean</label>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:8px;">
-          <button id="conv-apply-btn" type="button" style="flex:1;padding:7px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);font-weight:500;">Apply Composite</button>
-          <button id="conv-clear-btn" type="button" style="padding:7px 12px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);">Clear</button>
-        </div>
-        <div id="conv-error" style="display:none;margin-top:6px;padding:6px 8px;background:var(--error-bg);border:1px solid var(--error-border);border-radius:var(--radius-sm);color:var(--error);font-size:0.72rem;"></div>
       </div>
 
       <!-- Zoom to Location — section index 3 -->
@@ -2339,9 +2278,7 @@ function getPaletteColors(key, n, reversed) {
   } else {
     colors = chroma.scale(def.sample).colors(n);
   }
-  const result = reversed ? colors.reverse() : colors;
-  console.log('[getPaletteColors]', key, 'n='+n, 'reversed='+reversed, 'first:', result[0], 'last:', result[result.length-1]);
-  return result;
+  return reversed ? colors.reverse() : colors;
 }
 
 /* ── Variable catalog ─────────────────────────────────────────── */
@@ -2411,31 +2348,12 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
     };
   }
 
-  /* Dynamic: derive auto stats from visible pixels or sensible defaults */
-  let autoMin, autoMax;
+  /* Dynamic: derive auto stats from raster, then apply any overrides */
+  const rawMin = georaster.mins[0];
+  const rawMax = georaster.maxs[0];
   const unitFactor = cfg.mmToIn ? 1 / 25.4 : cfg.cToF ? 9 / 5 : 1;
-  const vis = getVisibleRange();
-  if (vis) {
-    autoMin = vis.min;
-    autoMax = vis.max;
-  } else if (georaster && georaster.mins) {
-    const rawMin = georaster.mins[0];
-    const rawMax = georaster.maxs[0];
-    autoMin = (rawMin === -9999 ? 0 : rawMin) * 0.01 * unitFactor;
-    autoMax = rawMax * 0.01 * unitFactor;
-  } else {
-    // Sensible defaults when no pixel data available yet
-    if (cfg.dynamicType === 'diverging_centered') {
-      autoMin = (cfg.center || 100) - 150;
-      autoMax = (cfg.center || 100) + 150;
-    } else if (cfg.dynamicType === 'sequential') {
-      autoMin = 0;
-      autoMax = 20;
-    } else {
-      autoMin = -5;
-      autoMax = 5;
-    }
-  }
+  const autoMin = (rawMin === -9999 ? 0 : rawMin) * 0.01 * unitFactor;
+  const autoMax = rawMax * 0.01 * unitFactor;
 
   const ov  = rangeOverride || {};
   const dMin = (ov.min != null && ov.min !== "") ? parseFloat(ov.min) : autoMin;
@@ -2489,37 +2407,48 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
 
 /* ── Range helpers ────────────────────────────────────────────── */
 
-/* Compute min/max of visible raster values by sampling the WebGL texture.
-   Scans a grid of pixels across the viewport via cogLayer.getData(). */
-function getVisibleRange() {
-  if (!cogLayer) return null;
-  const cfg = VAR_CONFIG[activeVar];
-  if (!cfg || !cfg.dynamic) return null;
+/* Compute min/max of scaled pixel values visible in the current map viewport.
+   Samples a grid of up to ~300×300 points for performance. */
+function getVisibleRange(georaster) {
+  const bounds = map.getBounds();
+  const { xmin, xmax, ymin, ymax, width, height, values, noDataValue } = georaster;
 
-  const mapSize = map.getSize();
-  if (!mapSize) return null;
-  const [w, h] = mapSize;
+  const cellW = (xmax - xmin) / width;
+  const cellH = (ymax - ymin) / height;
 
-  const unitFactor = cfg.mmToIn ? 1 / 25.4 : cfg.cToF ? 9 / 5 : 1;
-  const step = Math.max(4, Math.floor(Math.max(w, h) / 80)); // ~80 samples per axis
-  let mn = Infinity, mx = -Infinity;
-  let count = 0;
+  // Intersect map viewport with raster extent
+  const clipW = Math.max(xmin, bounds.getWest());
+  const clipE = Math.min(xmax, bounds.getEast());
+  const clipS = Math.max(ymin, bounds.getSouth());
+  const clipN = Math.min(ymax, bounds.getNorth());
+  if (clipW >= clipE || clipS >= clipN) return null;
 
-  for (let y = 0; y < h; y += step) {
-    for (let x = 0; x < w; x += step) {
-      const data = cogLayer.getData([x, y]);
-      if (!data || data.length === 0) continue;
-      const raw = data[0];
-      if (raw === -9999 || raw === 0 || raw === undefined) continue;
-      const scaled = raw * 0.01 * unitFactor;
-      if (scaled < mn) mn = scaled;
-      if (scaled > mx) mx = scaled;
-      count++;
+  // Convert to pixel indices (rows are top-to-bottom in georaster.values)
+  const colStart = Math.max(0, Math.floor((clipW - xmin) / cellW));
+  const colEnd   = Math.min(width,  Math.ceil((clipE - xmin) / cellW));
+  const rowStart = Math.max(0, Math.floor((ymax - clipN) / cellH));
+  const rowEnd   = Math.min(height, Math.ceil((ymax - clipS) / cellH));
+
+  // Sub-sample to keep iteration fast
+  const step = Math.max(1, Math.floor(Math.sqrt((rowEnd - rowStart) * (colEnd - colStart)) / 300));
+  const band = values[0];
+  const noData = noDataValue != null ? noDataValue : -9999;
+
+  const _cfg = VAR_CONFIG[activeVar];
+  const mmFactor = _cfg && _cfg.mmToIn ? 1 / 25.4 : _cfg && _cfg.cToF ? 9 / 5 : 1;
+  let lo = Infinity, hi = -Infinity;
+  for (let r = rowStart; r < rowEnd; r += step) {
+    const row = band[r];
+    if (!row) continue;
+    for (let c = colStart; c < colEnd; c += step) {
+      const v = row[c];
+      if (v == null || v === noData || v === -9999) continue;
+      const scaled = v * 0.01 * mmFactor;
+      if (scaled < lo) lo = scaled;
+      if (scaled > hi) hi = scaled;
     }
   }
-
-  if (count === 0 || !isFinite(mn) || !isFinite(mx)) return null;
-  return { min: mn, max: mx };
+  return (lo === Infinity) ? null : { min: lo, max: hi };
 }
 
 function getRangeOverride() {
@@ -2550,18 +2479,10 @@ function updateRangeSection(varKey, georaster) {
   const cfg = VAR_CONFIG[varKey];
   const sec = document.getElementById("range-section");
   sec.style.display = cfg.dynamic ? "block" : "none";
-  if (cfg.dynamic) {
-    // Try to get range from visible pixels, fall back to defaults
-    const vis = getVisibleRange();
-    let autoMin, autoMax;
-    if (vis) {
-      autoMin = vis.min;
-      autoMax = vis.max;
-    } else {
-      if (cfg.dynamicType === 'diverging_centered') { autoMin = (cfg.center||100) - 150; autoMax = (cfg.center||100) + 150; }
-      else if (cfg.dynamicType === 'sequential') { autoMin = 0; autoMax = 20; }
-      else { autoMin = -5; autoMax = 5; }
-    }
+  if (cfg.dynamic && georaster) {
+    const mmF = cfg.mmToIn ? 1 / 25.4 : cfg.cToF ? 9 / 5 : 1;
+    const autoMin = (georaster.mins[0] === -9999 ? 0 : georaster.mins[0]) * 0.01 * mmF;
+    const autoMax = georaster.maxs[0] * 0.01 * mmF;
     const sym = symmetrizeRange(cfg, autoMin, autoMax);
     document.getElementById("range-min").placeholder = sym.min.toFixed(2);
     document.getElementById("range-max").placeholder = sym.max.toFixed(2);
@@ -2579,6 +2500,7 @@ const STATE_PLUGINS  = { MT: './plugins/mt.js' };
 let _activePlugin    = null;
 let _activePluginCode = null;
 let activeDate       = "Loading\u2026";
+let activeLayer      = null;
 let statesLayer      = null;
 
 const STATE_BOUNDS = {
@@ -2607,111 +2529,82 @@ const STATE_BOUNDS = {
   WA: [[45.54, -124.85], [49.00, -116.92]], WV: [[37.20, -82.64], [40.64, -77.72]],
   WI: [[42.49, -92.89], [47.08, -86.25]], WY: [[40.99, -111.06], [45.01, -104.05]]
 };
-let legendEl         = null;
-const usdmLayerCache = {};   // dateStr → ol.layer.Vector, avoids re-parsing parquet
+let legendCtrl       = null;
+const georasterCache = {};   // url → georaster, avoids re-fetching on palette/range change
+const usdmLayerCache = {};   // dateStr → L.geoJson layer, avoids re-parsing parquet
 
 /* ════════════════════════════════════════════════════════════════
-   MAP INIT (OpenLayers)
+   MAP INIT
    ════════════════════════════════════════════════════════════════ */
+const map = L.map("map", { zoomControl: false, zoomSnap: 0.5, zoomDelta: 0.5, minZoom: 4.5 });
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.control.scale({ position: 'bottomright', imperial: true, metric: false }).addTo(map);
+
+// Geolocation control
+const LocateControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function() {
+    const btn = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    btn.innerHTML = '<a href="#" title="Find my location" role="button" aria-label="Find my location" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;font-size:16px;text-decoration:none;color:#333;background:#fff;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></a>';
+    L.DomEvent.disableClickPropagation(btn);
+    btn.querySelector('a').addEventListener('click', function(e) {
+      e.preventDefault();
+      map.locate({ setView: true, maxZoom: 8 });
+    });
+    return btn;
+  }
+});
+new LocateControl().addTo(map);
+
+let locMarker = null;
+map.on('locationfound', function(e) {
+  if (locMarker) map.removeLayer(locMarker);
+  locMarker = L.circleMarker(e.latlng, { radius: 8, fillColor: '#4285f4', fillOpacity: 0.9, color: '#fff', weight: 2 }).addTo(map);
+});
+
 const BASEMAPS = {
-  light:     { url: "https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png" },
-  dark:      { url: "https://{a-d}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png" },
-  voyager:   { url: "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png" },
-  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" },
-  natgeo:    { url: "https://services.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", grey: true },
+  light:     { url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",  opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
+  dark:      { url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",   opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
+  voyager:   { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opts: { subdomains: "abcd", maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>' } },
+  satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opts: { maxZoom: 19, crossOrigin: true, attribution: '&copy; <a href="https://www.esri.com/">Esri</a>' } },
+  natgeo:    { url: "https://services.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", opts: { maxZoom: 16, crossOrigin: true, className: 'basemap-grey', attribution: '&copy; <a href="https://www.esri.com/">Esri</a> &copy; National Geographic' } },
 };
 
-const basemapSource = new ol.source.XYZ({ url: BASEMAPS.natgeo.url, crossOrigin: 'anonymous' });
-const basemapLayer = new ol.layer.Tile({ source: basemapSource, zIndex: 0, className: 'ol-layer basemap-grey' });
+let baseTile = L.tileLayer(BASEMAPS.natgeo.url, BASEMAPS.natgeo.opts).addTo(map);
 
-// GeoTIFF raster layer (will be set per variable)
-let cogLayer = null;
-let cogSource = null;
-
-// Popup overlay for queries
-const popupEl = document.createElement('div');
-popupEl.className = 'ol-popup query-popup';
-popupEl.innerHTML = '<a href="#" class="ol-popup-closer">&times;</a><div class="ol-popup-content"></div>';
-const popupOverlay = new ol.Overlay({
-  element: popupEl,
-  autoPan: { animation: { duration: 250 } },
-  positioning: 'bottom-center',
-  offset: [0, -10]
-});
-popupEl.querySelector('.ol-popup-closer').addEventListener('click', function(e) {
-  e.preventDefault();
-  popupOverlay.setPosition(undefined);
-  queryDismissed = true;
-});
-
-// Tooltip overlay (for county/tribal hover)
-const tooltipEl = document.createElement('div');
-tooltipEl.className = 'county-tooltip';
-tooltipEl.style.pointerEvents = 'none';
-const tooltipOverlay = new ol.Overlay({
-  element: tooltipEl,
-  positioning: 'bottom-center',
-  offset: [0, -8]
-});
-
-
-const map = new ol.Map({
-  target: 'map',
-  layers: [basemapLayer],
-  overlays: [popupOverlay, tooltipOverlay],
-  view: new ol.View({
-    center: ol.proj.fromLonLat([-96, 37]),
-    zoom: 4,
-    minZoom: 3,
-    maxZoom: 18
-  }),
-  controls: ol.control.defaults.defaults({ attribution: false, zoom: true }).extend([
-    new ol.control.ScaleLine({ units: 'imperial' })
-  ])
-});
-
-// Fit to CONUS
-map.getView().fit(
-  ol.proj.transformExtent([-126, 24, -66, 50], 'EPSG:4326', 'EPSG:3857'),
-  { padding: [20, 20, 20, 20] }
-);
-
-// Geolocation control (custom button)
-(function() {
-  const locBtn = document.createElement('button');
-  locBtn.title = 'Find my location';
-  locBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>';
-  locBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;font-size:16px;cursor:pointer;background:#fff;border:none;border-radius:2px;';
-  const locContainer = document.createElement('div');
-  locContainer.className = 'ol-control ol-unselectable';
-  locContainer.style.cssText = 'top:0.5em;right:0.5em;left:auto;bottom:auto;';
-  locContainer.appendChild(locBtn);
-  let locMarkerLayer = null;
-  locBtn.addEventListener('click', function() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      const coord = ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]);
-      map.getView().animate({ center: coord, zoom: 8, duration: 500 });
-      if (locMarkerLayer) map.removeLayer(locMarkerLayer);
-      const feat = new ol.Feature(new ol.geom.Point(coord));
-      locMarkerLayer = new ol.layer.Vector({
-        source: new ol.source.Vector({ features: [feat] }),
-        style: new ol.style.Style({
-          image: new ol.style.Circle({
-            radius: 8,
-            fill: new ol.style.Fill({ color: '#4285f4' }),
-            stroke: new ol.style.Stroke({ color: '#fff', width: 2 })
-          })
-        }),
-        zIndex: 100
-      });
-      map.addLayer(locMarkerLayer);
-    });
-  });
-  map.addControl(new ol.control.Control({ element: locContainer }));
-})();
+// Initial fit: temporarily allow fractional zoom for a precise CONUS fit
+map.options.zoomSnap = 0;
+map.fitBounds([[24, -126], [50, -66]]);
+map.options.zoomSnap = 0.5;
 
 const COUNTY_MIN_ZOOM = 6;
+function updateCountyTooltips() {
+  document.getElementById("map").classList.toggle(
+    "hide-county-tooltips",
+    map.getZoom() < COUNTY_MIN_ZOOM
+  );
+}
+map.on("zoomend", updateCountyTooltips);
+updateCountyTooltips();
+
+var mapMoving = false;
+var origOpenTooltip = L.Layer.prototype.openTooltip;
+L.Layer.prototype.openTooltip = function () {
+  if (mapMoving) return this;
+  return origOpenTooltip.apply(this, arguments);
+};
+map.on("movestart zoomstart", function () {
+  mapMoving = true;
+  map.eachLayer(function (l) {
+    if (l.getTooltip && l.getTooltip()) l.closeTooltip();
+  });
+});
+map.on("moveend zoomend", function () {
+  map.eachLayer(function (l) {
+    if (l.getTooltip && l.getTooltip()) l.closeTooltip();
+  });
+  setTimeout(function () { mapMoving = false; }, 50);
+});
 
 /* ════════════════════════════════════════════════════════════════
    TIMESCALE STRIP
@@ -2731,7 +2624,6 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
       strip.querySelectorAll(".ts-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       activeTS = ts;
-      if (convActive) { convActive = false; cleanupConvergence(); }
       updateVarInfo(activeVar);
       saveState();
       loadLayer(activeVar, activeTS, activePeriod);
@@ -2761,7 +2653,6 @@ document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
     document.querySelectorAll(".period-btn[data-period]").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activePeriod = btn.dataset.period;
-    if (convActive) { convActive = false; cleanupConvergence(); }
     updateVarInfo(activeVar);
     saveState();
     loadLayer(activeVar, activeTS, activePeriod);
@@ -2779,20 +2670,17 @@ let _programmaticMove = false;
 function zoomToState(code) {
   customMapView = false;
   _programmaticMove = true;
-  let extent;
   if (code && code.startsWith("LAR:") && tribalBounds[code]) {
-    extent = tribalBounds[code]; // [minLon, minLat, maxLon, maxLat]
+    map.fitBounds(tribalBounds[code], { padding: [20, 20] });
   } else if (code && STATE_BOUNDS[code]) {
-    const [[s, w], [n, e]] = STATE_BOUNDS[code];
-    extent = [w, s, e, n];
+    map.fitBounds(STATE_BOUNDS[code], { padding: [20, 20] });
   } else {
-    extent = [-126, 24, -66, 50];
+    // Temporarily allow fractional zoom for a precise CONUS fit
+    map.options.zoomSnap = 0;
+    map.fitBounds([[24, -126], [50, -66]]);
+    map.options.zoomSnap = 0.5;
   }
-  map.getView().fit(
-    ol.proj.transformExtent(extent, 'EPSG:4326', 'EPSG:3857'),
-    { padding: [20, 20, 20, 20], duration: 500 }
-  );
-  setTimeout(function() { _programmaticMove = false; }, 600);
+  setTimeout(function() { _programmaticMove = false; }, 500);
 }
 map.on('moveend', function() {
   if (!_programmaticMove) customMapView = true;
@@ -2856,13 +2744,10 @@ document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
     document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activeBasemap = btn.dataset.basemap;
-    basemapSource.setUrl(BASEMAPS[activeBasemap].url);
-    // Toggle greyscale filter
-    document.querySelectorAll('.basemap-grey').forEach(el => el.classList.remove('basemap-grey'));
-    if (BASEMAPS[activeBasemap].grey) {
-      const el = document.querySelector('#map .ol-layer');
-      if (el) el.classList.add('basemap-grey');
-    }
+    const bm = BASEMAPS[activeBasemap];
+    map.removeLayer(baseTile);
+    baseTile = L.tileLayer(bm.url, bm.opts).addTo(map);
+    baseTile.bringToBack();
   });
 });
 
@@ -2884,9 +2769,9 @@ document.querySelectorAll("#theme-strip .basemap-btn").forEach(btn => {
 
 /* ── Layer z-order helper ─────────────────────────────────────── */
 function ensureLayerStack() {
-  // OpenLayers uses zIndex on layers — set them appropriately
-  if (cogLayer) cogLayer.setZIndex(1);
-  // Vector overlays have their zIndex set when created (counties=8, states=10, hhp=5, usgs=12)
+  if (countiesLayer && map.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  if (statesLayer && map.hasLayer(statesLayer)) statesLayer.bringToFront();
+  if (hhpLayer && map.hasLayer(hhpLayer)) hhpLayer.bringToFront();
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2894,21 +2779,15 @@ function ensureLayerStack() {
    ════════════════════════════════════════════════════════════════ */
 document.getElementById("var-select").addEventListener("change", function() {
   // If switching away from HHP, remove the vector layer
-  if (hhpLayer && map.getLayers().getArray().includes(hhpLayer)) {
+  if (hhpLayer && map.hasLayer(hhpLayer)) {
     map.removeLayer(hhpLayer);
-    const usgsOn = usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer);
+    const usgsOn = usgsStreamLayer && map.hasLayer(usgsStreamLayer);
     if (!usgsOn) document.getElementById("sf-legend").style.display = "none";
     stackRightLegends();
   }
 
   activeVar = this.value;
   saveState();
-
-  // Clear convergence layer if active
-  if (convActive) {
-    convActive = false;
-    cleanupConvergence();
-  }
 
   // Update custom dropdown trigger label
   const csTrigger = document.querySelector('#custom-var-select .cs-label');
@@ -2932,15 +2811,14 @@ document.getElementById("var-select").addEventListener("change", function() {
     prLabel.style.display = "none";
     prBody.style.display  = "none";
     // Remove any active raster layer; load HHP vector layer
-    if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
-    if (legendEl) { legendEl.remove(); legendEl = null; }
-    popupOverlay.setPosition(undefined);
-    queryLastLatLng = null;
+    if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null; }
+    if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
+    if (queryPopup) { map.closePopup(queryPopup); queryPopup = null; queryLastLatLng = null; }
     // Hide counties for HHP (streamflow basins are easier to see without them)
     const countiesChk = document.getElementById("counties-chk");
     hhpCountiesRestore = countiesChk.checked;
-    if (hhpCountiesRestore && countiesLayer && map.getLayers().getArray().includes(countiesLayer)) {
-      countiesLayer.setVisible(false);
+    if (hhpCountiesRestore && countiesLayer && map.hasLayer(countiesLayer)) {
+      map.removeLayer(countiesLayer);
       countiesChk.checked = false;
     }
     (async () => {
@@ -2948,7 +2826,7 @@ document.getElementById("var-select").addEventListener("change", function() {
         showSpinner();
         try { await loadHhpStreamflow(); } finally { hideSpinner(); }
       }
-      if (!map.getLayers().getArray().includes(hhpLayer)) map.addLayer(hhpLayer);
+      hhpLayer.addTo(map);
       document.getElementById('map-skeleton')?.remove();
       ensureLayerStack();
       document.getElementById("sf-legend").style.display = "block";
@@ -2993,9 +2871,9 @@ opacitySlider.addEventListener("input", function() {
   opacityVal.textContent = v.toFixed(2);
   opacitySlider.style.setProperty('--fill', (v * 100) + '%');
   if (activeVar === "hhp" && hhpLayer) {
-    hhpLayer.changed(); // triggers re-style with new opacity
-  } else if (cogLayer) {
-    cogLayer.setOpacity(v);
+    hhpLayer.setStyle({ fillOpacity: v });
+  } else if (activeLayer) {
+    activeLayer.setOpacity(v);
   }
 });
 
@@ -3009,8 +2887,8 @@ usdmOpacitySlider.addEventListener("input", function() {
   usdmOpacity = parseFloat(this.value);
   usdmOpacityVal.textContent = usdmOpacity.toFixed(2);
   usdmOpacitySlider.style.setProperty('--fill', (usdmOpacity * 100) + '%');
-  if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) {
-    usdmLayer.changed(); // triggers re-style with new opacity
+  if (usdmLayer && map.hasLayer(usdmLayer)) {
+    usdmLayer.setStyle({ fillOpacity: usdmOpacity });
   }
 });
 
@@ -3060,16 +2938,9 @@ async function loadStates() {
     const geojson = topojson.feature(topo, topo.objects.states);
     const EXCLUDE_FIPS = new Set(["02","15","60","66","69","72","78"]);
     geojson.features = geojson.features.filter(f => !EXCLUDE_FIPS.has(String(f.id).padStart(2,"0")));
-    statesLayer = new ol.layer.Vector({
-      source: new ol.source.Vector({
-        features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-      }),
-      style: new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: '#445', width: 2.5 })
-      }),
-      zIndex: 10
-    });
-    map.addLayer(statesLayer);
+    statesLayer = L.geoJSON(geojson, {
+      style: { color: "#445", weight: 2.5, fill: false, opacity: 0.7 }
+    }).addTo(map);
   } catch (e) {
     console.warn("State boundary load failed, skipping.", e);
   }
@@ -3077,7 +2948,8 @@ async function loadStates() {
 
 document.getElementById("states-chk").addEventListener("change", function() {
   if (!statesLayer) return;
-  statesLayer.setVisible(this.checked);
+  if (this.checked) map.addLayer(statesLayer);
+  else              map.removeLayer(statesLayer);
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -3106,19 +2978,14 @@ async function loadCounties() {
     const geojson = topojson.feature(topo, topo.objects.counties);
     const EXCLUDE_ST = new Set(["02","15","60","66","69","72","78"]);
     geojson.features = geojson.features.filter(f => !EXCLUDE_ST.has(String(f.id).slice(0, 2).padStart(2,"0")));
-    // Add name property to features for tooltip
-    geojson.features.forEach(function(f) { f.properties = f.properties || {}; f.properties.name = fipsToName[f.id] || ('FIPS ' + f.id); });
-    countiesLayer = new ol.layer.Vector({
-      source: new ol.source.Vector({
-        features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-      }),
-      style: new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: '#334', width: 0.6 }),
-        fill: new ol.style.Fill({ color: 'rgba(0,0,0,0)' })
-      }),
-      zIndex: 8
+    countiesLayer = L.geoJSON(geojson, {
+      style: { color: "#334", weight: 0.6, fillOpacity: 0, opacity: 0.55 },
+      onEachFeature: function(feature, layer) {
+        const name = fipsToName[feature.id] || `FIPS ${feature.id}`;
+        layer.bindTooltip(name, { sticky: true, className: "county-tooltip" });
+      }
     });
-    map.addLayer(countiesLayer);
+    countiesLayer.addTo(map);
     ensureLayerStack();
   } catch(e) {
     console.warn("County boundary load failed:", e);
@@ -3127,44 +2994,8 @@ async function loadCounties() {
 
 document.getElementById("counties-chk").addEventListener("change", function() {
   if (!countiesLayer) return;
-  countiesLayer.setVisible(this.checked);
-});
-
-// County/tribal/USDM tooltip on pointer move
-map.on('pointermove', function(e) {
-  if (e.dragging) { tooltipOverlay.setPosition(undefined); return; }
-  const pixel = map.getEventPixel(e.originalEvent);
-  var tooltipText = '';
-  map.forEachFeatureAtPixel(pixel, function(feature, layer) {
-    if (tooltipText) return; // already found a match
-    if (layer === countiesLayer || layer === tribalLayer) {
-      const name = feature.get('name') || feature.get('_name') || '';
-      if (name && map.getView().getZoom() >= COUNTY_MIN_ZOOM) {
-        tooltipText = name;
-      }
-    } else if (layer === usdmLayer) {
-      const dm = feature.get('DM');
-      tooltipText = USDM_DM_LABELS[dm] || ('D' + dm);
-    } else if (layer === usgsStreamLayer) {
-      tooltipText = feature.get('_tooltip') || '';
-    } else if (layer === hhpLayer) {
-      const name = feature.get('basin_name');
-      const v = feature.get('ft3_s_ecdf');
-      if (v <= 0) tooltipText = name + ': Daily 30-yr Minimum';
-      else if (v >= 1) tooltipText = name + ': Daily 30-yr Maximum';
-      else {
-        const p = Math.round(v * 100);
-        const sfx = (p%100>=11&&p%100<=13)?'th':(p%10===1)?'st':(p%10===2)?'nd':(p%10===3)?'rd':'th';
-        tooltipText = name + ': ' + p + sfx + ' percentile';
-      }
-    }
-  });
-  if (tooltipText) {
-    tooltipEl.innerHTML = tooltipText;
-    tooltipOverlay.setPosition(e.coordinate);
-  } else {
-    tooltipOverlay.setPosition(undefined);
-  }
+  if (this.checked) { countiesLayer.addTo(map); ensureLayerStack(); }
+  else              map.removeLayer(countiesLayer);
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -3179,36 +3010,28 @@ async function loadTribalNations() {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const geojson = await resp.json();
+  tribalLayer = L.geoJSON(geojson, {
+    style: { color: "#c47ddb", weight: 1.5, fillColor: "#c47ddb", fillOpacity: 0.12, opacity: 0.7 },
+    onEachFeature: function(feature, layer) {
+      const p = feature.properties;
+      const name = p.LARNAME || p.NAMELSAD || p.Name || p.NAME || "Unknown";
+      layer.bindTooltip(name, { sticky: true, className: "county-tooltip" });
+    }
+  });
+  tribalLoaded = true;
 
-  // Add _name property and compute bounds for each feature
+  // Build tribalBounds lookup and populate dropdown
   const group = document.getElementById("tribal-zoom-group");
   const entries = [];
   geojson.features.forEach(function(f) {
     const p = f.properties;
     const id = p.LARID || p.OBJECTID;
     const name = p.LARNAME || p.NAMELSAD || p.Name || p.NAME || "Unknown";
-    f.properties._name = name;
     if (!id) return;
-    // Compute bounds from geometry coordinates
-    const olFeat = new ol.format.GeoJSON().readFeature(f, { featureProjection: 'EPSG:3857' });
-    const ext3857 = olFeat.getGeometry().getExtent();
-    tribalBounds["LAR:" + id] = ol.proj.transformExtent(ext3857, 'EPSG:3857', 'EPSG:4326');
+    const layer = L.geoJSON(f);
+    tribalBounds["LAR:" + id] = layer.getBounds();
     entries.push({ id: id, name: name });
   });
-
-  tribalLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-    }),
-    style: new ol.style.Style({
-      stroke: new ol.style.Stroke({ color: '#c47ddb', width: 1.5 }),
-      fill: new ol.style.Fill({ color: 'rgba(196,125,219,0.12)' })
-    }),
-    zIndex: 9
-  });
-  tribalLoaded = true;
-
-  // Populate dropdown
   entries.sort(function(a, b) { return a.name.localeCompare(b.name); });
   entries.forEach(function(e) {
     const opt = document.createElement("option");
@@ -3229,15 +3052,14 @@ async function loadTribalNations() {
 
 document.getElementById("tribal-chk").addEventListener("change", async function() {
   if (!this.checked) {
-    if (tribalLayer) tribalLayer.setVisible(false);
+    if (tribalLayer) map.removeLayer(tribalLayer);
     return;
   }
   if (!tribalLoaded) {
     showSpinner();
     try { await loadTribalNations(); } finally { hideSpinner(); }
   }
-  if (!map.getLayers().getArray().includes(tribalLayer)) map.addLayer(tribalLayer);
-  tribalLayer.setVisible(true);
+  tribalLayer.addTo(map);
   ensureLayerStack();
 });
 
@@ -3246,202 +3068,131 @@ document.getElementById("tribal-chk").addEventListener("change", async function(
    ════════════════════════════════════════════════════════════════ */
 let queryActive = true;
 let hhpCountiesRestore = false;
-let queryLastLatLng = null;  // [lon, lat] in EPSG:4326
-let queryDismissed = false;
+let queryPopup = null;
+let queryLastLatLng = null;
 document.getElementById("map").style.cursor = "crosshair";
 
-function queryRasterAt(coord) {
-  queryLastLatLng = coord; // [lon, lat]
+function queryRasterAt(latlng) {
+  queryLastLatLng = latlng;
   const cfg = VAR_CONFIG[activeVar];
   if (!cfg || cfg.noRaster) {
+    // HHP vector — query feature properties instead
     if (activeVar === "hhp") {
-      const popupContent = popupEl.querySelector('.ol-popup-content');
-      popupContent.innerHTML = '<span class="query-label">Click a basin polygon for streamflow data</span>';
-      popupOverlay.setPosition(ol.proj.fromLonLat(coord));
+      L.popup({ className: "query-popup" })
+        .setLatLng(latlng)
+        .setContent('<span class="query-label">Click a basin polygon for streamflow data</span>')
+        .openOn(map);
     }
     return;
   }
 
-  // Determine which layer to query
-  const queryLayer = convActive && convCogLayer ? convCogLayer : cogLayer;
-  if (!queryLayer) return;
+  const url = `${BASE_URL}/${cfg.prefix}${activeTS}_${activePeriod}.tif`;
+  const geo = georasterCache[url];
+  if (!geo) return;
 
-  const pixel = map.getPixelFromCoordinate(ol.proj.fromLonLat(coord));
-  if (!pixel) return;
-  const data = queryLayer.getData(pixel);
-  if (!data || !data.length) {
-    const popupContent = popupEl.querySelector('.ol-popup-content');
-    popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
-    popupOverlay.setPosition(ol.proj.fromLonLat(coord));
+  const { xmin, xmax, ymin, ymax, width, height, values, noDataValue } = geo;
+  const lng = latlng.lng;
+  const lat = latlng.lat;
+
+  // Check bounds
+  if (lng < xmin || lng > xmax || lat < ymin || lat > ymax) {
+    if (queryPopup) map.closePopup(queryPopup);
     return;
   }
 
-  if (data[0] === -9999 || data[0] == null || isNaN(data[0])) {
-    const popupContent = popupEl.querySelector('.ol-popup-content');
-    popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
-    popupOverlay.setPosition(ol.proj.fromLonLat(coord));
+  const cellW = (xmax - xmin) / width;
+  const cellH = (ymax - ymin) / height;
+  const col = Math.floor((lng - xmin) / cellW);
+  const row = Math.floor((ymax - lat) / cellH);
+
+  if (row < 0 || row >= height || col < 0 || col >= width) return;
+
+  const raw = values[0][row][col];
+  const noData = noDataValue != null ? noDataValue : -9999;
+
+  if (raw == null || raw === noData || raw === -9999) {
+    queryPopup = L.popup({ className: "query-popup" })
+      .setLatLng(latlng)
+      .setContent('<span class="query-label">No data at this location</span>')
+      .openOn(map);
     return;
   }
 
-  const lat = coord[1], lng = coord[0];
-  const coordStr = lat.toFixed(4) + '\u00b0' + (lat >= 0 ? 'N' : 'S') + ', ' +
-    Math.abs(lng).toFixed(4) + '\u00b0' + (lng < 0 ? 'W' : 'E');
-  let html;
+  let scaled = raw * 0.01;
+  if (cfg.mmToIn) scaled /= 25.4;
+  if (cfg.cToF) scaled *= 9 / 5;
 
-  if (convActive && convCogLayer && convLayers.length >= 2) {
-    // Convergence composite: show all individual index values + composite result
-    // For 4+ layers, read from stored rasters (geotiff.js data); for 2-3, use getData
-    var vals;
-    if (convCogLayer._rasters) {
-      // 4+ layer path: look up pixel in stored rasters by lon/lat
-      var bbox = convCogLayer._bbox;
-      var rw = convCogLayer._w, rh = convCogLayer._h;
-      var qLng = coord[0], qLat = coord[1];
-      if (qLng < bbox[0] || qLng > bbox[2] || qLat < bbox[1] || qLat > bbox[3]) {
-        const popupContent = popupEl.querySelector('.ol-popup-content');
-        popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
-        popupOverlay.setPosition(ol.proj.fromLonLat(coord));
-        return;
-      }
-      var col = Math.floor((qLng - bbox[0]) / (bbox[2] - bbox[0]) * rw);
-      var row = Math.floor((bbox[3] - qLat) / (bbox[3] - bbox[1]) * rh);
-      if (col < 0 || col >= rw || row < 0 || row >= rh) {
-        const popupContent = popupEl.querySelector('.ol-popup-content');
-        popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
-        popupOverlay.setPosition(ol.proj.fromLonLat(coord));
-        return;
-      }
-      var pixIdx = row * rw + col;
-      vals = convLayers.map(function(l, i) {
-        var raw = convCogLayer._rasters[i].data[pixIdx];
-        if (raw === -9999 || raw == null) return null;
-        return (raw * 0.01) * (CONV_INDICES[l.varKey].negate ? -1 : 1);
-      });
-    } else {
-      // 2-3 layer path: use getData from WebGL layer
-      vals = convLayers.map(function(l, i) {
-        var raw = data[i];
-        if (raw === -9999 || raw == null) return null;
-        return (raw * 0.01) * (CONV_INDICES[l.varKey].negate ? -1 : 1);
-      });
-    }
-    const valid = vals.filter(function(v) { return v !== null; });
-    if (valid.length === 0) {
-      const popupContent = popupEl.querySelector('.ol-popup-content');
-      popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
-      popupOverlay.setPosition(ol.proj.fromLonLat(coord));
-      return;
-    }
-    // Compute composite
-    var method = getConvMethod();
-    var composite;
-    if (method === 'mean') {
-      composite = valid.reduce(function(a, b) { return a + b; }, 0) / valid.length;
-    } else {
-      var sorted = valid.slice().sort(function(a, b) { return a - b; });
-      var mid = Math.floor(sorted.length / 2);
-      composite = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-    }
-    // Color swatch from USDM breaks
-    var { scaleFn } = buildScale('spi', 'usdm', null, null); // use SPI/USDM scale for composite
-    var color = scaleFn(composite);
-    var hex = color ? color.hex() : '#888';
-    // Build detail rows showing each layer
-    var detailRows = convLayers.map(function(l, i) {
-      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts;
-      var rawVal = vals[i];
-      // Get original (non-negated) value: from stored rasters (4+) or getData (2-3)
-      var origScaled;
-      if (convCogLayer._rasters) {
-        var origRaw = convCogLayer._rasters[i].data[pixIdx];
-        origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * 0.01).toFixed(2) : 'N/A';
-      } else {
-        var origRaw = data[i];
-        origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * 0.01).toFixed(2) : 'N/A';
-      }
-      return '<div style="color:var(--text-muted);font-size:0.7rem">' + label + ': ' +
-        (rawVal !== null ? rawVal.toFixed(2) : 'N/A') +
-        (CONV_INDICES[l.varKey].negate ? ' <span style="color:var(--text-dim)">(raw: ' + origScaled + ')</span>' : '') +
-        '</div>';
-    }).join('');
-    html = '<div style="text-align:center;min-width:180px">' +
-      '<div class="query-val">' +
-        '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
-        method.charAt(0).toUpperCase() + method.slice(1) + ': ' + composite.toFixed(2) +
-      '</div>' +
-      '<div style="margin-top:4px;text-align:left">' + detailRows + '</div>' +
-      '<div class="query-label" style="margin-top:4px">Convergence &middot; ' + getConvPeriod() + '</div>' +
-      '<div class="query-coords">' + coordStr + '</div>' +
-    '</div>';
+  // Format based on variable type
+  let displayVal;
+  if (cfg.labelFmt) {
+    displayVal = cfg.labelFmt(scaled);
+  } else if (cfg.dynamicType === 'sequential') {
+    displayVal = scaled.toFixed(2) + " in";
+  } else if (cfg.dynamicType === 'diverging_centered') {
+    displayVal = scaled.toFixed(1) + "%";
+  } else if (cfg.unit) {
+    displayVal = scaled.toFixed(1) + " " + cfg.unit;
+  } else if (cfg.mmToIn) {
+    displayVal = scaled.toFixed(2) + " in";
   } else {
-    const raw = data[0];
-    let scaled = raw * 0.01;
-    if (cfg.mmToIn) scaled /= 25.4;
-    if (cfg.cToF) scaled *= 9 / 5;
-
-    let displayVal;
-    if (cfg.labelFmt) {
-      displayVal = cfg.labelFmt(scaled);
-    } else if (cfg.dynamicType === 'sequential') {
-      displayVal = scaled.toFixed(2) + " in";
-    } else if (cfg.dynamicType === 'diverging_centered') {
-      displayVal = scaled.toFixed(1) + "%";
-    } else if (cfg.unit) {
-      displayVal = scaled.toFixed(1) + " " + cfg.unit;
-    } else if (cfg.mmToIn) {
-      displayVal = scaled.toFixed(2) + " in";
-    } else {
-      displayVal = scaled.toFixed(2);
-    }
-
-    const paletteKey = cfg.defaultPalette;
-    const rangeOv = getRangeOverride();
-    const { scaleFn } = buildScale(activeVar, paletteKey, null, rangeOv);
-    const color = scaleFn(scaled);
-    const hex = color ? color.hex() : "#888";
-
-    html = '<div style="text-align:center;min-width:120px">' +
-      '<div class="query-val">' +
-        '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
-        displayVal +
-      '</div>' +
-      '<div class="query-label">' + cfg.label + ' &middot; ' + activeTS + '</div>' +
-      '<div class="query-coords">' + coordStr + '</div>' +
-    '</div>';
+    displayVal = scaled.toFixed(2);
   }
 
-  const popupContent = popupEl.querySelector('.ol-popup-content');
-  popupContent.innerHTML = html;
-  popupOverlay.setPosition(ol.proj.fromLonLat(coord));
+  // Get color for the swatch
+  const paletteKey = cfg.defaultPalette;
+  const rangeOv = getRangeOverride() || (cfg.dynamic ? getVisibleRange(geo) : null);
+  const { scaleFn } = buildScale(activeVar, paletteKey, geo, rangeOv);
+  const color = scaleFn(scaled);
+  const hex = color ? color.hex() : "#888";
+
+  const html = `
+    <div style="text-align:center;min-width:120px">
+      <div class="query-val">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${hex};vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>
+        ${displayVal}
+      </div>
+      <div class="query-label">${cfg.label} &middot; ${activeTS}</div>
+      <div class="query-coords">${lat.toFixed(4)}&deg;${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}&deg;${lng < 0 ? 'W' : 'E'}</div>
+    </div>`;
+
+  queryReplacing = true;
+  queryPopup = L.popup({ className: "query-popup" })
+    .setLatLng(latlng)
+    .setContent(html)
+    .openOn(map);
+  queryReplacing = false;
 }
 
-map.on("click", function(e) {
-  if (!queryActive) return;
-  queryDismissed = false;
-  const coord = ol.proj.toLonLat(e.coordinate);
-  queryRasterAt(coord);
+function onMapQueryClick(e) {
+  if (queryActive) {
+    queryDismissed = false;
+    queryRasterAt(e.latlng);
+  }
+}
+
+map.on("click", onMapQueryClick);
+
+// When user dismisses popup via the X button, clear state so it doesn't reappear on layer switch
+// Track whether the user manually dismissed the popup (vs. it being replaced by a re-query)
+let queryDismissed = false;
+let queryReplacing = false;
+map.on("popupclose", function(e) {
+  if (queryReplacing) return;
+  if (queryPopup && e.popup === queryPopup) {
+    queryDismissed = true;
+    queryPopup = null;
+  }
 });
 
 document.getElementById("query-chk").addEventListener("change", function() {
   queryActive = this.checked;
   document.getElementById("map").style.cursor = queryActive ? "crosshair" : "";
-  if (!queryActive) {
-    popupOverlay.setPosition(undefined);
+  if (!queryActive && queryPopup) {
+    map.closePopup(queryPopup);
+    queryPopup = null;
     queryLastLatLng = null;
   }
 });
-
-let rasterInterpolate = false;
-document.getElementById("interpolate-chk").addEventListener("change", function() {
-  rasterInterpolate = this.checked;
-  if (convActive && convLayers.length >= 2) {
-    // Re-apply convergence with new interpolation setting
-    applyConvergence();
-  } else if (cogLayer && activeVar && VAR_CONFIG[activeVar] && !VAR_CONFIG[activeVar].noRaster) {
-    renderLayer(null, activeVar, activeTS, activePeriod, VAR_CONFIG[activeVar].defaultPalette, getRangeOverride());
-  }
-});
-
 
 // Show info-tip portal to the right of the sidebar on hover/focus
 (function() {
@@ -3457,8 +3208,7 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
     'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
     'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
     'overlays': 'Toggle geographic boundaries and reference layers on the map, including state and county lines, tribal nation boundaries, and the U.S. Drought Monitor.',
-    'usdm': 'The U.S. Drought Monitor is a weekly map of drought conditions produced jointly by NOAA, USDA, and the National Drought Mitigation Center. Categories range from D0 (abnormally dry) to D4 (exceptional drought). Use the slider or dropdown to view recent weeks.',
-    'convergence': '<strong>Convergence of Evidence</strong> composites multiple drought indices into a single map. Add layers by selecting an index (SPI, SPEI, EDDI, SVPDI) and timescale for each. EDDI and SVPDI signs are automatically harmonized so all indices share the same convention (negative = drought).<br><br><strong>Median</strong> is robust to outliers &mdash; it shows where most indices agree. <strong>Mean</strong> weights all indices equally. Click the map to see each individual index value and the composite result.'
+    'usdm': 'The U.S. Drought Monitor is a weekly map of drought conditions produced jointly by NOAA, USDA, and the National Drought Mitigation Center. Categories range from D0 (abnormally dry) to D4 (exceptional drought). Use the slider or dropdown to view recent weeks.'
   };
 
   document.querySelectorAll('.info-tip[data-tip]').forEach(tip => {
@@ -3487,35 +3237,29 @@ async function loadHhpStreamflow() {
   const resp = await fetch("https://data.climate.umt.edu/share/current_flow_percentile.geojson");
   const data = await resp.json();
   const features = data.features.filter(f => !EXCLUDED_BASINS.includes(f.properties?.basin_name?.trim()));
-  const geojson = { type: "FeatureCollection", features: features };
-  hhpLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
+  hhpLayer = L.geoJson({ type: "FeatureCollection", features }, {
+    style: f => ({
+      fillColor: streamflowScale(f.properties.ft3_s_ecdf).hex(),
+      weight: 0.4,
+      opacity: 0.6,
+      color: "#333",
+      fillOpacity: parseFloat(opacitySlider.value)
     }),
-    style: function(feature) {
-      return new ol.style.Style({
-        fill: new ol.style.Fill({
-          color: streamflowScale(feature.get('ft3_s_ecdf')).alpha(parseFloat(opacitySlider.value)).css()
-        }),
-        stroke: new ol.style.Stroke({ color: '#333', width: 0.4 })
-      });
-    },
-    zIndex: 5
-  });
-
-  // HHP click handler for flow panel
-  map.on('click', function(e) {
-    if (activeVar !== 'hhp' || !hhpLayer) return;
-    map.forEachFeatureAtPixel(e.pixel, function(feature, layer) {
-      if (layer === hhpLayer) {
-        const props = feature.getProperties();
-        // Reconstruct a GeoJSON-like feature for showFlowPanel
-        showFlowPanel({ properties: props });
-        return true;
+    onEachFeature: (f, layer) => {
+      const name = f.properties.basin_name;
+      const v = f.properties.ft3_s_ecdf;
+      let tip;
+      if (v <= 0)      tip = `${name}: Daily 30-yr Minimum`;
+      else if (v >= 1) tip = `${name}: Daily 30-yr Maximum`;
+      else {
+        const p = Math.round(v * 100);
+        const sfx = (p%100>=11&&p%100<=13)?'th':(p%10===1)?'st':(p%10===2)?'nd':(p%10===3)?'rd':'th';
+        tip = `${name}: ${p}${sfx} percentile`;
       }
-    });
+      layer.bindTooltip(tip, { direction: "auto", sticky: false });
+      layer.on("click", function () { showFlowPanel(f); });
+    }
   });
-
   hhpLoaded = true;
 }
 
@@ -3525,35 +3269,29 @@ async function loadHhpStreamflow() {
 async function loadUsgsStreamflow() {
   const resp = await fetch("https://data.climate.umt.edu/share/operational-usgs/usgs_current_percentiles.geojson");
   const data = await resp.json();
-  // Store tooltip info on each feature's properties
-  data.features.forEach(function(f) {
-    const p = f.properties || {};
-    const raw = p.value;
-    const pct = typeof raw === "number" ? Math.round(raw) + "%" : "";
-    f.properties._tooltip = (p.STANAME || "USGS gage") + (p.STAID ? " (" + p.STAID + ")" : "") + ": " + pct;
-  });
-  usgsStreamLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' })
+  usgsStreamLayer = L.geoJson(data, {
+    pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+      radius: 4.5,
+      fillColor: f.properties?.fillColor || "#000",
+      color: "#000",
+      weight: 0.8,
+      opacity: 1,
+      fillOpacity: 0.9
     }),
-    style: function(feature) {
-      return new ol.style.Style({
-        image: new ol.style.Circle({
-          radius: 4.5,
-          fill: new ol.style.Fill({ color: feature.get('fillColor') || '#000' }),
-          stroke: new ol.style.Stroke({ color: '#000', width: 0.8 })
-        })
-      });
-    },
-    zIndex: 12
+    onEachFeature: (f, layer) => {
+      const p = f.properties || {};
+      const raw = p.value;
+      const pct = typeof raw === "number" ? `${Math.round(raw)}%` : "";
+      layer.bindTooltip(`${p.STANAME || "USGS gage"}${p.STAID ? " ("+p.STAID+")" : ""}: ${pct}`,
+        { direction: "auto", sticky: true });
+    }
   });
-
   usgsStreamLoaded = true;
 }
 
 /* ── USGS gauge button ───────────────────────────────────────── */
 document.getElementById("usgs-btn").addEventListener("click", async function () {
-  const isOn = usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer);
+  const isOn = usgsStreamLayer && map.hasLayer(usgsStreamLayer);
 
   if (isOn) {
     map.removeLayer(usgsStreamLayer);
@@ -3569,7 +3307,7 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
     showSpinner();
     try { await loadUsgsStreamflow(); } finally { hideSpinner(); }
   }
-  map.addLayer(usgsStreamLayer);
+  usgsStreamLayer.addTo(map);
   this.querySelector("span").textContent = "Remove Current USGS Percentiles";
   this.classList.add("is-on");
   document.getElementById("sf-legend").style.display = "block";
@@ -3668,12 +3406,12 @@ async function loadUsdmForDate(dateStr) {
 
   // Check cache first
   if (usdmLayerCache[dateStr]) {
-    if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
+    if (usdmLayer && map.hasLayer(usdmLayer)) map.removeLayer(usdmLayer);
     usdmLayer = usdmLayerCache[dateStr];
-    usdmLayer.changed(); // triggers re-style with current opacity
+    usdmLayer.setStyle({ fillOpacity: usdmOpacity });
     usdmLoaded = true;
     if (document.getElementById("usdm-chk").checked) {
-      if (!map.getLayers().getArray().includes(usdmLayer)) map.addLayer(usdmLayer);
+      usdmLayer.addTo(map);
       ensureLayerStack();
     }
     return;
@@ -3732,26 +3470,23 @@ async function loadUsdmForDate(dateStr) {
   geojson.features.sort((a, b) => a.properties.DM - b.properties.DM);
 
   // Remove old layer, create new
-  if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
-  usdmLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
+  if (usdmLayer && map.hasLayer(usdmLayer)) map.removeLayer(usdmLayer);
+  usdmLayer = L.geoJson(geojson, {
+    style: f => ({
+      fillColor: USDM_DM_COLORS[f.properties.DM] || "#999",
+      weight: 0.6, opacity: 0.7, color: "#333", fillOpacity: usdmOpacity
     }),
-    style: function(feature) {
-      const dm = feature.get('DM');
-      return new ol.style.Style({
-        fill: new ol.style.Fill({ color: chroma(USDM_DM_COLORS[dm] || '#999').alpha(usdmOpacity).css() }),
-        stroke: new ol.style.Stroke({ color: '#333', width: 0.6 })
-      });
-    },
-    zIndex: 3
+    onEachFeature: (f, layer) => {
+      const dm = f.properties.DM;
+      layer.bindTooltip(USDM_DM_LABELS[dm] || `D${dm}`, { direction: "auto", sticky: true });
+    }
   });
   usdmLayerCache[dateStr] = usdmLayer;
   usdmLoaded = true;
 
   // If USDM is currently visible, swap on map
   if (document.getElementById("usdm-chk").checked) {
-    map.addLayer(usdmLayer);
+    usdmLayer.addTo(map);
     ensureLayerStack();
   }
 }
@@ -3814,7 +3549,7 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
   const usdmSection = document.getElementById("sec-usdm");
   const usdmLabel = document.querySelector(".section-label[data-sec='sec-usdm']");
   if (!this.checked) {
-    if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
+    if (usdmLayer) map.removeLayer(usdmLayer);
     document.getElementById("usdm-legend").style.display = "none";
     usdmSection.style.display = "none";
     usdmLabel.style.display = "none";
@@ -3827,8 +3562,8 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
     showSpinner();
     try { await loadUsdm(); } finally { hideSpinner(); }
   }
-  usdmLayer.changed(); // triggers re-style with current opacity
-  if (!map.getLayers().getArray().includes(usdmLayer)) map.addLayer(usdmLayer);
+  usdmLayer.setStyle({ fillOpacity: usdmOpacity });
+  usdmLayer.addTo(map);
   ensureLayerStack();
   document.getElementById("usdm-legend").style.display = "block";
   stackRightLegends();
@@ -3838,57 +3573,57 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
    LEGEND
    ════════════════════════════════════════════════════════════════ */
 function buildLegend(varKey, ts, period, legendRows) {
-  if (legendEl) { legendEl.remove(); legendEl = null; }
+  if (legendCtrl) { map.removeControl(legendCtrl); legendCtrl = null; }
 
   const cfg         = VAR_CONFIG[varKey];
   const periodLabel = getPeriodLabel(period);
 
-  const div = document.createElement('div');
-  div.className = 'map-legend';
+  legendCtrl = L.control({ position: "bottomleft" });
+  legendCtrl.onAdd = function() {
+    const div = L.DomUtil.create("div", "leaflet-legend");
 
-  let legendBody;
-  if (cfg.dynamic && legendRows.length > 4) {
-    // Gradient bar mode
-    const colors = legendRows.map(r => r.color);
-    const gradient = 'linear-gradient(to top, ' + colors.join(', ') + ')';
-    const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
-    const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
-    const q1Idx = Math.floor(legendRows.length * 0.25);
-    const midIdx = Math.floor(legendRows.length * 0.5);
-    const q3Idx = Math.floor(legendRows.length * 0.75);
-    const q1Label = legendRows[q1Idx].label.split('\u2013')[0].trim();
-    const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
-    const q3Label = legendRows[q3Idx].label.split('\u2013')[0].trim();
-    legendBody = '<div style="display:flex;gap:8px;align-items:stretch;">' +
-      '<div class="legend-gradient" style="background:' + gradient + '"></div>' +
-      '<div class="legend-gradient-labels">' +
-        '<span>' + topLabel + '</span>' +
-        '<span>' + q3Label + '</span>' +
-        '<span>' + midLabel + '</span>' +
-        '<span>' + q1Label + '</span>' +
-        '<span>' + bottomLabel + '</span>' +
-      '</div></div>';
-  } else {
-    legendBody = legendRows.map(function(r) {
-      return '<div class="legend-row">' +
-        '<div class="legend-swatch" style="background:' + r.color + '"></div>' +
-        '<div class="legend-lbl">' + r.label + '</div>' +
-      '</div>';
-    }).join('');
-  }
+    let legendBody;
+    if (cfg.dynamic && legendRows.length > 4) {
+      // Gradient bar mode
+      const colors = legendRows.map(r => r.color);
+      const gradient = `linear-gradient(to top, ${colors.join(', ')})`;
+      const topLabel = legendRows[legendRows.length - 1].label.split('\u2013').pop().trim();
+      const bottomLabel = legendRows[0].label.split('\u2013')[0].trim();
+      const q1Idx = Math.floor(legendRows.length * 0.25);
+      const midIdx = Math.floor(legendRows.length * 0.5);
+      const q3Idx = Math.floor(legendRows.length * 0.75);
+      const q1Label = legendRows[q1Idx].label.split('\u2013')[0].trim();
+      const midLabel = legendRows[midIdx].label.split('\u2013')[0].trim();
+      const q3Label = legendRows[q3Idx].label.split('\u2013')[0].trim();
+      legendBody = `
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <div class="legend-gradient" style="background:${gradient}"></div>
+          <div class="legend-gradient-labels">
+            <span>${topLabel}</span>
+            <span>${q3Label}</span>
+            <span>${midLabel}</span>
+            <span>${q1Label}</span>
+            <span>${bottomLabel}</span>
+          </div>
+        </div>`;
+    } else {
+      legendBody = legendRows.map(r =>
+        `<div class="legend-row">
+          <div class="legend-swatch" style="background:${r.color}"></div>
+          <div class="legend-lbl">${r.label}</div>
+        </div>`
+      ).join('');
+    }
 
-  div.innerHTML =
-    '<h4>' + cfg.label.replace(/\s*\u2014\s*/g, '<br>') + '</h4>' +
-    '<div class="legend-sub">' + ts + '<br>' + periodLabel + '</div>' +
-    '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
-    legendBody;
-
-  legendEl = div;
-  // Append to OL's overlay container so it renders above map layers
-  const overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
-    || document.querySelector('#map .ol-viewport')
-    || document.getElementById('map');
-  overlayContainer.appendChild(div);
+    div.innerHTML = `
+      <h4>${cfg.label.replace(/\s*\u2014\s*/g, '<br>')}</h4>
+      <div class="legend-sub">${ts}<br>${periodLabel}</div>
+      <div class="legend-date">${formatDate(activeDate)}</div>
+      ${legendBody}
+    `;
+    return div;
+  };
+  legendCtrl.addTo(map);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -3919,263 +3654,106 @@ function showSpinner() { document.getElementById("spinner").style.display = "fle
 function hideSpinner() { document.getElementById("spinner").style.display = "none"; }
 
 /* ════════════════════════════════════════════════════════════════
-   COMPOSITE (CONVERGENCE OF EVIDENCE) EXPRESSION HELPERS
+   RENDER LAYER  (uses a cached georaster — no fetch)
    ════════════════════════════════════════════════════════════════ */
-// Arithmetic min/max using abs — avoids ['case'] which can break inside ['interpolate']
-function olMin(a, b) { return ['/', ['-', ['+', a, b], ['abs', ['-', a, b]]], 2]; }
-function olMax(a, b) { return ['/', ['+', ['+', a, b], ['abs', ['-', a, b]]], 2]; }
-
-function olMedian4(a, b, c, d) {
-  // Median of 4 = average of 2nd and 3rd sorted values
-  // = (max(min(a,b), min(c,d)) + min(max(a,b), max(c,d))) / 2
-  return ['/', ['+',
-    olMax(olMin(a, b), olMin(c, d)),
-    olMin(olMax(a, b), olMax(c, d))
-  ], 2];
-}
-
-function olMean4(a, b, c, d) {
-  return ['/', ['+', a, b, c, d], 4];
-}
-
-function getCompositeMethod() {
-  const checked = document.querySelector('input[name="comp-method"]:checked');
-  return checked ? checked.value : 'median';
-}
-
-function buildCompositeColorExpression(cfg, paletteKey) {
-  // Build band expressions with sign correction
-  // Each source COG becomes a band: 1=SPI, 2=SPEI, 3=EDDI, 4=SVPDI
-  const bands = cfg.compositeVars.map(function(v, i) {
-    const negate = cfg.compositeNegate[i];
-    return ['*', ['band', i + 1], negate ? -0.01 : 0.01];
-  });
-
-  // Composite value (median or mean)
-  const method = getCompositeMethod();
-  let compositeVal;
-  if (method === 'mean') {
-    compositeVal = olMean4(bands[0], bands[1], bands[2], bands[3]);
-  } else {
-    compositeVal = olMedian4(bands[0], bands[1], bands[2], bands[3]);
-  }
-
-  // Apply USDM color breaks to composite
-  const colors = getPaletteColors(paletteKey, cfg.breaks.length - 1, cfg.reversed);
-  const conditions = [];
-  for (var i = cfg.breaks.length - 2; i >= 0; i--) {
-    if (cfg.breaks[i] === -999) continue;
-    conditions.push(['>=', compositeVal, cfg.breaks[i]]);
-    conditions.push(chroma(colors[i]).css());
-  }
-  conditions.push(chroma(colors[0]).css());
-  var colorExpr = ['case', ...conditions];
-
-  // Nodata: if ANY band is nodata, transparent
-  var transparent = 'rgba(0,0,0,0)';
-  return [
-    'case',
-    ['<=', ['band', 1], -9999], transparent,
-    ['<=', ['band', 2], -9999], transparent,
-    ['<=', ['band', 3], -9999], transparent,
-    ['<=', ['band', 4], -9999], transparent,
-    colorExpr
-  ];
-}
-
-/* ════════════════════════════════════════════════════════════════
-   OL COLOR EXPRESSION BUILDER
-   ════════════════════════════════════════════════════════════════ */
-function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
-  const cfg = VAR_CONFIG[varKey];
-  const { scaleFn, legendRows } = buildScale(varKey, paletteKey, null, rangeOverride);
-
-  // band 1 contains raw Int16 values from the GeoTIFF
-  let value = ['band', 1];
-
-  // Apply scaling: raw * 0.01
-  value = ['*', value, 0.01];
-
-  // Apply unit conversion
-  if (cfg.mmToIn) value = ['/', value, 25.4];
-  if (cfg.cToF) value = ['*', value, 1.8]; // 9/5
-
-  // Nodata check: raw band 1 == -9999 → fully transparent
-  // (must check raw value before scaling)
-  const rawBand = ['band', 1];
-  const transparent = 'rgba(0,0,0,0)';
-
-  let colorExpr;
-
-  if (!cfg.dynamic && cfg.breaks) {
-    // Step-based colormap using 'case' expressions
-    const colors = getPaletteColors(paletteKey, cfg.breaks.length - 1, cfg.reversed);
-    const conditions = [];
-    const EPS = 0.005; // half a raw unit (0.01) to handle float32 precision
-    for (let i = cfg.breaks.length - 2; i >= 0; i--) {
-      if (cfg.breaks[i] === -999) continue;
-      conditions.push(['>=', value, cfg.breaks[i] - EPS]);
-      conditions.push(chroma(colors[i]).css());
-    }
-    conditions.push(chroma(colors[0]).css());
-    colorExpr = ['case', ...conditions];
-  } else {
-    // Dynamic: use interpolate
-    const colors = getPaletteColors(paletteKey, 11, cfg.reversed);
-    let dMin, dMax;
-    const ov = rangeOverride || {};
-    if (cfg.dynamicType === 'diverging_centered') { dMin = (cfg.center||100) - 150; dMax = (cfg.center||100) + 150; }
-    else if (cfg.dynamicType === 'sequential') { dMin = 0; dMax = 20; }
-    else { dMin = -5; dMax = 5; }
-    if (ov.min != null && ov.min !== "") dMin = parseFloat(ov.min);
-    if (ov.max != null && ov.max !== "") dMax = parseFloat(ov.max);
-
-    const stops = [];
-    for (let i = 0; i < colors.length; i++) {
-      const t = dMin + (dMax - dMin) * i / (colors.length - 1);
-      stops.push(t);
-      stops.push(chroma(colors[i]).css());
-    }
-    colorExpr = ['interpolate', ['linear'], value, ...stops];
-  }
-
-  // GeoTIFF source auto-generates an alpha band (band 2) from nodata.
-  // Alpha = 0 for nodata pixels AND pixels outside the COG extent.
-  // Multiply the color's alpha by the normalized alpha band to mask both cases.
-  const alpha = ['/', ['band', 2], 255]; // 0 or 1
-  return [
-    'case',
-    ['==', alpha, 0], transparent,
-    colorExpr
-  ];
-}
-
-/* ════════════════════════════════════════════════════════════════
-   RENDER LAYER  (OpenLayers GeoTIFF via WebGLTile)
-   ════════════════════════════════════════════════════════════════ */
-let _renderGen = 0; // generation counter to cancel stale rendercomplete handlers
 function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
-  _renderGen++;
-  const myGen = _renderGen;
-  // Remove previous COG layer
-  if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
+  if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null; }
 
-  const { scaleFn, legendRows } = buildScale(varKey, paletteKey, null, rangeOverride);
-  const cfg = VAR_CONFIG[varKey];
+  const { scaleFn, legendRows } = buildScale(varKey, paletteKey, georaster, rangeOverride);
 
-  let colorExpr;
-
-  if (cfg.isComposite) {
-    // Multi-source composite: load each index as a separate band
-    const sources = cfg.compositeVars.map(function(v) {
-      return { url: BASE_URL + '/' + VAR_CONFIG[v].prefix + ts + '_' + period + '.tif', nodata: -9999 };
-    });
-    cogSource = new ol.source.GeoTIFF({
-      sources: sources,
-      normalize: false,
-      transition: 0,
-      interpolate: rasterInterpolate
-    });
-    colorExpr = buildCompositeColorExpression(cfg, paletteKey);
-  } else {
-    const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
-    colorExpr = buildOLColorExpression(varKey, paletteKey, rangeOverride);
-    cogSource = new ol.source.GeoTIFF({
-      sources: [{ url: url, nodata: -9999 }],
-      normalize: false,
-      transition: 0,
-      interpolate: rasterInterpolate
-    });
-  }
-
-  cogLayer = new ol.layer.WebGLTile({
-    source: cogSource,
-    style: { color: colorExpr },
+  activeLayer = new GeoRasterLayer({
+    georaster,
     opacity: parseFloat(opacitySlider.value),
-    zIndex: 1
+    pixelValuesToColorFn: function(vals) {
+      const raw = vals[0];
+      if (raw === -9999 || raw === undefined || raw === null) return null;
+      let v = raw * 0.01;
+      if (VAR_CONFIG[varKey].mmToIn) v /= 25.4;
+      if (VAR_CONFIG[varKey].cToF) v *= 9 / 5;
+      const c = scaleFn(v);
+      return c ? c.hex() : null;
+    },
+    resolution: window.devicePixelRatio > 1 ? 192 : 256,
+    updateWhenZooming: false,
+    updateWhenIdle: true
   });
 
-  map.addLayer(cogLayer);
+  activeLayer.addTo(map);
   document.getElementById('map-skeleton')?.remove();
   buildLegend(varKey, ts, period, legendRows);
   ensureLayerStack();
 
-  // Once tiles load: update dynamic range from actual pixel data, re-query pinned point
-  map.once('rendercomplete', function() {
-    if (myGen !== _renderGen) return; // stale handler — a new layer was loaded
-    const cfg2 = VAR_CONFIG[varKey];
-    if (cfg2 && cfg2.dynamic && !rangeOverride) {
-      // Auto-scale from visible pixels now that data is rendered
-      const vis = getVisibleRange();
-      if (vis) {
-        const sym = symmetrizeRange(cfg2, vis.min, vis.max);
-        document.getElementById("range-min").placeholder = sym.min.toFixed(2);
-        document.getElementById("range-max").placeholder = sym.max.toFixed(2);
-        // Rebuild the color expression and legend with actual range
-        const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
-        cogLayer.setStyle({ color: colorExpr });
-        const result = buildScale(varKey, paletteKey, null, sym);
-        buildLegend(varKey, ts, period, result.legendRows);
-      }
-    }
-    // Re-query the pinned point
-    if (queryActive && queryLastLatLng && !queryDismissed) {
-      queryRasterAt(queryLastLatLng);
-    }
-  });
+  // Re-query the pinned point so the popup updates with the new dataset
+  // Only if the user hasn't manually dismissed the popup
+  if (queryActive && queryLastLatLng && !queryDismissed) queryRasterAt(queryLastLatLng);
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PREFETCH  (warm browser cache with HEAD request)
+   PREFETCH  (fire-and-forget cache warming)
    ════════════════════════════════════════════════════════════════ */
 function prefetch(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
   if (!cfg || cfg.noRaster) return;
-  const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
-  // Just warm the browser HTTP cache with a HEAD request
-  fetch(url, { method: 'HEAD' }).catch(function() {});
+  const url = `${BASE_URL}/${cfg.prefix}${ts}_${period}.tif`;
+  if (georasterCache[url]) return;
+  fetch(url)
+    .then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+    .then(buf => {
+      if (!dateCache[url]) dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
+      return parseGeoraster(buf);
+    })
+    .then(gr => { georasterCache[url] = gr; })
+    .catch(() => {});
 }
 
 /* ════════════════════════════════════════════════════════════════
-   LOAD LAYER  (creates OpenLayers GeoTIFF layer via renderLayer)
+   LOAD LAYER  (fetches if not cached, then renders)
    ════════════════════════════════════════════════════════════════ */
 function loadLayer(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
   if (cfg.noRaster) return;
-  const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+  const url = `${BASE_URL}/${cfg.prefix}${ts}_${period}.tif`;
 
-  updateRangeSection(varKey, null);
+  if (georasterCache[url]) {
+    updateRangeSection(varKey, georasterCache[url]);
+    activeDate = dateCache[url] || "Date N/A";
+    renderLayer(georasterCache[url], varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
+      getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georasterCache[url]) : null));
 
-  // Extract date from the TIFF metadata (first 200KB)
-  const prevCogLayer = cogLayer;
+    return;
+  }
+
+  const prevLayer = activeLayer;
+  activeLayer = null;
   showSpinner();
 
-  // Fetch just the first 200KB to extract the date, then render
-  fetch(url, { headers: { 'Range': 'bytes=0-200000' } })
-    .then(function(r) {
-      if (!r.ok && r.status !== 206) throw new Error('HTTP ' + r.status + ': ' + url);
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
       return r.arrayBuffer();
     })
-    .then(function(buf) {
+    .then(buf => {
       dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
+      return parseGeoraster(buf);
+    })
+    .then(georaster => {
+      georasterCache[url] = georaster;
       activeDate = dateCache[url];
-
-      if (prevCogLayer && prevCogLayer !== cogLayer) {
-        try { map.removeLayer(prevCogLayer); } catch(e) {}
-      }
-      renderLayer(null, varKey, ts, period, cfg.defaultPalette, getRangeOverride());
+      updateRangeSection(varKey, georaster);
+      if (prevLayer) { map.removeLayer(prevLayer); }
+      renderLayer(georaster, varKey, ts, period, VAR_CONFIG[varKey].defaultPalette,
+        getRangeOverride() || (VAR_CONFIG[varKey].dynamic ? getVisibleRange(georaster) : null));
       hideSpinner();
-
-      // Prefetch neighbor timescales
-      var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
-      var idx = TIMESCALES.indexOf(ts);
-      [-1, 1].forEach(function(offset) {
-        var neighborTS = TIMESCALES[idx + offset];
-        if (neighborTS) idle(function() { prefetch(varKey, neighborTS, period); });
+  
+      const idle = window.requestIdleCallback || (cb => setTimeout(cb, 200));
+      const idx = TIMESCALES.indexOf(ts);
+      [-1, 1].forEach(offset => {
+        const neighborTS = TIMESCALES[idx + offset];
+        if (neighborTS) idle(() => prefetch(varKey, neighborTS, period));
       });
     })
-    .catch(function(err) {
-      if (prevCogLayer) { try { map.removeLayer(prevCogLayer); } catch(e) {} }
+    .catch(err => {
+      if (prevLayer) { map.removeLayer(prevLayer); }
       hideSpinner();
       console.error("Layer load error:", err);
       activeDate = "Load error";
@@ -4218,365 +3796,31 @@ function initCollapsibles() {
         maxEl.value = (ctr + absMax).toFixed(2);
       }
     }
-    // Re-render with new range override
-    renderLayer(null, activeVar, activeTS, activePeriod, cfg.defaultPalette, getRangeOverride());
+    const url = `${BASE_URL}/${cfg.prefix}${activeTS}_${activePeriod}.tif`;
+    if (georasterCache[url]) {
+      renderLayer(georasterCache[url], activeVar, activeTS, activePeriod, cfg.defaultPalette, getRangeOverride());
+    }
   });
 });
 
-document.getElementById("range-reset").addEventListener("click", function() {
-  const cfg = VAR_CONFIG[activeVar];
-  const vis = getVisibleRange();
-  if (vis) {
-    const sym = symmetrizeRange(cfg, vis.min, vis.max);
+document.getElementById("range-reset").addEventListener("click", () => {
+  const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
+  const gr  = georasterCache[url];
+  if (!gr) return;
+
+  const visRange = getVisibleRange(gr);
+  if (visRange) {
+    const sym = symmetrizeRange(VAR_CONFIG[activeVar], visRange.min, visRange.max);
     document.getElementById("range-min").value = sym.min.toFixed(2);
     document.getElementById("range-max").value = sym.max.toFixed(2);
-    renderLayer(null, activeVar, activeTS, activePeriod, cfg.defaultPalette, sym);
+    renderLayer(gr, activeVar, activeTS, activePeriod, VAR_CONFIG[activeVar].defaultPalette, sym);
   } else {
+    // No intersection with viewport — fall back to full raster range
     document.getElementById("range-min").value = "";
     document.getElementById("range-max").value = "";
-    renderLayer(null, activeVar, activeTS, activePeriod, cfg.defaultPalette, null);
+    renderLayer(gr, activeVar, activeTS, activePeriod, VAR_CONFIG[activeVar].defaultPalette, null);
   }
 });
-
-/* ════════════════════════════════════════════════════════════════
-   CONVERGENCE OF EVIDENCE
-   ════════════════════════════════════════════════════════════════ */
-const CONV_INDICES = {
-  spi:   { label: 'SPI',   negate: false },
-  spei:  { label: 'SPEI',  negate: false },
-  eddi:  { label: 'EDDI',  negate: true },
-  svpdi: { label: 'SVPDI', negate: true }
-};
-let convLayers = []; // array of { varKey, ts }
-let convActive = false;
-let convCogLayer = null;
-let convSubLayers = []; // individual hidden layers for 4+ source canvas approach
-
-function convRenderList() {
-  const container = document.getElementById('conv-layers');
-  container.innerHTML = '';
-  convLayers.forEach(function(layer, idx) {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
-    row.innerHTML =
-      '<select class="conv-var" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;font-family:var(--font-display);">' +
-        Object.keys(CONV_INDICES).map(function(k) {
-          return '<option value="' + k + '"' + (k === layer.varKey ? ' selected' : '') + '>' + CONV_INDICES[k].label + '</option>';
-        }).join('') +
-      '</select>' +
-      '<select class="conv-ts" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;font-family:var(--font-display);">' +
-        TIMESCALES.map(function(ts) {
-          return '<option value="' + ts + '"' + (ts === layer.ts ? ' selected' : '') + '>' + ts + '</option>';
-        }).join('') +
-      '</select>' +
-      '<button class="conv-remove" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px 4px;" title="Remove">&times;</button>';
-    row.querySelector('.conv-var').addEventListener('change', function() { convLayers[idx].varKey = this.value; });
-    row.querySelector('.conv-ts').addEventListener('change', function() { convLayers[idx].ts = this.value; });
-    row.querySelector('.conv-remove').addEventListener('click', function() {
-      convLayers.splice(idx, 1);
-      convRenderList();
-    });
-    container.appendChild(row);
-  });
-}
-
-document.getElementById('conv-add-btn').addEventListener('click', function() {
-  // Default: next unused index, or SPI, at current timescale
-  const used = convLayers.map(function(l) { return l.varKey; });
-  const next = Object.keys(CONV_INDICES).find(function(k) { return !used.includes(k); }) || 'spi';
-  convLayers.push({ varKey: next, ts: activeTS });
-  convRenderList();
-});
-
-document.getElementById('conv-clear-btn').addEventListener('click', function() {
-  convLayers = [];
-  convActive = false;
-  convRenderList();
-  cleanupConvergence();
-  loadLayer(activeVar, activeTS, activePeriod);
-});
-
-function cleanupConvergence() {
-  if (convCogLayer) {
-    if (convCogLayer._moveKey) ol.Observable.unByKey(convCogLayer._moveKey);
-    try { map.removeLayer(convCogLayer); } catch(e) {}
-    convCogLayer = null;
-  }
-  (convSubLayers || []).forEach(function(l) { try { map.removeLayer(l); } catch(e) {} });
-  convSubLayers = [];
-}
-
-document.getElementById('conv-apply-btn').addEventListener('click', function() {
-  var errEl = document.getElementById('conv-error');
-  if (convLayers.length < 2) {
-    errEl.textContent = 'Select at least 2 layers to composite.';
-    errEl.style.display = 'block';
-    return;
-  }
-  errEl.style.display = 'none';
-  convActive = true;
-  applyConvergence();
-});
-
-function getConvPeriod() {
-  var checked = document.querySelector('input[name="conv-period"]:checked');
-  return checked ? checked.value : 'rolling-30';
-}
-
-function getConvMethod() {
-  const checked = document.querySelector('input[name="conv-method"]:checked');
-  return checked ? checked.value : 'median';
-}
-
-document.querySelectorAll('input[name="conv-method"]').forEach(function(radio) {
-  radio.addEventListener('change', function() {
-    if (convActive && convLayers.length >= 2) applyConvergence();
-  });
-});
-
-function applyConvergence() {
-  // Remove existing raster and convergence layers
-  if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
-  if (convCogLayer) { map.removeLayer(convCogLayer); convCogLayer = null; }
-  // Remove any previous convergence sub-layers
-  (convSubLayers || []).forEach(function(l) { try { map.removeLayer(l); } catch(e) {} });
-  convSubLayers = [];
-
-  var n = convLayers.length;
-  var method = getConvMethod();
-
-  // For 2-3 layers, use multi-source GeoTIFF with WebGL expressions (works reliably)
-  if (n <= 3) {
-    var sources = convLayers.map(function(l) {
-      return { url: BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif', nodata: -9999 };
-    });
-    var convSource = new ol.source.GeoTIFF({
-      sources: sources,
-      normalize: false,
-      transition: 0,
-      interpolate: rasterInterpolate
-    });
-    // Band expressions
-    var bands = convLayers.map(function(l, i) {
-      var negate = CONV_INDICES[l.varKey].negate;
-      return ['*', ['band', i + 1], negate ? -0.01 : 0.01];
-    });
-    var compositeVal;
-    if (method === 'mean') {
-      compositeVal = ['/', bands.reduce(function(a, b) { return ['+', a, b]; }), n];
-    } else if (n === 2) {
-      compositeVal = ['/', ['+', bands[0], bands[1]], 2];
-    } else {
-      compositeVal = olMax(olMin(bands[0], bands[1]), olMin(olMax(bands[0], bands[1]), bands[2]));
-    }
-    var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var EPS = 0.005;
-    var conditions = [];
-    for (var i = USDM_BREAKS.length - 2; i >= 0; i--) {
-      if (USDM_BREAKS[i] === -999) continue;
-      conditions.push(['>=', compositeVal, USDM_BREAKS[i] - EPS]);
-      conditions.push(chroma(colors[i]).css());
-    }
-    conditions.push(chroma(colors[0]).css());
-    var transparent = 'rgba(0,0,0,0)';
-    // Use alpha band for nodata/outside-extent detection.
-    // With nodata:-9999 on the source, OL generates alpha=0 for nodata and outside-extent pixels.
-    // For multi-source, alpha bands interleave: source1=band1(data)+band2(alpha), source2=band3+band4, etc.
-    var finalExpr = ['case',
-      ['==', ['band', 2], 0], transparent,
-      ['case', ...conditions]
-    ];
-    convCogLayer = new ol.layer.WebGLTile({
-      source: convSource,
-      style: { color: finalExpr },
-      opacity: parseFloat(opacitySlider.value),
-      zIndex: 1
-    });
-    map.addLayer(convCogLayer);
-    ensureLayerStack();
-
-  } else {
-    // For 4+ layers: load full rasters via geotiff.js, compute composite in JS,
-    // display as a single ImageStatic layer. No recomputation on pan/zoom.
-    // COGs are small (~500KB each, 1386×584 pixels) so this is fast.
-
-    showSpinner();
-
-    // Build USDM color lookup
-    var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var usdmLUT = colors.map(function(c) { return chroma(c).rgb(); });
-
-    function classifyValue(v) {
-      for (var i = USDM_BREAKS.length - 2; i >= 0; i--) {
-        if (v >= USDM_BREAKS[i] - 0.005) return usdmLUT[i];
-      }
-      return usdmLUT[0];
-    }
-
-    // Fetch all COGs in parallel using geotiff.js
-    var urls = convLayers.map(function(l) {
-      return BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
-    });
-
-    Promise.all(urls.map(function(url) {
-      return GeoTIFF.fromUrl(url).then(function(tiff) {
-        return tiff.getImage().then(function(image) {
-          return image.readRasters().then(function(rasters) {
-            return {
-              data: rasters[0], // Int16Array of raw values
-              width: image.getWidth(),
-              height: image.getHeight(),
-              bbox: image.getBoundingBox() // [xmin, ymin, xmax, ymax]
-            };
-          });
-        });
-      });
-    })).then(function(rasters) {
-      // All rasters share the same grid
-      var w = rasters[0].width;
-      var h = rasters[0].height;
-      var bbox = rasters[0].bbox; // [xmin, ymin, xmax, ymax] in EPSG:4326
-
-      // Compute composite into Float32Array
-      var compositeData = new Float32Array(w * h);
-      compositeData.fill(-9999); // initialize all as nodata
-      for (var ry = 0; ry < h; ry++) {
-        for (var rx = 0; rx < w; rx++) {
-          var ri = ry * w + rx;
-          var rvals = [];
-          var rNodata = false;
-          for (var rli = 0; rli < rasters.length; rli++) {
-            var rraw = rasters[rli].data[ri];
-            if (rraw === -9999) { rNodata = true; break; }
-            var rscaled = rraw * 0.01;
-            if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
-            rvals.push(rscaled);
-          }
-          if (rNodata || rvals.length === 0) {
-            compositeData[ri] = -9999;
-          } else if (method === 'mean') {
-            compositeData[ri] = rvals.reduce(function(a, b) { return a + b; }, 0) / rvals.length;
-          } else {
-            rvals.sort(function(a, b) { return a - b; });
-            var rmid = Math.floor(rvals.length / 2);
-            compositeData[ri] = rvals.length % 2 === 0 ? (rvals[rmid - 1] + rvals[rmid]) / 2 : rvals[rmid];
-          }
-        }
-      }
-
-      // Use DataTile + WebGLTile for crisp pixel rendering with interpolate:false
-      var resX = (bbox[2] - bbox[0]) / w;
-      var resY = (bbox[3] - bbox[1]) / h;
-      var TS = 256;
-
-      var dataTileSource = new ol.source.DataTile({
-        projection: 'EPSG:4326',
-        tileSize: TS,
-        bandCount: 1,
-        tileGrid: ol.tilegrid.createXYZ({
-          extent: bbox,
-          maxZoom: 12,
-          tileSize: TS
-        }),
-        interpolate: rasterInterpolate,
-        loader: function(z, x, y) {
-          var tileGrid = dataTileSource.getTileGrid();
-          var tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
-          var tile = new Float32Array(TS * TS);
-          tile.fill(-9999);
-          var useInterp = rasterInterpolate;
-          for (var ty = 0; ty < TS; ty++) {
-            var lat = tileExtent[3] - (ty + 0.5) / TS * (tileExtent[3] - tileExtent[1]);
-            var fy = (bbox[3] - lat) / resY;
-            var row = Math.floor(fy);
-            if (row < 0 || row >= h) continue;
-            for (var tx = 0; tx < TS; tx++) {
-              var lon = tileExtent[0] + (tx + 0.5) / TS * (tileExtent[2] - tileExtent[0]);
-              var fx = (lon - bbox[0]) / resX;
-              var col = Math.floor(fx);
-              if (col < 0 || col >= w) continue;
-              if (useInterp && col + 1 < w && row + 1 < h) {
-                // Bilinear interpolation
-                var dx = fx - col, dy = fy - row;
-                var v00 = compositeData[row * w + col];
-                var v10 = compositeData[row * w + col + 1];
-                var v01 = compositeData[(row + 1) * w + col];
-                var v11 = compositeData[(row + 1) * w + col + 1];
-                // Skip interpolation if any neighbor is nodata
-                if (v00 <= -99 || v10 <= -99 || v01 <= -99 || v11 <= -99) {
-                  tile[ty * TS + tx] = compositeData[row * w + col];
-                } else {
-                  tile[ty * TS + tx] = v00 * (1-dx) * (1-dy) + v10 * dx * (1-dy) + v01 * (1-dx) * dy + v11 * dx * dy;
-                }
-              } else {
-                tile[ty * TS + tx] = compositeData[row * w + col];
-              }
-            }
-          }
-          return tile;
-        }
-      });
-
-      // Classified 1-band color expression with USDM breaks using paired stops
-      // Since ['band', 1] is a single pre-computed value (not multi-band), this is trivial for WebGL
-      var convColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-      var EPS = 0.001;
-      var convStops = [];
-      convStops.push(-10, chroma(convColors[0]).css());
-      for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
-        convStops.push(USDM_BREAKS[si] - EPS, chroma(convColors[si - 1]).css());
-        convStops.push(USDM_BREAKS[si], chroma(convColors[si]).css());
-      }
-      convStops.push(10, chroma(convColors[convColors.length - 1]).css());
-      var convColorExpr = ['case',
-        ['<=', ['band', 1], -99], 'rgba(0,0,0,0)',
-        ['interpolate', ['linear'], ['band', 1], ...convStops]
-      ];
-
-      convCogLayer = new ol.layer.WebGLTile({
-        source: dataTileSource,
-        style: { color: convColorExpr },
-        opacity: parseFloat(opacitySlider.value),
-        zIndex: 1,
-        extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857'),
-        _isImageLayer: true
-      });
-
-      // Store rasters for point query
-      convCogLayer._rasters = rasters;
-      convCogLayer._bbox = bbox;
-      convCogLayer._w = w;
-      convCogLayer._h = h;
-
-      map.addLayer(convCogLayer);
-      ensureLayerStack();
-      hideSpinner();
-
-    }).catch(function(err) {
-      console.error('Convergence load failed:', err);
-      hideSpinner();
-    });
-  }
-
-  // Build legend
-  var legendRows = makeBreakLabels(USDM_BREAKS, colors, function(v) { return v.toFixed(1); });
-  if (legendEl) { legendEl.remove(); legendEl = null; }
-  var div = document.createElement('div');
-  div.className = 'map-legend';
-  var labels = convLayers.map(function(l) { return CONV_INDICES[l.varKey].label + ' ' + l.ts; });
-  div.innerHTML =
-    '<h4>Convergence<br>' + method.charAt(0).toUpperCase() + method.slice(1) + '</h4>' +
-    '<div class="legend-sub">' + labels.join(', ') + '<br>' + getPeriodLabel(getConvPeriod()) + '</div>' +
-    '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
-    legendRows.map(function(r) {
-      return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
-    }).join('');
-  legendEl = div;
-  var overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
-    || document.querySelector('#map .ol-viewport')
-    || document.getElementById('map');
-  overlayContainer.appendChild(div);
-}
 
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR COLLAPSE
@@ -4607,7 +3851,7 @@ function toggleSidebar() {
     overlay.classList.remove('active');
   }
 
-  setTimeout(function() { map.updateSize(); }, 260);
+  setTimeout(() => map.invalidateSize(), 260);
 }
 window.toggleSidebar = toggleSidebar;
 
@@ -4671,84 +3915,26 @@ function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.d
 function getExportAttribution() {
   const sources = new Set();
   // Active data layer
-  if (convActive && convLayers.length >= 2) {
-    sources.add("gridMET");
-  } else {
-    const cfg = VAR_CONFIG[activeVar];
-    if (cfg && cfg.attribution) sources.add(cfg.attribution);
-  }
+  const cfg = VAR_CONFIG[activeVar];
+  if (cfg && cfg.attribution) sources.add(cfg.attribution);
   // USGS streamflow overlay
-  if (usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer)) sources.add("USGS");
+  if (usgsStreamLayer && map.hasLayer(usgsStreamLayer)) sources.add("USGS");
   // USDM overlay
-  if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) sources.add("USDM/NDMC");
+  if (usdmLayer && map.hasLayer(usdmLayer)) sources.add("USDM/NDMC");
   return sources.size ? "Data: " + [...sources].join(", ") : "";
 }
 
 /* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
    screenshot export now uses html2canvas for pixel-perfect capture) */
 
-function drawConvergenceFooterLegend(ctx, footerY, sc) {
-  const et = getExportTheme();
-  var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-  var convMethod = getConvMethod();
-  var labelFmt = function(v) { return v.toFixed(1); };
-  var legendRows = makeBreakLabels(USDM_BREAKS, colors, labelFmt);
-  if (!legendRows || !legendRows.length) return 0;
-
-  var margin = Math.round(24 * sc);
-  var titleFS = Math.round(13 * sc);
-  var labelFS = Math.round(10 * sc);
-  var swatchW = Math.round(14 * sc);
-  var swatchH = Math.round(12 * sc);
-  var gap = Math.round(4 * sc);
-
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-
-  var cx = margin;
-  var cy = footerY + Math.round(6 * sc);
-
-  // Title: "Convergence — Median"
-  ctx.fillStyle = et.legendTitle;
-  ctx.font = 'bold ' + titleFS + 'px "Segoe UI", sans-serif';
-  ctx.fillText('Convergence \u2014 ' + convMethod.charAt(0).toUpperCase() + convMethod.slice(1), cx, cy);
-  cy += titleFS + Math.round(2 * sc);
-
-  // Subtitle: layer list
-  var layerLabels = convLayers.map(function(l) { return CONV_INDICES[l.varKey].label + ' ' + l.ts; }).join(', ');
-  ctx.fillStyle = et.legendLabel;
-  ctx.font = Math.round(9 * sc) + 'px "Segoe UI", sans-serif';
-  ctx.fillText(layerLabels, cx, cy);
-  cy += Math.round(12 * sc);
-
-  // Horizontal swatch strip
-  legendRows.forEach(function(r) {
-    ctx.fillStyle = r.color;
-    ctx.fillRect(cx, cy, swatchW, swatchH);
-    cx += swatchW + 1;
-  });
-  // Labels below: first, middle, last
-  var stripLeft = margin;
-  var stripRight = cx - 1;
-  cy += swatchH + Math.round(2 * sc);
-  ctx.fillStyle = et.legendLabel;
-  ctx.font = labelFS + 'px "Segoe UI", sans-serif';
-  ctx.textAlign = "left";
-  ctx.fillText(legendRows[0].label.split('\u2013')[0].trim(), stripLeft, cy);
-  ctx.textAlign = "center";
-  ctx.fillText('0', (stripLeft + stripRight) / 2, cy);
-  ctx.textAlign = "right";
-  ctx.fillText(legendRows[legendRows.length - 1].label.split('\u2013').pop().trim(), stripRight, cy);
-  ctx.textAlign = "left";
-
-  return stripRight + Math.round(20 * sc);
-}
-
 function drawFooterLegend(ctx, footerY, sc) {
   const et = getExportTheme();
+  const url = `${BASE_URL}/${VAR_CONFIG[activeVar].prefix}${activeTS}_${activePeriod}.tif`;
+  const geo = georasterCache[url];
+  if (!geo) return 0;
 
-  const rangeOv = getRangeOverride();
-  const { legendRows } = buildScale(activeVar, VAR_CONFIG[activeVar].defaultPalette, null, rangeOv);
+  const rangeOv = getRangeOverride() || (VAR_CONFIG[activeVar].dynamic ? getVisibleRange(geo) : null);
+  const { legendRows } = buildScale(activeVar, VAR_CONFIG[activeVar].defaultPalette, geo, rangeOv);
   if (!legendRows || !legendRows.length) return 0;
 
   const cfg = VAR_CONFIG[activeVar];
@@ -4882,7 +4068,7 @@ function drawFooterLegend(ctx, footerY, sc) {
 
 function drawUsdmFooterLegend(ctx, footerY, startX, sc) {
   const et = getExportTheme();
-  if (!usdmLayer || !map.getLayers().getArray().includes(usdmLayer)) return;
+  if (!usdmLayer || !map.hasLayer(usdmLayer)) return;
 
   const rows = [
     { color: "#FFFF00", label: "D0" },
@@ -5022,64 +4208,54 @@ async function takeScreenshot(exportScale) {
   btn.querySelector("svg").style.animation = "spin 0.8s linear infinite";
 
   try {
+    // Lazy-load html2canvas on first export
+    if (typeof html2canvas === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load html2canvas'));
+        document.head.appendChild(s);
+      });
+    }
     if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
     const SCALE    = exportScale || 2;
-    const size     = map.getSize();
-    const mapW_px  = size[0] * SCALE;
-    const mapH_px  = size[1] * SCALE;
+    const mapW_px  = mapEl.offsetWidth  * SCALE;
+    const mapH_px  = mapEl.offsetHeight * SCALE;
+    /* ── 0. Force Leaflet to sync its internal state with the DOM ── */
+    map.invalidateSize({ animate: false });
 
-    /* ── 0. Force OpenLayers to render at export scale ── */
-    // Temporarily override devicePixelRatio to get higher resolution tiles
-    const origDPR = window.devicePixelRatio;
-    Object.defineProperty(window, 'devicePixelRatio', { value: SCALE, configurable: true });
-    map.updateSize();
+    /* ── 1. Hide SVG overlay so html2canvas captures only basemap + raster ── */
+    const svgPane = mapEl.querySelector('.leaflet-overlay-pane');
+    let svgPaneOrigVis = '';
+    if (svgPane) {
+      svgPaneOrigVis = svgPane.style.visibility;
+      svgPane.style.visibility = 'hidden';
+    }
 
-    /* ── 1. Capture the OL map canvas via rendercomplete ── */
-    const mapCapture = await new Promise(function(resolve) {
-      map.once('rendercomplete', function() {
-        const mapCanvas = document.createElement('canvas');
-        const viewportEl = mapEl.querySelector('.ol-viewport');
-        // Find all layer canvases and composite them
-        const layerCanvases = mapEl.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
-        // Use the first canvas dimensions as reference
-        let maxW = 0, maxH = 0;
-        layerCanvases.forEach(function(c) {
-          if (c.width > maxW) maxW = c.width;
-          if (c.height > maxH) maxH = c.height;
-        });
-        mapCanvas.width = maxW || size[0] * SCALE;
-        mapCanvas.height = maxH || size[1] * SCALE;
-        var mapContext = mapCanvas.getContext('2d');
+    // Hide Leaflet controls (zoom buttons, attribution) for clean export
+    const controlContainer = mapEl.querySelector('.leaflet-control-container');
+    let controlOrigVis = '';
+    if (controlContainer) {
+      controlOrigVis = controlContainer.style.visibility;
+      controlContainer.style.visibility = 'hidden';
+    }
 
-        layerCanvases.forEach(function(canvas) {
-          if (canvas.width <= 0) return;
-          // Get opacity from the layer wrapper
-          var layerDiv = canvas.closest('.ol-layer');
-          var opacity = layerDiv ? (layerDiv.style.opacity || '1') : '1';
-          mapContext.globalAlpha = Number(opacity) || 1;
+    const mapRect = mapEl.getBoundingClientRect();
 
-          // Draw 1:1 — canvases are already at export resolution.
-          // The CSS transform (e.g. matrix(0.5,...)) is only for display scaling
-          // on retina screens; we want the raw pixels for export.
-          // Apply greyscale filter if this is the basemap-grey layer
-          var isGrey = layerDiv && layerDiv.classList.contains('basemap-grey');
-          if (isGrey) mapContext.filter = 'grayscale(1)';
-          mapContext.setTransform(1, 0, 0, 1, 0, 0);
-          mapContext.drawImage(canvas, 0, 0);
-          if (isGrey) mapContext.filter = 'none';
-        });
-        mapContext.globalAlpha = 1;
-        mapContext.setTransform(1, 0, 0, 1, 0, 0);
-        resolve(mapCanvas);
-      });
-      map.renderSync();
+    /* ── 2. Capture basemap + raster with html2canvas ── */
+    const mapCapture = await html2canvas(mapEl, {
+      scale: SCALE,
+      useCORS: true,
+      allowTaint: false,
+      logging: false
     });
 
-    // Restore original devicePixelRatio
-    Object.defineProperty(window, 'devicePixelRatio', { value: origDPR, configurable: true });
-    map.updateSize();
+    /* ── Restore SVG overlay visibility ── */
+    if (svgPane) svgPane.style.visibility = svgPaneOrigVis;
+    if (controlContainer) controlContainer.style.visibility = controlOrigVis;
 
     /* ── 2. Build output canvas with title band + footer ──────── */
     const TITLE_H  = Math.round(110 * SCALE);
@@ -5101,17 +4277,19 @@ async function takeScreenshot(exportScale) {
     const bandContentH = TITLE_H - Math.round(3 * SCALE);
     const bandCenterY = bandContentH / 2;
 
-    // ── D brand mark with gradient ──
+    // ── D³ brand mark with gradient (95% header height) ──
     const brandDFS = Math.round(bandContentH * 0.7);
     const brandSupFS = Math.round(brandDFS * 0.5);
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
     let bx = logoMargin;
-    ctx.font = 'bold ' + brandDFS + 'px "Segoe UI", sans-serif';
+    // Measure total width for gradient
+    ctx.font = `bold ${brandDFS}px 'Segoe UI', sans-serif`;
     const dW = ctx.measureText("D").width;
-    ctx.font = 'bold ' + brandSupFS + 'px "Segoe UI", sans-serif';
+    ctx.font = `bold ${brandSupFS}px 'Segoe UI', sans-serif`;
     const threeW = ctx.measureText("3").width;
     const brandTotalW = dW + threeW + Math.round(3 * SCALE);
+    // Create gradient
     const brandGrad = ctx.createLinearGradient(bx, 0, bx + brandTotalW, brandTotalW * 0.5);
     const gc = et.brandGrad;
     brandGrad.addColorStop(0, gc[0]);
@@ -5120,10 +4298,12 @@ async function takeScreenshot(exportScale) {
     brandGrad.addColorStop(0.75, gc[3]);
     brandGrad.addColorStop(1, gc[4]);
     ctx.fillStyle = brandGrad;
-    ctx.font = 'bold ' + brandDFS + 'px "Segoe UI", sans-serif';
+    // "D"
+    ctx.font = `bold ${brandDFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("D", bx, bandCenterY);
     bx += dW + Math.round(1 * SCALE);
-    ctx.font = 'bold ' + brandSupFS + 'px "Segoe UI", sans-serif';
+    // superscript "3"
+    ctx.font = `bold ${brandSupFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("3", bx, bandCenterY - Math.round(brandDFS * 0.28));
     bx += threeW + Math.round(12 * SCALE);
 
@@ -5137,55 +4317,50 @@ async function takeScreenshot(exportScale) {
     ctx.stroke();
     bx += Math.round(12 * SCALE);
 
-    // Title text block
-    var cfg, periodLabel, dateTxt, titleLine1, titleLine2;
-    if (convActive && convLayers.length >= 2) {
-      cfg = { label: 'Convergence', attribution: 'gridMET', noRaster: false };
-      periodLabel = getPeriodLabel(getConvPeriod());
-      dateTxt = formatDate(activeDate);
-      var convMethod = getConvMethod();
-      var layerLabels = convLayers.map(function(l) { return CONV_INDICES[l.varKey].label + ' ' + l.ts; }).join(', ');
-      titleLine1 = 'Convergence of Evidence \u2014 ' + convMethod.charAt(0).toUpperCase() + convMethod.slice(1);
-      titleLine2 = layerLabels + '  |  Ref. Period: ' + periodLabel + '  |  ' + dateTxt;
-    } else {
-      cfg = VAR_CONFIG[activeVar];
-      periodLabel = getPeriodLabel(activePeriod);
-      dateTxt = formatDate(activeDate);
-      var tsLabel = TS_FULL[activeTS] || activeTS;
-      titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + tsLabel;
-      titleLine2 = 'Ref. Period: ' + periodLabel + '  |  Data Valid: ' + dateTxt;
-    }
+    // Title text block (3 lines) — after separator
+    const cfg         = VAR_CONFIG[activeVar];
+    const periodLabel = getPeriodLabel(activePeriod);
+    const dateTxt     = formatDate(activeDate);
+    const tsLabel     = TS_FULL[activeTS] || activeTS;
+    const fullVarName = getFullVarName(activeVar);
 
     const textX = bx;
     const line1FS = Math.round(22 * SCALE);
     const line2FS = Math.round(14 * SCALE);
+    const line3FS = Math.round(12 * SCALE);
 
     ctx.textBaseline = "middle";
     ctx.textAlign    = "left";
 
+    // Line 1: Full variable name
     ctx.fillStyle = et.title;
-    ctx.font = 'bold ' + line1FS + 'px "Segoe UI", sans-serif';
-    ctx.fillText(titleLine1, textX, TITLE_H * 0.28);
+    ctx.font = `bold ${line1FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText(`${fullVarName} \u2014 ${tsLabel}`, textX, TITLE_H * 0.28);
 
+    // Line 2: Metadata
     ctx.fillStyle = et.subtitle;
-    ctx.font = line2FS + 'px "Segoe UI", sans-serif';
-    ctx.fillText(titleLine2, textX, TITLE_H * 0.53);
+    ctx.font = `${line2FS}px 'Segoe UI', sans-serif`;
+    ctx.fillText(`Ref. Period: ${periodLabel}  |  Data Valid: ${dateTxt}`, textX, TITLE_H * 0.53);
 
+    // Line 3: D³ brand with superscript
     const srcFS = Math.round(12 * SCALE);
     const srcSupFS = Math.round(8 * SCALE);
     const srcY = TITLE_H * 0.74;
     let sx = textX;
+    // "D"
     ctx.fillStyle = et.dim;
-    ctx.font = 'bold ' + srcFS + 'px "Segoe UI", sans-serif';
+    ctx.font = `bold ${srcFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("D", sx, srcY);
     sx += ctx.measureText("D").width;
-    ctx.font = 'bold ' + srcSupFS + 'px "Segoe UI", sans-serif';
+    // superscript "3"
+    ctx.font = `bold ${srcSupFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("3", sx, srcY - Math.round(4 * SCALE));
     sx += ctx.measureText("3").width + Math.round(4 * SCALE);
-    ctx.font = srcFS + 'px "Segoe UI", sans-serif';
+    // rest of text
+    ctx.font = `${srcFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("\u2014 Drought Data Dashboard", sx, srcY);
 
-    // ── MCO Logo (right side) ──
+    // ── MCO Logo (right side, upper) ──
     const rightMargin = mapW_px - logoMargin;
     const logoH = Math.round(42 * SCALE);
     const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
@@ -5212,25 +4387,165 @@ async function takeScreenshot(exportScale) {
     ctx.drawImage(_logoCache, logoX + logoPad, logoY + logoPad, logoW, logoH);
     ctx.restore();
 
+    // URL + generated date below logo, centered
     const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const infoFS = Math.round(9 * SCALE);
     const infoY = logoY + logoH + logoPad * 2 + Math.round(6 * SCALE);
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillStyle = et.subtitle;
-    ctx.font = infoFS + 'px "Segoe UI", sans-serif';
+    ctx.font = `${infoFS}px 'Segoe UI', sans-serif`;
     ctx.fillText("drought.climate.umt.edu", logoCenterX, infoY);
     ctx.fillStyle = et.dim;
-    ctx.fillText('Generated: ' + generatedDate, logoCenterX, infoY + infoFS + Math.round(2 * SCALE));
+    ctx.fillText(`Generated: ${generatedDate}`, logoCenterX, infoY + infoFS + Math.round(2 * SCALE));
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
 
-    /* ── 3. Draw captured map ── */
+    /* ── 3a. Clip to map region and draw captured map ── */
+    const isGreyBasemap = mapEl.querySelector('.leaflet-tile-pane .basemap-grey') !== null;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, TITLE_H, mapW_px, mapH_px);
     ctx.clip();
+    if (isGreyBasemap) {
+      ctx.filter = 'grayscale(1)';
+    }
     ctx.drawImage(mapCapture, 0, TITLE_H, mapW_px, mapH_px);
+    if (isGreyBasemap) {
+      ctx.filter = 'none';
+      // Re-draw GeoRasterLayer canvases on top in full color.
+      // Edge tiles have small buffers (24x16, 11x179 etc.) but getBoundingClientRect
+      // returns their full transformed box which is wrong for sizing.
+      // Strategy: find a full-size reference tile to compute the Leaflet transform scale,
+      // then position each tile using its grid index × scaled tile size.
+      // Re-draw GeoRasterLayer canvases on top in full color.
+      // Edge tiles have small buffers but Leaflet's CSS transform inflates their
+      // getBoundingClientRect to full cell size. We establish a grid from full tiles
+      // and compute each tile's true position from its grid coordinates.
+      const rasterCanvases = Array.from(mapEl.querySelectorAll('.leaflet-tile-pane canvas'));
+      const fullTiles = rasterCanvases.filter(rc => rc.width === 256 && rc.height === 256);
+      if (fullTiles.length >= 2) {
+        // Get grid step from adjacent full tiles
+        fullTiles.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        let cellW = 0, cellH = 0;
+        const ftRects = fullTiles.map(ft => ft.getBoundingClientRect());
+        for (let i = 1; i < ftRects.length; i++) {
+          if (Math.abs(ftRects[i].top - ftRects[0].top) < 2) {
+            cellW = ftRects[i].left - ftRects[0].left;
+            break;
+          }
+        }
+        fullTiles.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+        const ftRectsV = fullTiles.map(ft => ft.getBoundingClientRect());
+        for (let i = 1; i < ftRectsV.length; i++) {
+          if (Math.abs(ftRectsV[i].left - ftRectsV[0].left) < 2) {
+            cellH = ftRectsV[i].top - ftRectsV[0].top;
+            break;
+          }
+        }
+        if (!cellW) cellW = ftRects[0].width;
+        if (!cellH) cellH = ftRectsV[0].height;
+
+        // Use a full tile as grid origin
+        const refRect = fullTiles[0].getBoundingClientRect();
+        const gridOriginX = refRect.left;
+        const gridOriginY = refRect.top;
+
+        // Collect all unique grid column X positions and row Y positions from full tiles
+        const colXs = [...new Set(fullTiles.map(ft => Math.round(ft.getBoundingClientRect().left)))].sort((a,b) => a-b);
+        const rowYs = [...new Set(fullTiles.map(ft => Math.round(ft.getBoundingClientRect().top)))].sort((a,b) => a-b);
+
+        rasterCanvases.forEach(rc => {
+          const rcRect = rc.getBoundingClientRect();
+          if (rc.width === 0 || rc.height === 0) return;
+          const styleW = parseFloat(rc.style.width) || rc.width;
+          const styleH = parseFloat(rc.style.height) || rc.height;
+          const dispW = cellW * (styleW / 256);
+          const dispH = cellH * (styleH / 256);
+
+          // Determine which grid column/row this tile belongs to by matching BCR position
+          const bcrL = Math.round(rcRect.left);
+          const bcrT = Math.round(rcRect.top);
+
+          // Find the grid column: which colX matches, or is this tile left/right of all full tiles?
+          let contentLeft, contentTop;
+
+          // Horizontal: check if tile aligns with a known full-tile column
+          const matchCol = colXs.find(cx => Math.abs(cx - bcrL) < 2);
+          if (matchCol !== undefined) {
+            // Same column as a full tile - content starts at left edge
+            contentLeft = bcrL;
+          } else if (bcrL < colXs[0]) {
+            // Left of all full tiles - this is a left-edge tile, content is at the RIGHT of BCR
+            contentLeft = rcRect.right - dispW;
+          } else {
+            // Right of all full tiles - right-edge tile, content starts at BCR left
+            contentLeft = bcrL;
+          }
+
+          // Vertical: same logic
+          const matchRow = rowYs.find(ry => Math.abs(ry - bcrT) < 2);
+          if (matchRow !== undefined) {
+            contentTop = bcrT;
+          } else if (bcrT < rowYs[0]) {
+            // Above all full tiles - top-edge tile, content at BOTTOM of BCR
+            contentTop = rcRect.bottom - dispH;
+          } else {
+            // Below all full tiles - bottom-edge tile, content starts at BCR top
+            contentTop = bcrT;
+          }
+
+          const dx = (contentLeft - mapRect.left) * SCALE;
+          const dy = (contentTop - mapRect.top) * SCALE + TITLE_H;
+          const dw = dispW * SCALE;
+          const dh = dispH * SCALE;
+          ctx.globalAlpha = parseFloat(opacitySlider.value);
+          ctx.drawImage(rc, dx, dy, dw, dh);
+          ctx.globalAlpha = 1.0;
+        });
+      }
+    }
+
+    /* ── 3b. Composite SVG vector overlays (states, counties) ─────
+       XMLSerializer + getBoundingClientRect correctly handles Leaflet's
+       CSS translate3d transforms. We must strip the transform from the
+       clone so paths aren't double-offset. ─────────────────────────── */
+    const svgEls = mapEl.querySelectorAll('.leaflet-overlay-pane svg');
+    for (const svgEl of svgEls) {
+      const svgRect = svgEl.getBoundingClientRect();
+      const sx = (svgRect.left - mapRect.left) * SCALE;
+      const sy = (svgRect.top  - mapRect.top)  * SCALE + TITLE_H;
+      const sw = svgRect.width  * SCALE;
+      const sh = svgRect.height * SCALE;
+
+      const clone = svgEl.cloneNode(true);
+      // Strip Leaflet's CSS transform — positioning is handled by sx/sy
+      clone.style.transform = 'none';
+      clone.style.webkitTransform = 'none';
+      clone.style.left = '0';
+      clone.style.top  = '0';
+
+      // Match width/height to viewBox so paths render 1:1 (no scaling distortion)
+      const vb = svgEl.getAttribute('viewBox');
+      if (vb) {
+        const parts = vb.split(/[\s,]+/).map(Number);
+        clone.setAttribute('width',  parts[2]);
+        clone.setAttribute('height', parts[3]);
+      } else {
+        clone.setAttribute('width',  svgRect.width);
+        clone.setAttribute('height', svgRect.height);
+      }
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const data = new XMLSerializer().serializeToString(clone);
+      const b64  = btoa(unescape(encodeURIComponent(data)));
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, sx, sy, sw, sh); resolve(); };
+        img.onerror = () => { console.warn('SVG overlay rasterization failed'); resolve(); };
+        img.src = 'data:image/svg+xml;base64,' + b64;
+      });
+    }
     ctx.restore();
 
     /* ── 4. Draw footer band ── */
@@ -5245,10 +4560,7 @@ async function takeScreenshot(exportScale) {
     // Draw primary legend (horizontal) in footer — returns rightEdgeX
     const footerContentY = footerTop + Math.round(3 * SCALE);
     let legendRightX = Math.round(24 * SCALE);
-    if (convActive && convLayers.length >= 2) {
-      const rx = drawConvergenceFooterLegend(ctx, footerContentY, SCALE);
-      if (rx) legendRightX = rx;
-    } else if (!cfg.noRaster) {
+    if (!VAR_CONFIG[activeVar].noRaster) {
       const rx = drawFooterLegend(ctx, footerContentY, SCALE);
       if (rx) legendRightX = rx;
     }
@@ -5451,8 +4763,8 @@ function buildShareUrl() {
   let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
   hash += '/' + (activeZoomState || '');
   if (customMapView) {
-    const c = ol.proj.toLonLat(map.getView().getCenter());
-    hash += '/' + map.getView().getZoom().toFixed(1) + '/' + c[1].toFixed(4) + '/' + c[0].toFixed(4);
+    const c = map.getCenter();
+    hash += '/' + map.getZoom().toFixed(1) + '/' + c.lat.toFixed(4) + '/' + c.lng.toFixed(4);
   }
   return window.location.origin + window.location.pathname + query + hash;
 }
@@ -5653,8 +4965,7 @@ if (savedState) {
   // Restore precise map view from share URL (overrides state zoom)
   if (savedState.mapView) {
     _programmaticMove = true;
-    map.getView().setCenter(ol.proj.fromLonLat([savedState.mapView.lng, savedState.mapView.lat]));
-    map.getView().setZoom(savedState.mapView.zoom);
+    map.setView([savedState.mapView.lat, savedState.mapView.lng], savedState.mapView.zoom);
     customMapView = true;
     setTimeout(function() { _programmaticMove = false; }, 500);
   }
@@ -5683,7 +4994,9 @@ if (savedState) {
   // Restore basemap
   if (savedState.basemap && savedState.basemap !== 'natgeo' && BASEMAPS[savedState.basemap]) {
     activeBasemap = savedState.basemap;
-    basemapSource.setUrl(BASEMAPS[activeBasemap].url);
+    map.removeLayer(baseTile);
+    baseTile = L.tileLayer(BASEMAPS[activeBasemap].url, BASEMAPS[activeBasemap].opts).addTo(map);
+    baseTile.bringToBack();
     document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => {
       b.classList.toggle("active", b.dataset.basemap === activeBasemap);
     });
@@ -5702,7 +5015,7 @@ if (activeVar === 'hhp') {
       showSpinner();
       try { await loadHhpStreamflow(); } finally { hideSpinner(); }
     }
-    if (!map.getLayers().getArray().includes(hhpLayer)) map.addLayer(hhpLayer);
+    hhpLayer.addTo(map);
     document.getElementById('map-skeleton')?.remove();
     ensureLayerStack();
     document.getElementById("sf-legend").style.display = "block";
@@ -5835,9 +5148,6 @@ document.getElementById('mobile-overlay').addEventListener('click', function() {
   if (sidebarOpen) toggleSidebar();
 });
 
-
-// Debug: expose key variables for console inspection
-window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }, get convCogLayer() { return convCogLayer; }, get activeVar() { return activeVar; } };
 
 }); // end DOMContentLoaded
 </script>
