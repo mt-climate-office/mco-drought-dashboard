@@ -83,7 +83,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
-      Data Explorer
+      Data Archive
     </a>
     <div id="github-wrap" style="position:relative;">
       <button id="github-btn" class="nav-action-item" title="View source on GitHub">
@@ -95,6 +95,19 @@
       <div id="github-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:200px;z-index:2000;padding:4px 0;">
         <a href="https://github.com/mt-climate-office/mco-drought-dashboard" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Dashboard (Front End)</a>
         <a href="https://github.com/mt-climate-office/mco-drought-conus" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Data Pipeline (Back End)</a>
+      </div>
+    </div>
+    <div id="impact-wrap" style="position:relative;">
+      <button id="impact-btn" class="nav-action-item" title="Submit a drought impact report">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Report Impact <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <div id="impact-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:240px;z-index:2000;padding:4px 0;">
+        <div style="padding:10px 14px 6px;font-size:0.72rem;color:var(--text-muted);line-height:1.4;">Submit a drought impact report through the <strong style="color:var(--text-secondary);">National Drought Mitigation Center (NDMC)</strong> Condition Monitoring Observer Reports</div>
+        <a href="https://survey123.arcgis.com/share/850f937a1956425dab70cf3a79c64e8b" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">CMOR Survey (ArcGIS)</a>
+        <a href="https://droughtimpacts.unl.edu/tools/conditionmonitoringobservations.aspx" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">CMOR Tool (NDMC)</a>
       </div>
     </div>
     <button id="feedback-btn" class="nav-action-item" title="Submit feedback or report a bug" onclick="document.getElementById('feedback-modal-overlay').classList.add('active')">
@@ -144,10 +157,10 @@
         <!-- Hidden native select (still used by JS) -->
         <select id="var-select" aria-label="Data layer">
           <optgroup label="── Drought Metrics ──">
-            <option value="spi" selected>Standardized Precipitation Index (SPI)</option>
-            <option value="spei">Standardized Precipitation Evapotranspiration Index (SPEI)</option>
-            <option value="eddi">Evaporative Demand Drought Index (EDDI)</option>
-            <option value="svpdi">Standardized Vapor Pressure Deficit Index (SVPDI)</option>
+            <option value="spi" selected>SPI — Standardized Precipitation Index</option>
+            <option value="spei">SPEI — Standardized Precipitation Evapotranspiration Index</option>
+            <option value="eddi">EDDI — Evaporative Demand Drought Index</option>
+            <option value="svpdi">SVPDI — Standardized Vapor Pressure Deficit Index</option>
           </optgroup>
           <optgroup label="── Precipitation ──">
             <option value="precip-pctile">Precipitation — Percentile</option>
@@ -201,14 +214,17 @@
           Point query (click map)
         </label>
         <label class="custom-check" style="margin-top:4px;">
-          <input type="checkbox" id="interpolate-chk">
-          Interpolate raster
+          <input type="checkbox" id="interpolate-chk" checked>
+          Interpolate raster <span class="info-tip" tabindex="0" data-tip="interpolate" style="font-size:0.7rem;">&#9432;</span>
         </label>
 
         <div style="margin-top:10px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Layer Opacity</div>
         <div id="opacity-row">
           <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75" aria-label="Layer opacity">
           <span id="opacity-val">0.75</span>
+        </div>
+        <div id="data-valid-date" style="margin-top:10px;padding:6px 10px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;color:var(--text-secondary);font-family:var(--font-display);">
+          Data valid: <span id="data-valid-date-text" style="font-weight:600;color:var(--text-primary);">Loading...</span>
         </div>
       </div>
 
@@ -232,6 +248,12 @@
       <div class="section-body sec-collapsed" id="sec-convergence">
         <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">
           Select drought indices and timescales to composite. Median or mean is computed per pixel across selected layers.
+        </div>
+        <div id="conv-header" style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <div style="flex:1;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);">Index</div>
+          <div style="flex:1;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);">Time</div>
+          <div class="conv-wt-col" style="display:none;width:46px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);text-align:center;">Weight</div>
+          <div style="width:22px;"></div>
         </div>
         <div id="conv-layers" style="max-height:180px;overflow-y:auto;"></div>
         <button id="conv-add-btn" type="button" style="width:100%;margin-top:6px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">+ Add Layer</button>
@@ -259,8 +281,11 @@
           <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="median" checked> Median</label>
           <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="mean"> Mean</label>
         </div>
+        <label class="custom-check" style="margin-top:6px;font-size:0.75rem;">
+          <input type="checkbox" id="conv-weights-chk"> Custom weights
+        </label>
         <div style="display:flex;gap:6px;margin-top:8px;">
-          <button id="conv-apply-btn" type="button" style="flex:1;padding:7px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);font-weight:500;">Apply Composite</button>
+          <button id="conv-apply-btn" type="button" style="flex:1;padding:7px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);font-weight:500;">Compute Composite</button>
           <button id="conv-clear-btn" type="button" style="padding:7px 12px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);">Clear</button>
         </div>
         <div id="conv-error" style="display:none;margin-top:6px;padding:6px 8px;background:var(--error-bg);border:1px solid var(--error-border);border-radius:var(--radius-sm);color:var(--error);font-size:0.72rem;"></div>
@@ -370,6 +395,7 @@
             <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
           </div>
         </div>
+        <button id="usdm-remove-btn" type="button" style="width:100%;margin-top:8px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">Remove USDM Overlay</button>
       </div>
 
       <!-- Station Data — section index 6 -->
@@ -1204,8 +1230,10 @@ opacitySlider.addEventListener("input", function() {
   const v = parseFloat(this.value);
   opacityVal.textContent = v.toFixed(2);
   opacitySlider.style.setProperty('--fill', (v * 100) + '%');
-  if (activeVar === "hhp" && hhpLayer) {
-    hhpLayer.changed(); // triggers re-style with new opacity
+  if (convActive && convCogLayer) {
+    convCogLayer.setOpacity(v);
+  } else if (activeVar === "hhp" && hhpLayer) {
+    hhpLayer.changed();
   } else if (cogLayer) {
     cogLayer.setOpacity(v);
   }
@@ -1568,23 +1596,45 @@ function queryRasterAt(coord) {
       popupOverlay.setPosition(ol.proj.fromLonLat(coord));
       return;
     }
-    // Compute composite
+    // Compute weighted composite
     var method = getConvMethod();
+    var qWeights = convLayers.map(function(l, i) { return vals[i] !== null ? (l.weight || 1) : 0; });
     var composite;
     if (method === 'mean') {
-      composite = valid.reduce(function(a, b) { return a + b; }, 0) / valid.length;
+      var wsum = 0, wtotal = 0;
+      for (var qi = 0; qi < valid.length; qi++) {
+        var qw = qWeights[convLayers.findIndex(function(l, li) { return vals[li] !== null && valid.indexOf(vals[li]) <= qi; })] || 1;
+      }
+      // Simpler: zip vals with weights
+      wsum = 0; wtotal = 0;
+      convLayers.forEach(function(l, i) {
+        if (vals[i] !== null) { wsum += vals[i] * (l.weight || 1); wtotal += (l.weight || 1); }
+      });
+      composite = wtotal > 0 ? wsum / wtotal : 0;
     } else {
-      var sorted = valid.slice().sort(function(a, b) { return a - b; });
-      var mid = Math.floor(sorted.length / 2);
-      composite = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+      // Weighted median
+      var paired = [];
+      convLayers.forEach(function(l, i) {
+        if (vals[i] !== null) paired.push({ v: vals[i], w: l.weight || 1 });
+      });
+      paired.sort(function(a, b) { return a.v - b.v; });
+      var wtotal = paired.reduce(function(s, p) { return s + p.w; }, 0);
+      var half = wtotal / 2;
+      var cumW = 0;
+      composite = paired[paired.length - 1].v;
+      for (var mi = 0; mi < paired.length; mi++) {
+        cumW += paired[mi].w;
+        if (cumW >= half) { composite = paired[mi].v; break; }
+      }
     }
     // Color swatch from USDM breaks
     var { scaleFn } = buildScale('spi', 'usdm', null, null); // use SPI/USDM scale for composite
     var color = scaleFn(composite);
     var hex = color ? color.hex() : '#888';
-    // Build detail rows showing each layer
+    // Build detail rows showing each layer with weight
     var detailRows = convLayers.map(function(l, i) {
-      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts;
+      var wt = l.weight || 1;
+      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts + (wt !== 1 ? ' (w:' + wt + ')' : '');
       var rawVal = vals[i];
       // Get original (non-negated) value: from stored rasters (4+) or getData (2-3)
       var origScaled;
@@ -1667,7 +1717,7 @@ document.getElementById("query-chk").addEventListener("change", function() {
   }
 });
 
-let rasterInterpolate = false;
+let rasterInterpolate = true;
 document.getElementById("interpolate-chk").addEventListener("change", function() {
   rasterInterpolate = this.checked;
   if (convActive && convLayers.length >= 2) {
@@ -1694,7 +1744,8 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
     'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
     'overlays': 'Toggle geographic boundaries and reference layers on the map, including state and county lines, tribal nation boundaries, and the U.S. Drought Monitor.',
     'usdm': 'The U.S. Drought Monitor is a weekly map of drought conditions produced jointly by NOAA, USDA, and the National Drought Mitigation Center. Categories range from D0 (abnormally dry) to D4 (exceptional drought). Use the slider or dropdown to view recent weeks.',
-    'convergence': '<strong>Convergence of Evidence</strong> composites multiple drought indices into a single map. Add layers by selecting an index (SPI, SPEI, EDDI, SVPDI) and timescale for each. EDDI and SVPDI signs are automatically harmonized so all indices share the same convention (negative = drought).<br><br><strong>Median</strong> is robust to outliers &mdash; it shows where most indices agree. <strong>Mean</strong> weights all indices equally. Click the map to see each individual index value and the composite result.'
+    'convergence': '<strong>Convergence of Evidence</strong> composites multiple drought indices into a single map. Add layers by selecting an index (SPI, SPEI, EDDI, SVPDI) and timescale for each. EDDI and SVPDI signs are automatically harmonized so all indices share the same convention (negative = drought).<br><br><strong>Median</strong> is robust to outliers &mdash; it shows where most indices agree. <strong>Mean</strong> weights all indices equally. Click the map to see each individual index value and the composite result.',
+    'interpolate': '<strong>Bilinear interpolation</strong> smooths the raster grid by blending neighboring pixel values, producing a continuous surface instead of discrete grid cells. This is purely a display technique &mdash; no new data is created. When unchecked, each ~4 km grid cell renders as a sharp rectangle (nearest-neighbor), which is useful for seeing the actual data resolution. Interpolation is recommended for general viewing as it reduces visual noise and makes spatial patterns easier to interpret.'
   };
 
   document.querySelectorAll('.info-tip[data-tip]').forEach(tip => {
@@ -2070,6 +2121,12 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
   stackRightLegends();
 });
 
+document.getElementById("usdm-remove-btn").addEventListener("click", function() {
+  var chk = document.getElementById("usdm-chk");
+  chk.checked = false;
+  chk.dispatchEvent(new Event("change"));
+});
+
 /* ════════════════════════════════════════════════════════════════
    LEGEND
    ════════════════════════════════════════════════════════════════ */
@@ -2131,6 +2188,11 @@ function buildLegend(varKey, ts, period, legendRows) {
    DATE EXTRACTION FROM GEOTIFF METADATA
    ════════════════════════════════════════════════════════════════ */
 const dateCache = {};  // url → date string
+
+function updateDateDisplay() {
+  var el = document.getElementById('data-valid-date-text');
+  if (el) el.textContent = formatDate(activeDate);
+}
 
 function formatDate(iso) {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
@@ -2338,21 +2400,26 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
 
   // Once tiles load: update dynamic range from actual pixel data, re-query pinned point
   map.once('rendercomplete', function() {
-    if (myGen !== _renderGen) return; // stale handler — a new layer was loaded
+    if (myGen !== _renderGen) return;
     const cfg2 = VAR_CONFIG[varKey];
     if (cfg2 && cfg2.dynamic && !rangeOverride) {
-      // Auto-scale from visible pixels now that data is rendered
-      const vis = getVisibleRange();
-      if (vis) {
-        const sym = symmetrizeRange(cfg2, vis.min, vis.max);
-        document.getElementById("range-min").placeholder = sym.min.toFixed(2);
-        document.getElementById("range-max").placeholder = sym.max.toFixed(2);
-        // Rebuild the color expression and legend with actual range
-        const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
-        cogLayer.setStyle({ color: colorExpr });
-        const result = buildScale(varKey, paletteKey, null, sym);
-        buildLegend(varKey, ts, period, result.legendRows);
+      // Retry auto-scaling until enough pixels are available
+      function retryAutoScale(attempts) {
+        if (myGen !== _renderGen) return;
+        const vis = getVisibleRange();
+        if (vis && vis.min !== vis.max) {
+          const sym = symmetrizeRange(cfg2, vis.min, vis.max);
+          document.getElementById("range-min").placeholder = sym.min.toFixed(2);
+          document.getElementById("range-max").placeholder = sym.max.toFixed(2);
+          const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
+          cogLayer.setStyle({ color: colorExpr });
+          const result = buildScale(varKey, paletteKey, null, sym);
+          buildLegend(varKey, ts, period, result.legendRows);
+        } else if (attempts > 0) {
+          setTimeout(function() { retryAutoScale(attempts - 1); }, 300);
+        }
       }
+      retryAutoScale(8);
     }
     // Re-query the pinned point after tiles finish loading
     if (queryActive && queryLastLatLng && !queryDismissed) {
@@ -2406,6 +2473,7 @@ function loadLayer(varKey, ts, period) {
     .then(function(buf) {
       dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
       activeDate = dateCache[url];
+      updateDateDisplay();
 
       if (prevCogLayer && prevCogLayer !== cogLayer) {
         try { map.removeLayer(prevCogLayer); } catch(e) {}
@@ -2426,6 +2494,7 @@ function loadLayer(varKey, ts, period) {
       hideSpinner();
       console.error("Layer load error:", err);
       activeDate = "Load error";
+      updateDateDisplay();
     });
 }
 
@@ -2503,8 +2572,9 @@ function convRenderList() {
   const container = document.getElementById('conv-layers');
   container.innerHTML = '';
   convLayers.forEach(function(layer, idx) {
+    if (!layer.weight) layer.weight = 1;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;';
     row.innerHTML =
       '<select class="conv-var" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;font-family:var(--font-display);">' +
         Object.keys(CONV_INDICES).map(function(k) {
@@ -2516,9 +2586,13 @@ function convRenderList() {
           return '<option value="' + ts + '"' + (ts === layer.ts ? ' selected' : '') + '>' + ts + '</option>';
         }).join('') +
       '</select>' +
+      '<input type="number" class="conv-weight conv-wt-col" value="' + layer.weight + '" min="0" max="10" step="0.1" title="Weight" style="display:none;width:46px;padding:4px 3px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.72rem;font-family:var(--font-mono);text-align:center;">' +
       '<button class="conv-remove" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px 4px;" title="Remove">&times;</button>';
     row.querySelector('.conv-var').addEventListener('change', function() { convLayers[idx].varKey = this.value; });
     row.querySelector('.conv-ts').addEventListener('change', function() { convLayers[idx].ts = this.value; });
+    var wtInput = row.querySelector('.conv-weight');
+    if (document.getElementById('conv-weights-chk').checked) wtInput.style.display = '';
+    wtInput.addEventListener('change', function() { convLayers[idx].weight = parseFloat(this.value) || 1; });
     row.querySelector('.conv-remove').addEventListener('click', function() {
       convLayers.splice(idx, 1);
       convRenderList();
@@ -2530,7 +2604,7 @@ function convRenderList() {
 document.getElementById('conv-add-btn').addEventListener('click', function() {
   var used = convLayers.map(function(l) { return l.varKey; });
   var next = Object.keys(CONV_INDICES).find(function(k) { return !used.includes(k); }) || 'spi';
-  convLayers.push({ varKey: next, ts: activeTS });
+  convLayers.push({ varKey: next, ts: activeTS, weight: 1 });
   convRenderList();
 });
 
@@ -2540,10 +2614,22 @@ document.getElementById('conv-preset').addEventListener('change', function() {
   // Append all 4 indices at this timescale (skip duplicates)
   Object.keys(CONV_INDICES).forEach(function(k) {
     var exists = convLayers.some(function(l) { return l.varKey === k && l.ts === ts; });
-    if (!exists) convLayers.push({ varKey: k, ts: ts });
+    if (!exists) convLayers.push({ varKey: k, ts: ts, weight: 1 });
   });
   convRenderList();
   this.value = '';
+});
+
+document.getElementById('conv-weights-chk').addEventListener('change', function() {
+  var show = this.checked;
+  document.querySelectorAll('.conv-wt-col').forEach(function(el) {
+    el.style.display = show ? '' : 'none';
+  });
+  // Reset weights to 1 when unchecking
+  if (!show) {
+    convLayers.forEach(function(l) { l.weight = 1; });
+    convRenderList();
+  }
 });
 
 document.getElementById('conv-clear-btn').addEventListener('click', function() {
@@ -2575,6 +2661,13 @@ document.getElementById('conv-apply-btn').addEventListener('click', function() {
   convActive = true;
   applyConvergence();
   updateVarInfo(activeVar);
+  // Auto-expand the Information section to show convergence details
+  var infoLabel = document.querySelector('[data-sec="sec-info"]');
+  var infoBody = document.getElementById('sec-info');
+  if (infoLabel && infoBody) {
+    infoLabel.classList.remove('sec-collapsed');
+    infoBody.classList.remove('sec-collapsed');
+  }
 });
 
 function getConvLayerSummary() {
@@ -2630,244 +2723,210 @@ function applyConvergence() {
   // Remove existing raster and convergence layers
   if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
   if (convCogLayer) { map.removeLayer(convCogLayer); convCogLayer = null; }
-  // Remove any previous convergence sub-layers
   (convSubLayers || []).forEach(function(l) { try { map.removeLayer(l); } catch(e) {} });
   convSubLayers = [];
 
   var n = convLayers.length;
   var method = getConvMethod();
+  var weights = convLayers.map(function(l) { return l.weight || 1; });
 
-  // For 2-3 layers, use multi-source GeoTIFF with WebGL expressions (works reliably)
-  if (n <= 3) {
-    var sources = convLayers.map(function(l) {
-      return { url: BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif', nodata: -9999 };
+  showSpinner();
+
+  // Fetch all COGs in parallel using geotiff.js
+  var urls = convLayers.map(function(l) {
+    return BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
+  });
+
+  Promise.all(urls.map(function(url) {
+    return GeoTIFF.fromUrl(url).then(function(tiff) {
+      return tiff.getImage().then(function(image) {
+        return image.readRasters().then(function(rasters) {
+          return {
+            data: rasters[0],
+            width: image.getWidth(),
+            height: image.getHeight(),
+            bbox: image.getBoundingBox()
+          };
+        });
+      });
     });
-    var convSource = new ol.source.GeoTIFF({
-      sources: sources,
-      normalize: false,
-      transition: 0,
-      interpolate: rasterInterpolate
-    });
-    // Band expressions
-    var bands = convLayers.map(function(l, i) {
-      var negate = CONV_INDICES[l.varKey].negate;
-      return ['*', ['band', i + 1], negate ? -0.01 : 0.01];
-    });
-    var compositeVal;
-    if (method === 'mean') {
-      compositeVal = ['/', bands.reduce(function(a, b) { return ['+', a, b]; }), n];
-    } else if (n === 2) {
-      compositeVal = ['/', ['+', bands[0], bands[1]], 2];
-    } else {
-      compositeVal = olMax(olMin(bands[0], bands[1]), olMin(olMax(bands[0], bands[1]), bands[2]));
+  })).then(function(rasters) {
+    var w = rasters[0].width;
+    var h = rasters[0].height;
+    var bbox = rasters[0].bbox;
+
+    // Compute weighted composite into Float32Array
+    var compositeData = new Float32Array(w * h);
+    compositeData.fill(-9999);
+    for (var ry = 0; ry < h; ry++) {
+      for (var rx = 0; rx < w; rx++) {
+        var ri = ry * w + rx;
+        var rvals = [];
+        var rweights = [];
+        var rNodata = false;
+        for (var rli = 0; rli < rasters.length; rli++) {
+          var rraw = rasters[rli].data[ri];
+          if (rraw === -9999) { rNodata = true; break; }
+          var rscaled = rraw * 0.01;
+          if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
+          rvals.push(rscaled);
+          rweights.push(weights[rli]);
+        }
+        if (rNodata || rvals.length === 0) {
+          compositeData[ri] = -9999;
+        } else if (method === 'mean') {
+          // Weighted mean
+          var wsum = 0, wtotal = 0;
+          for (var wi = 0; wi < rvals.length; wi++) {
+            wsum += rvals[wi] * rweights[wi];
+            wtotal += rweights[wi];
+          }
+          compositeData[ri] = wtotal > 0 ? wsum / wtotal : -9999;
+        } else {
+          // Weighted median: sort by value, accumulate weights, find 50% crossing
+          var paired = rvals.map(function(v, pi) { return { v: v, w: rweights[pi] }; });
+          paired.sort(function(a, b) { return a.v - b.v; });
+          var wtotal = rweights.reduce(function(a, b) { return a + b; }, 0);
+          var half = wtotal / 2;
+          var cumW = 0;
+          compositeData[ri] = paired[paired.length - 1].v; // fallback
+          for (var mi = 0; mi < paired.length; mi++) {
+            cumW += paired[mi].w;
+            if (cumW >= half) {
+              compositeData[ri] = paired[mi].v;
+              break;
+            }
+          }
+        }
+      }
     }
-    var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var EPS = 0.005;
-    var conditions = [];
-    for (var i = USDM_BREAKS.length - 2; i >= 0; i--) {
-      if (USDM_BREAKS[i] === -999) continue;
-      conditions.push(['>=', compositeVal, USDM_BREAKS[i] - EPS]);
-      conditions.push(chroma(colors[i]).css());
+
+    // DataTile + WebGLTile rendering
+    var resX = (bbox[2] - bbox[0]) / w;
+    var resY = (bbox[3] - bbox[1]) / h;
+    var TS = 256;
+
+    var dataTileSource = new ol.source.DataTile({
+      projection: 'EPSG:4326',
+      tileSize: TS,
+      bandCount: 1,
+      tileGrid: ol.tilegrid.createXYZ({
+        extent: bbox,
+        maxZoom: 12,
+        tileSize: TS
+      }),
+      interpolate: rasterInterpolate,
+      loader: function(z, x, y) {
+        var tileGrid = dataTileSource.getTileGrid();
+        var tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
+        var tile = new Float32Array(TS * TS);
+        tile.fill(-9999);
+        var useInterp = rasterInterpolate;
+        for (var ty = 0; ty < TS; ty++) {
+          var lat = tileExtent[3] - (ty + 0.5) / TS * (tileExtent[3] - tileExtent[1]);
+          var fy = (bbox[3] - lat) / resY;
+          var row = Math.floor(fy);
+          if (row < 0 || row >= h) continue;
+          for (var tx = 0; tx < TS; tx++) {
+            var lon = tileExtent[0] + (tx + 0.5) / TS * (tileExtent[2] - tileExtent[0]);
+            var fx = (lon - bbox[0]) / resX;
+            var col = Math.floor(fx);
+            if (col < 0 || col >= w) continue;
+            if (useInterp && col + 1 < w && row + 1 < h) {
+              var dx = fx - col, dy = fy - row;
+              var v00 = compositeData[row * w + col];
+              var v10 = compositeData[row * w + col + 1];
+              var v01 = compositeData[(row + 1) * w + col];
+              var v11 = compositeData[(row + 1) * w + col + 1];
+              if (v00 <= -99 || v10 <= -99 || v01 <= -99 || v11 <= -99) {
+                tile[ty * TS + tx] = compositeData[row * w + col];
+              } else {
+                tile[ty * TS + tx] = v00*(1-dx)*(1-dy) + v10*dx*(1-dy) + v01*(1-dx)*dy + v11*dx*dy;
+              }
+            } else {
+              tile[ty * TS + tx] = compositeData[row * w + col];
+            }
+          }
+        }
+        return tile;
+      }
+    });
+
+    // Classified color expression
+    var convColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
+    var EPS = 0.001;
+    var convStops = [];
+    convStops.push(-10, chroma(convColors[0]).css());
+    for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
+      convStops.push(USDM_BREAKS[si] - EPS, chroma(convColors[si - 1]).css());
+      convStops.push(USDM_BREAKS[si], chroma(convColors[si]).css());
     }
-    conditions.push(chroma(colors[0]).css());
-    var transparent = 'rgba(0,0,0,0)';
-    // Use alpha band for nodata/outside-extent detection.
-    // With nodata:-9999 on the source, OL generates alpha=0 for nodata and outside-extent pixels.
-    // For multi-source, alpha bands interleave: source1=band1(data)+band2(alpha), source2=band3+band4, etc.
-    var finalExpr = ['case',
-      ['==', ['band', 2], 0], transparent,
-      ['case', ...conditions]
+    convStops.push(10, chroma(convColors[convColors.length - 1]).css());
+    var convColorExpr = ['case',
+      ['<=', ['band', 1], -99], 'rgba(0,0,0,0)',
+      ['interpolate', ['linear'], ['band', 1], ...convStops]
     ];
+
     convCogLayer = new ol.layer.WebGLTile({
-      source: convSource,
-      style: { color: finalExpr },
+      source: dataTileSource,
+      style: { color: convColorExpr },
       opacity: parseFloat(opacitySlider.value),
-      zIndex: 1
+      zIndex: 1,
+      extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857'),
+      _isImageLayer: true
     });
+
+    convCogLayer._rasters = rasters;
+    convCogLayer._bbox = bbox;
+    convCogLayer._w = w;
+    convCogLayer._h = h;
+
+    // Extract date from first COG
+    var firstUrl = urls[0];
+    if (!dateCache[firstUrl]) {
+      fetch(firstUrl, { headers: { Range: 'bytes=0-200000' } })
+        .then(function(r) { return r.arrayBuffer(); })
+        .then(function(buf) {
+          dateCache[firstUrl] = extractDateFromTiff(buf) || "Date N/A";
+          activeDate = dateCache[firstUrl];
+          updateDateDisplay();
+          // Update legend date too
+          var dateEl = document.querySelector('.map-legend .legend-date');
+          if (dateEl) dateEl.textContent = formatDate(activeDate);
+        }).catch(function() {});
+    } else {
+      activeDate = dateCache[firstUrl];
+      updateDateDisplay();
+    }
+
     map.addLayer(convCogLayer);
     ensureLayerStack();
 
-  } else {
-    // For 4+ layers: load full rasters via geotiff.js, compute composite in JS,
-    // display as a single ImageStatic layer. No recomputation on pan/zoom.
-    // COGs are small (~500KB each, 1386×584 pixels) so this is fast.
+    // Build legend (inside .then so colors/method are in scope)
+    var legendColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
+    var legendRows = makeBreakLabels(USDM_BREAKS, legendColors, function(v) { return v.toFixed(1); });
+    if (legendEl) { legendEl.remove(); legendEl = null; }
+    var div = document.createElement('div');
+    div.className = 'map-legend';
+    div.innerHTML =
+      '<h4>Convergence<br>' + method.charAt(0).toUpperCase() + method.slice(1) + '</h4>' +
+      '<div class="legend-sub">' + getConvLayerSummary() + '<br>' + getPeriodLabel(getConvPeriod()) + '</div>' +
+      '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
+      legendRows.map(function(r) {
+        return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
+      }).join('');
+    legendEl = div;
+    var overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
+      || document.querySelector('#map .ol-viewport')
+      || document.getElementById('map');
+    overlayContainer.appendChild(div);
 
-    showSpinner();
+    hideSpinner();
 
-    // Build USDM color lookup
-    var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var usdmLUT = colors.map(function(c) { return chroma(c).rgb(); });
-
-    function classifyValue(v) {
-      for (var i = USDM_BREAKS.length - 2; i >= 0; i--) {
-        if (v >= USDM_BREAKS[i] - 0.005) return usdmLUT[i];
-      }
-      return usdmLUT[0];
-    }
-
-    // Fetch all COGs in parallel using geotiff.js
-    var urls = convLayers.map(function(l) {
-      return BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
-    });
-
-    Promise.all(urls.map(function(url) {
-      return GeoTIFF.fromUrl(url).then(function(tiff) {
-        return tiff.getImage().then(function(image) {
-          return image.readRasters().then(function(rasters) {
-            return {
-              data: rasters[0], // Int16Array of raw values
-              width: image.getWidth(),
-              height: image.getHeight(),
-              bbox: image.getBoundingBox() // [xmin, ymin, xmax, ymax]
-            };
-          });
-        });
-      });
-    })).then(function(rasters) {
-      // All rasters share the same grid
-      var w = rasters[0].width;
-      var h = rasters[0].height;
-      var bbox = rasters[0].bbox; // [xmin, ymin, xmax, ymax] in EPSG:4326
-
-      // Compute composite into Float32Array
-      var compositeData = new Float32Array(w * h);
-      compositeData.fill(-9999); // initialize all as nodata
-      for (var ry = 0; ry < h; ry++) {
-        for (var rx = 0; rx < w; rx++) {
-          var ri = ry * w + rx;
-          var rvals = [];
-          var rNodata = false;
-          for (var rli = 0; rli < rasters.length; rli++) {
-            var rraw = rasters[rli].data[ri];
-            if (rraw === -9999) { rNodata = true; break; }
-            var rscaled = rraw * 0.01;
-            if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
-            rvals.push(rscaled);
-          }
-          if (rNodata || rvals.length === 0) {
-            compositeData[ri] = -9999;
-          } else if (method === 'mean') {
-            compositeData[ri] = rvals.reduce(function(a, b) { return a + b; }, 0) / rvals.length;
-          } else {
-            rvals.sort(function(a, b) { return a - b; });
-            var rmid = Math.floor(rvals.length / 2);
-            compositeData[ri] = rvals.length % 2 === 0 ? (rvals[rmid - 1] + rvals[rmid]) / 2 : rvals[rmid];
-          }
-        }
-      }
-
-      // Use DataTile + WebGLTile for crisp pixel rendering with interpolate:false
-      var resX = (bbox[2] - bbox[0]) / w;
-      var resY = (bbox[3] - bbox[1]) / h;
-      var TS = 256;
-
-      var dataTileSource = new ol.source.DataTile({
-        projection: 'EPSG:4326',
-        tileSize: TS,
-        bandCount: 1,
-        tileGrid: ol.tilegrid.createXYZ({
-          extent: bbox,
-          maxZoom: 12,
-          tileSize: TS
-        }),
-        interpolate: rasterInterpolate,
-        loader: function(z, x, y) {
-          var tileGrid = dataTileSource.getTileGrid();
-          var tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
-          var tile = new Float32Array(TS * TS);
-          tile.fill(-9999);
-          var useInterp = rasterInterpolate;
-          for (var ty = 0; ty < TS; ty++) {
-            var lat = tileExtent[3] - (ty + 0.5) / TS * (tileExtent[3] - tileExtent[1]);
-            var fy = (bbox[3] - lat) / resY;
-            var row = Math.floor(fy);
-            if (row < 0 || row >= h) continue;
-            for (var tx = 0; tx < TS; tx++) {
-              var lon = tileExtent[0] + (tx + 0.5) / TS * (tileExtent[2] - tileExtent[0]);
-              var fx = (lon - bbox[0]) / resX;
-              var col = Math.floor(fx);
-              if (col < 0 || col >= w) continue;
-              if (useInterp && col + 1 < w && row + 1 < h) {
-                // Bilinear interpolation
-                var dx = fx - col, dy = fy - row;
-                var v00 = compositeData[row * w + col];
-                var v10 = compositeData[row * w + col + 1];
-                var v01 = compositeData[(row + 1) * w + col];
-                var v11 = compositeData[(row + 1) * w + col + 1];
-                // Skip interpolation if any neighbor is nodata
-                if (v00 <= -99 || v10 <= -99 || v01 <= -99 || v11 <= -99) {
-                  tile[ty * TS + tx] = compositeData[row * w + col];
-                } else {
-                  tile[ty * TS + tx] = v00 * (1-dx) * (1-dy) + v10 * dx * (1-dy) + v01 * (1-dx) * dy + v11 * dx * dy;
-                }
-              } else {
-                tile[ty * TS + tx] = compositeData[row * w + col];
-              }
-            }
-          }
-          return tile;
-        }
-      });
-
-      // Classified 1-band color expression with USDM breaks using paired stops
-      // Since ['band', 1] is a single pre-computed value (not multi-band), this is trivial for WebGL
-      var convColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-      var EPS = 0.001;
-      var convStops = [];
-      convStops.push(-10, chroma(convColors[0]).css());
-      for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
-        convStops.push(USDM_BREAKS[si] - EPS, chroma(convColors[si - 1]).css());
-        convStops.push(USDM_BREAKS[si], chroma(convColors[si]).css());
-      }
-      convStops.push(10, chroma(convColors[convColors.length - 1]).css());
-      var convColorExpr = ['case',
-        ['<=', ['band', 1], -99], 'rgba(0,0,0,0)',
-        ['interpolate', ['linear'], ['band', 1], ...convStops]
-      ];
-
-      convCogLayer = new ol.layer.WebGLTile({
-        source: dataTileSource,
-        style: { color: convColorExpr },
-        opacity: parseFloat(opacitySlider.value),
-        zIndex: 1,
-        extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857'),
-        _isImageLayer: true
-      });
-
-      // Store rasters for point query
-      convCogLayer._rasters = rasters;
-      convCogLayer._bbox = bbox;
-      convCogLayer._w = w;
-      convCogLayer._h = h;
-
-      map.addLayer(convCogLayer);
-      ensureLayerStack();
-      hideSpinner();
-
-    }).catch(function(err) {
-      console.error('Convergence load failed:', err);
-      hideSpinner();
-    });
-  }
-
-  // Build legend
-  var legendRows = makeBreakLabels(USDM_BREAKS, colors, function(v) { return v.toFixed(1); });
-  if (legendEl) { legendEl.remove(); legendEl = null; }
-  var div = document.createElement('div');
-  div.className = 'map-legend';
-  var labels = [getConvLayerSummary()];
-  div.innerHTML =
-    '<h4>Convergence<br>' + method.charAt(0).toUpperCase() + method.slice(1) + '</h4>' +
-    '<div class="legend-sub">' + labels.join(', ') + '<br>' + getPeriodLabel(getConvPeriod()) + '</div>' +
-    '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
-    legendRows.map(function(r) {
-      return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
-    }).join('');
-  legendEl = div;
-  var overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
-    || document.querySelector('#map .ol-viewport')
-    || document.getElementById('map');
-  overlayContainer.appendChild(div);
+  }).catch(function(err) {
+    console.error('Convergence load failed:', err);
+    hideSpinner();
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -3638,6 +3697,30 @@ document.querySelectorAll('#github-dropdown a').forEach(function(a) {
   a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
 });
 
+// Impact report dropdown toggle
+document.getElementById("impact-btn").addEventListener("click", function(e) {
+  e.stopPropagation();
+  var dd = document.getElementById("impact-dropdown");
+  if (dd.style.display === 'none') {
+    var rect = this.getBoundingClientRect();
+    dd.style.top = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.style.display = 'block';
+  } else {
+    dd.style.display = 'none';
+  }
+});
+document.addEventListener("click", function(e) {
+  var wrap = document.getElementById("impact-wrap");
+  if (!wrap || !wrap.contains(e.target)) {
+    document.getElementById("impact-dropdown").style.display = 'none';
+  }
+});
+document.querySelectorAll('#impact-dropdown a').forEach(function(a) {
+  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
+  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
+});
+
 /* ════════════════════════════════════════════════════════════════
    HHP FLOW PANEL
    ════════════════════════════════════════════════════════════════ */
@@ -3770,13 +3853,31 @@ function buildShareUrl() {
   const qp = new URLSearchParams();
   if (activeTheme && activeTheme !== 'dark') qp.set('theme', activeTheme);
   if (activeBasemap && activeBasemap !== 'natgeo') qp.set('basemap', activeBasemap);
-  const query = qp.toString() ? '?' + qp.toString() : '';
-  let hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
+
+  let hash;
+  if (convActive && convLayers.length >= 2) {
+    // Encode convergence state
+    var method = getConvMethod();
+    var period = getConvPeriod();
+    hash = '#conv/' + method + '/' + period;
+    // Encode layers as query param: spi:30d:1,spei:60d:0.5
+    var layerStr = convLayers.map(function(l) {
+      var w = l.weight || 1;
+      return l.varKey + ':' + l.ts + (w !== 1 ? ':' + w : '');
+    }).join(',');
+    qp.set('conv', layerStr);
+    // Encode weights checkbox state
+    if (document.getElementById('conv-weights-chk').checked) qp.set('cw', '1');
+  } else {
+    hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
+  }
+
   hash += '/' + (activeZoomState || '');
   if (customMapView) {
     const c = ol.proj.toLonLat(map.getView().getCenter());
     hash += '/' + map.getView().getZoom().toFixed(1) + '/' + c[1].toFixed(4) + '/' + c[0].toFixed(4);
   }
+  const query = qp.toString() ? '?' + qp.toString() : '';
   return window.location.origin + window.location.pathname + query + hash;
 }
 
@@ -3826,10 +3927,6 @@ function loadState() {
   const zoom = parts[4] ? parseFloat(parts[4]) : null;
   const lat = parts[5] ? parseFloat(parts[5]) : null;
   const lng = parts[6] ? parseFloat(parts[6]) : null;
-  if (!VAR_CONFIG[v]) return null;
-  if (ts && !TIMESCALES.includes(ts)) return null;
-  if (period && !['rolling-30','full'].includes(period)) return null;
-  if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
   const params = new URLSearchParams(window.location.search);
   const theme = params.get('theme') || 'dark';
   if (theme !== 'dark' && !['light','high-contrast'].includes(theme)) return null;
@@ -3837,6 +3934,42 @@ function loadState() {
   if (!BASEMAPS[basemap]) return null;
   const mapView = (zoom !== null && lat !== null && lng !== null && !isNaN(zoom) && !isNaN(lat) && !isNaN(lng))
     ? { zoom, lat, lng } : null;
+
+  // Check for convergence state
+  if (v === 'conv') {
+    var convMethod = ts || 'median'; // method in the ts slot
+    var convPeriod = period || 'rolling-30';
+    var convStr = params.get('conv');
+    var showWeights = params.get('cw') === '1';
+    var layers = [];
+    if (convStr) {
+      convStr.split(',').forEach(function(s) {
+        var p = s.split(':');
+        if (p[0] && CONV_INDICES[p[0]] && p[1]) {
+          layers.push({ varKey: p[0], ts: p[1], weight: p[2] ? parseFloat(p[2]) : 1 });
+        }
+      });
+    }
+    if (layers.length < 2) return null;
+    return {
+      isConvergence: true,
+      convMethod: convMethod,
+      convPeriod: convPeriod,
+      convLayers: layers,
+      convShowWeights: showWeights,
+      zoomState: zoomSt,
+      theme: theme,
+      basemap: basemap,
+      mapView: mapView,
+      // Also set regular var defaults so rest of init doesn't break
+      var: 'spi', ts: DEFAULT_TS, period: 'rolling-30'
+    };
+  }
+
+  if (!VAR_CONFIG[v]) return null;
+  if (ts && !TIMESCALES.includes(ts)) return null;
+  if (period && !['rolling-30','full'].includes(period)) return null;
+  if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
   return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView };
 }
 
@@ -4032,6 +4165,33 @@ if (activeVar === 'hhp') {
     stackRightLegends();
 
   })();
+} else if (savedState && savedState.isConvergence) {
+  // Restore convergence state from URL — defer until map is ready
+  convLayers = savedState.convLayers;
+  convRenderList();
+  var methodRadio = document.querySelector('input[name="conv-method"][value="' + savedState.convMethod + '"]');
+  if (methodRadio) methodRadio.checked = true;
+  var periodRadio = document.querySelector('input[name="conv-period"][value="' + savedState.convPeriod + '"]');
+  if (periodRadio) periodRadio.checked = true;
+  if (savedState.convShowWeights) {
+    document.getElementById('conv-weights-chk').checked = true;
+    document.querySelectorAll('.conv-wt-col').forEach(function(el) { el.style.display = ''; });
+  }
+  var convLabel = document.querySelector('[data-sec="sec-convergence"]');
+  var convBody = document.getElementById('sec-convergence');
+  if (convLabel) convLabel.classList.remove('sec-collapsed');
+  if (convBody) convBody.classList.remove('sec-collapsed');
+  convActive = true;
+  // Use requestAnimationFrame to ensure the map has rendered at least once
+  requestAnimationFrame(function() {
+    document.getElementById('map-skeleton')?.remove();
+    applyConvergence();
+    updateVarInfo(activeVar);
+    var infoLabel = document.querySelector('[data-sec="sec-info"]');
+    var infoBody = document.getElementById('sec-info');
+    if (infoLabel) infoLabel.classList.remove('sec-collapsed');
+    if (infoBody) infoBody.classList.remove('sec-collapsed');
+  });
 } else {
   loadLayer(activeVar, activeTS, activePeriod);
 }
@@ -4198,7 +4358,7 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
     </div>
     <div class="tips-item">
       <div class="tips-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-      <div class="tips-text"><strong>Data Explorer.</strong> Click <strong>Data Explorer</strong> in the toolbar to open the interactive time-series tool, where you can chart drought metrics over time for any location.</div>
+      <div class="tips-text"><strong>Data Archive.</strong> Click <strong>Data Archive</strong> in the toolbar to access the full historical archive of drought data for download and analysis.</div>
     </div>
     <div class="tips-item">
       <div class="tips-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
