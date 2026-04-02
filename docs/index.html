@@ -36,6 +36,9 @@
   <!-- geotiff.js (required by ol/source/GeoTIFF) -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 
+  <!-- fzstd (ZSTD decompression for ZSTD-compressed COGs like SNODAS) -->
+  <script src="https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js"></script>
+
 
   <!-- chroma.js -->
   <script defer src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
@@ -177,6 +180,9 @@
             <option value="vpd-pon">VPD — Percent of Normal</option>
             <option value="vpd-dev">VPD — Departure</option>
           </optgroup>
+          <optgroup label="── Snowpack ──">
+            <option value="snodas-swe">SWE — SNODAS Standardized Anomaly</option>
+          </optgroup>
           <optgroup label="── Streamflow ──">
             <option value="hhp">HHP Streamflow Basins</option>
           </optgroup>
@@ -213,7 +219,7 @@
           <input type="checkbox" id="query-chk" checked>
           Point query (click map)
         </label>
-        <label class="custom-check" style="margin-top:4px;">
+        <label class="custom-check" id="interpolate-row" style="margin-top:4px;">
           <input type="checkbox" id="interpolate-chk" checked>
           Interpolate raster <span class="info-tip" tabindex="0" data-tip="interpolate" style="font-size:0.7rem;">&#9432;</span>
         </label>
@@ -255,9 +261,9 @@
           <div class="conv-wt-col" style="display:none;width:46px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);text-align:center;">Weight</div>
           <div style="width:22px;"></div>
         </div>
-        <div id="conv-layers" style="max-height:180px;overflow-y:auto;"></div>
+        <div id="conv-layers" style="max-height:200px;overflow-y:auto;overflow-x:hidden;"></div>
         <button id="conv-add-btn" type="button" style="width:100%;margin-top:6px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">+ Add Layer</button>
-        <select id="conv-preset" style="width:100%;margin-top:4px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">
+        <select id="conv-preset" style="width:100%;margin-top:4px;padding:8px 10px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;cursor:pointer;font-family:var(--font-display);">
           <option value="">Add all indices at...</option>
           <option value="15d">All indices — 15d</option>
           <option value="30d">All indices — 30d</option>
@@ -501,8 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-const BASE_URL = "https://mco-gridmet.s3.us-west-2.amazonaws.com/derived/conus_drought_web/latest";
-//const BASE_URL = "https://data.climate.umt.edu/share/latest";
+const BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web/latest";
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -512,6 +517,9 @@ const USDM_BREAKS       = [-999, -2.0, -1.6, -1.3, -0.8, -0.5,  0.5,  0.8,  1.3,
 const BRBG_BREAKS_PON   = [-999, 5, 25, 50, 70, 90, 110, 130, 150, 200, 400, 999];
 const BRBG_BREAKS_PCTILE= [-999, 0.02, 0.05, 0.10, 0.20, 0.30, 0.70, 0.80, 0.90, 0.95, 0.98, 999];
 const RDBU_BREAKS       = [-999, 0.02, 0.05, 0.10, 0.20, 0.30, 0.70, 0.80, 0.90, 0.95, 0.98, 999];
+
+/* ── SNODAS SWE percentile breaks (0-100 scale) ─────────────── */
+const SNODAS_BREAKS = [-999, 2, 5, 10, 20, 30, 70, 80, 90, 95, 98, 999];
 
 /* ── Streamflow percentile scale ─────────────────────────────── */
 const STREAMFLOW_BREAKS  = [0, 0.02, 0.05, 0.1, 0.2, 0.3, 0.7, 0.8, 0.9, 0.95, 0.98, 1];
@@ -597,6 +605,7 @@ const VAR_CONFIG = {
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
   'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
+  'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS/MCO", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
 };
 
@@ -987,6 +996,7 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
 const _currentYear = new Date().getFullYear();
 const _rolling30Start = _currentYear - 29;
 function getPeriodLabel(period) {
+  if (!period) return '';
   if (period === "rolling-30") return `Rolling 30-Year (${_rolling30Start}\u2013${_currentYear})`;
   return `Full Period (1979\u2013${_currentYear})`;
 }
@@ -1163,6 +1173,18 @@ document.getElementById("var-select").addEventListener("change", function() {
   const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
   const prBody  = document.getElementById("sec-period");
 
+  if (activeVar === "snodas-swe") {
+    // Hide timescale and period for SNODAS (single static layer)
+    tsLabel.style.display = "none";
+    tsBody.style.display  = "none";
+    prLabel.style.display = "none";
+    prBody.style.display  = "none";
+    loadLayer(activeVar, activeTS, activePeriod);
+    return;
+  }
+  // Restore interpolate row for non-SNODAS variables
+  document.getElementById("interpolate-row").style.display = "";
+
   if (activeVar === "hhp") {
     // Hide timescale and period sections for HHP
     tsLabel.style.display = "none";
@@ -1262,7 +1284,7 @@ function updateVarInfo(varKey) {
   const el = document.getElementById("var-info-text");
 
   // Convergence of Evidence mode
-  if (convActive && convLayers.length >= 2) {
+  if (convActive && convLayers.length >= 1) {
     var method = getConvMethod();
     var period = getConvPeriod();
     var convPeriodText = period === "rolling-30"
@@ -1540,7 +1562,7 @@ function queryRasterAt(coord) {
     return;
   }
 
-  if (data[0] === -9999 || data[0] == null || isNaN(data[0])) {
+  if (data[0] === -9999 || data[0] <= -32000 || data[0] == null || isNaN(data[0])) {
     const popupContent = popupEl.querySelector('.ol-popup-content');
     popupContent.innerHTML = '<span class="query-label">No data at this location</span>';
     popupOverlay.setPosition(ol.proj.fromLonLat(coord));
@@ -1552,7 +1574,7 @@ function queryRasterAt(coord) {
     Math.abs(lng).toFixed(4) + '\u00b0' + (lng < 0 ? 'W' : 'E');
   let html;
 
-  if (convActive && convCogLayer && convLayers.length >= 2) {
+  if (convActive && convCogLayer && convLayers.length >= 1) {
     // Convergence composite: show all individual index values + composite result
     // For 4+ layers, read from stored rasters (geotiff.js data); for 2-3, use getData
     var vals;
@@ -1577,9 +1599,36 @@ function queryRasterAt(coord) {
       }
       var pixIdx = row * rw + col;
       vals = convLayers.map(function(l, i) {
-        var raw = convCogLayer._rasters[i].data[pixIdx];
-        if (raw === -9999 || raw == null) return null;
-        return (raw * 0.01) * (CONV_INDICES[l.varKey].negate ? -1 : 1);
+        var rr = convCogLayer._rasters[i];
+        var ci = CONV_INDICES[l.varKey];
+        var raw;
+        if (rr.isSnodas) {
+          // Mean resample from SNODAS grid
+          var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
+          var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
+          var refRX = (convCogLayer._bbox[2] - convCogLayer._bbox[0]) / rw;
+          var refRY = (convCogLayer._bbox[3] - convCogLayer._bbox[1]) / rh;
+          var pxLon = convCogLayer._bbox[0] + (col + 0.5) * refRX;
+          var pxLat = convCogLayer._bbox[3] - (row + 0.5) * refRY;
+          var scMin = Math.max(0, Math.floor((pxLon - refRX/2 - rr.bbox[0]) / sResX));
+          var scMax = Math.min(rr.width, Math.ceil((pxLon + refRX/2 - rr.bbox[0]) / sResX));
+          var srMin = Math.max(0, Math.floor((rr.bbox[3] - pxLat - refRY/2) / sResY));
+          var srMax = Math.min(rr.height, Math.ceil((rr.bbox[3] - pxLat + refRY/2) / sResY));
+          var ss = 0, sc2 = 0;
+          for (var sr2 = srMin; sr2 < srMax; sr2++) {
+            for (var sc3 = scMin; sc3 < scMax; sc3++) {
+              var sv2 = rr.data[sr2 * rr.width + sc3];
+              if (!isNaN(sv2) && isFinite(sv2) && sv2 > -500 && sv2 < 500) { ss += sv2; sc2++; }
+            }
+          }
+          if (sc2 === 0) return null;
+          raw = ss / sc2;
+        } else {
+          raw = rr.data[pixIdx];
+          if (raw === -9999 || raw == null) return null;
+        }
+        var scale = ci.rawScale || 0.01;
+        return (raw * scale) * (ci.negate ? -1 : 1);
       });
     } else {
       // 2-3 layer path: use getData from WebGL layer
@@ -1598,7 +1647,7 @@ function queryRasterAt(coord) {
     }
     // Compute weighted composite
     var method = getConvMethod();
-    var qWeights = convLayers.map(function(l, i) { return vals[i] !== null ? (l.weight || 1) : 0; });
+    var qWeights = convLayers.map(function(l, i) { var w = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1; return vals[i] !== null ? w : 0; });
     var composite;
     if (method === 'mean') {
       var wsum = 0, wtotal = 0;
@@ -1608,14 +1657,15 @@ function queryRasterAt(coord) {
       // Simpler: zip vals with weights
       wsum = 0; wtotal = 0;
       convLayers.forEach(function(l, i) {
-        if (vals[i] !== null) { wsum += vals[i] * (l.weight || 1); wtotal += (l.weight || 1); }
+        var lw = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
+        if (vals[i] !== null) { wsum += vals[i] * lw; wtotal += lw; }
       });
       composite = wtotal > 0 ? wsum / wtotal : 0;
     } else {
       // Weighted median
       var paired = [];
       convLayers.forEach(function(l, i) {
-        if (vals[i] !== null) paired.push({ v: vals[i], w: l.weight || 1 });
+        if (vals[i] !== null) paired.push({ v: vals[i], w: (l.weight != null && !isNaN(l.weight)) ? l.weight : 1 });
       });
       paired.sort(function(a, b) { return a.v - b.v; });
       var wtotal = paired.reduce(function(s, p) { return s + p.w; }, 0);
@@ -1633,14 +1683,15 @@ function queryRasterAt(coord) {
     var hex = color ? color.hex() : '#888';
     // Build detail rows showing each layer with weight
     var detailRows = convLayers.map(function(l, i) {
-      var wt = l.weight || 1;
+      var wt = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
       var label = CONV_INDICES[l.varKey].label + ' ' + l.ts + (wt !== 1 ? ' (w:' + wt + ')' : '');
       var rawVal = vals[i];
       // Get original (non-negated) value: from stored rasters (4+) or getData (2-3)
       var origScaled;
       if (convCogLayer._rasters) {
-        var origRaw = convCogLayer._rasters[i].data[pixIdx];
-        origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * 0.01).toFixed(2) : 'N/A';
+        var ciScale = CONV_INDICES[l.varKey].rawScale || 0.01;
+        var origRaw = convCogLayer._rasters[i].isSnodas ? null : convCogLayer._rasters[i].data[pixIdx];
+        origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * ciScale).toFixed(2) : 'N/A';
       } else {
         var origRaw = data[i];
         origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * 0.01).toFixed(2) : 'N/A';
@@ -1661,7 +1712,7 @@ function queryRasterAt(coord) {
     '</div>';
   } else {
     const raw = data[0];
-    let scaled = raw * 0.01;
+    let scaled = raw * (cfg.rawScale || 0.01);
     if (cfg.mmToIn) scaled /= 25.4;
     if (cfg.cToF) scaled *= 9 / 5;
 
@@ -1691,7 +1742,7 @@ function queryRasterAt(coord) {
         '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
         displayVal +
       '</div>' +
-      '<div class="query-label">' + cfg.label + ' &middot; ' + activeTS + '</div>' +
+      '<div class="query-label">' + cfg.label + (cfg.isSnodas ? '' : ' &middot; ' + activeTS) + '</div>' +
       '<div class="query-coords">' + coordStr + '</div>' +
     '</div>';
   }
@@ -1720,7 +1771,7 @@ document.getElementById("query-chk").addEventListener("change", function() {
 let rasterInterpolate = true;
 document.getElementById("interpolate-chk").addEventListener("change", function() {
   rasterInterpolate = this.checked;
-  if (convActive && convLayers.length >= 2) {
+  if (convActive && convLayers.length >= 1) {
     // Re-apply convergence with new interpolation setting
     applyConvergence();
   } else if (cogLayer && activeVar && VAR_CONFIG[activeVar] && !VAR_CONFIG[activeVar].noRaster) {
@@ -2291,8 +2342,9 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
   // band 1 contains raw Int16 values from the GeoTIFF
   let value = ['band', 1];
 
-  // Apply scaling: raw * 0.01
-  value = ['*', value, 0.01];
+  // Apply scaling (skip for SNODAS which stores raw 0-100 percentiles)
+  var scale = cfg.rawScale || 0.01;
+  if (scale !== 1) value = ['*', value, scale];
 
   // Apply unit conversion
   if (cfg.mmToIn) value = ['/', value, 25.4];
@@ -2352,6 +2404,107 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
    RENDER LAYER  (OpenLayers GeoTIFF via WebGLTile)
    ════════════════════════════════════════════════════════════════ */
 let _renderGen = 0; // generation counter to cancel stale rendercomplete handlers
+function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
+  // Load ZSTD-compressed SNODAS COG using geotiff.js v3 ESM (has native ZSTD support)
+  // OL bundles geotiff.js v2 which lacks ZSTD, so we dynamically import v3 for this
+  var snodasUrl = 'https://mco-snodas.s3.us-west-2.amazonaws.com/normals/gridded/zig/2026-03-30/2026-03-30_zig_swe_standardized.tif';
+  var cfg = VAR_CONFIG[varKey];
+
+  import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm').then(function(geotiff3) {
+    return geotiff3.fromUrl(snodasUrl);
+  }).then(function(tiff) {
+    return tiff.getImage().then(function(image) {
+      return image.readRasters().then(function(rasters) {
+        var data = rasters[0]; // Float32Array
+        var w = image.getWidth(), h = image.getHeight();
+        var bbox = image.getBoundingBox();
+        var resX = (bbox[2] - bbox[0]) / w;
+        var resY = (bbox[3] - bbox[1]) / h;
+        var TS = 256;
+
+        var dataTileSource = new ol.source.DataTile({
+          projection: 'EPSG:4326',
+          tileSize: TS,
+          bandCount: 1,
+          tileGrid: ol.tilegrid.createXYZ({ extent: bbox, maxZoom: 12, tileSize: TS }),
+          interpolate: false, // JS loader handles interpolation with nodata-safe blending
+          loader: function(z, x, y) {
+            var tileGrid = dataTileSource.getTileGrid();
+            var tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
+            var tile = new Float32Array(TS * TS);
+            tile.fill(-9999);
+            var useInterp = rasterInterpolate;
+            function isValid(v) { return !isNaN(v) && isFinite(v) && v > -500 && v < 500; }
+            for (var ty = 0; ty < TS; ty++) {
+              var lat = tileExtent[3] - (ty + 0.5) / TS * (tileExtent[3] - tileExtent[1]);
+              var fy = (bbox[3] - lat) / resY;
+              var row = Math.floor(fy);
+              if (row < 0 || row >= h) continue;
+              for (var tx = 0; tx < TS; tx++) {
+                var lon = tileExtent[0] + (tx + 0.5) / TS * (tileExtent[2] - tileExtent[0]);
+                var fx = (lon - bbox[0]) / resX;
+                var col = Math.floor(fx);
+                if (col < 0 || col >= w) continue;
+                var v00 = data[row * w + col];
+                if (!isValid(v00)) continue; // NaN or Inf → leave as -9999 (nodata)
+                if (useInterp && col + 1 < w && row + 1 < h) {
+                  var v10 = data[row * w + col + 1];
+                  var v01 = data[(row + 1) * w + col];
+                  var v11 = data[(row + 1) * w + col + 1];
+                  if (isValid(v10) && isValid(v01) && isValid(v11)) {
+                    var dx = fx - col, dy = fy - row;
+                    tile[ty * TS + tx] = v00*(1-dx)*(1-dy) + v10*dx*(1-dy) + v01*(1-dx)*dy + v11*dx*dy;
+                  } else {
+                    tile[ty * TS + tx] = v00;
+                  }
+                } else {
+                  tile[ty * TS + tx] = v00;
+                }
+              }
+            }
+            return tile;
+          }
+        });
+
+        // Build color expression for DataTile — centesimal Float32 values (÷100 for standardized)
+        var snodasColors = getPaletteColors(paletteKey, USDM_BREAKS.length - 1, cfg.reversed);
+        var snodasValue = ['*', ['band', 1], 0.01]; // centesimal scaling
+        var EPS = 0.001;
+        var snodasStops = [];
+        snodasStops.push(-10, chroma(snodasColors[0]).css());
+        for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
+          snodasStops.push(USDM_BREAKS[si] - EPS, chroma(snodasColors[si - 1]).css());
+          snodasStops.push(USDM_BREAKS[si], chroma(snodasColors[si]).css());
+        }
+        snodasStops.push(10, chroma(snodasColors[snodasColors.length - 1]).css());
+        var colorExpr = ['case',
+          ['<=', ['band', 1], -9000], 'rgba(0,0,0,0)',
+          ['interpolate', ['linear'], snodasValue, ...snodasStops]
+        ];
+
+        if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
+        cogLayer = new ol.layer.WebGLTile({
+          source: dataTileSource,
+          style: { color: colorExpr },
+          opacity: parseFloat(opacitySlider.value),
+          zIndex: 1,
+          extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857')
+        });
+
+        map.addLayer(cogLayer);
+        document.getElementById('map-skeleton')?.remove();
+        var { legendRows } = buildScale(varKey, paletteKey, null, rangeOverride);
+        buildLegend(varKey, 'Daily (2004\u2013' + new Date().getFullYear() + ')', '', legendRows);
+        ensureLayerStack();
+        hideSpinner();
+      });
+    });
+  }).catch(function(err) {
+    console.error('SNODAS load failed:', err);
+    hideSpinner();
+  });
+}
+
 function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   _renderGen++;
   const myGen = _renderGen;
@@ -2376,10 +2529,19 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
     });
     colorExpr = buildCompositeColorExpression(cfg, paletteKey);
   } else {
-    const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+    var url;
+    var nodata = cfg.nodata || -9999;
+    if (cfg.isSnodas) {
+      // SNODAS uses ZSTD compression — load via geotiff.js directly + DataTile
+      // (OL's GeoTIFF source can't handle ZSTD in web workers)
+      _loadSnodasLayer(varKey, paletteKey, rangeOverride);
+      return;
+    } else {
+      url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+    }
     colorExpr = buildOLColorExpression(varKey, paletteKey, rangeOverride);
     cogSource = new ol.source.GeoTIFF({
-      sources: [{ url: url, nodata: -9999 }],
+      sources: [{ url: url, nodata: nodata }],
       normalize: false,
       transition: 0,
       interpolate: rasterInterpolate
@@ -2456,46 +2618,65 @@ function prefetch(varKey, ts, period) {
 function loadLayer(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
   if (cfg.noRaster) return;
-  const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+
+  var url;
+  if (cfg.isSnodas) {
+    url = 'https://mco-snodas.s3.us-west-2.amazonaws.com/normals/gridded/zig/2026-03-30/2026-03-30_zig_swe_standardized.tif';
+  } else {
+    url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+  }
 
   updateRangeSection(varKey, null);
 
-  // Extract date from the TIFF metadata (first 200KB)
   const prevCogLayer = cogLayer;
   showSpinner();
 
-  // Fetch just the first 200KB to extract the date, then render
-  fetch(url, { headers: { 'Range': 'bytes=0-200000' } })
-    .then(function(r) {
-      if (!r.ok && r.status !== 206) throw new Error('HTTP ' + r.status + ': ' + url);
-      return r.arrayBuffer();
-    })
-    .then(function(buf) {
-      dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
-      activeDate = dateCache[url];
-      updateDateDisplay();
+  // For SNODAS, get date from manifest instead of TIFF metadata
+  var datePromise;
+  if (cfg.isSnodas) {
+    datePromise = fetch('https://mco-snodas.s3.us-west-2.amazonaws.com/latest/manifest.json')
+      .then(function(r) { return r.json(); })
+      .then(function(manifest) {
+        dateCache[url] = manifest.date || "Date N/A";
+      }).catch(function() { dateCache[url] = "Date N/A"; });
+  } else {
+    datePromise = fetch(url, { headers: { 'Range': 'bytes=0-200000' } })
+      .then(function(r) {
+        if (!r.ok && r.status !== 206) throw new Error('HTTP ' + r.status + ': ' + url);
+        return r.arrayBuffer();
+      })
+      .then(function(buf) {
+        dateCache[url] = extractDateFromTiff(buf) || "Date N/A";
+      });
+  }
 
-      if (prevCogLayer && prevCogLayer !== cogLayer) {
-        try { map.removeLayer(prevCogLayer); } catch(e) {}
-      }
-      renderLayer(null, varKey, ts, period, cfg.defaultPalette, getRangeOverride());
-      hideSpinner();
+  datePromise.then(function() {
+    activeDate = dateCache[url];
+    updateDateDisplay();
 
-      // Prefetch neighbor timescales
+    if (prevCogLayer && prevCogLayer !== cogLayer) {
+      try { map.removeLayer(prevCogLayer); } catch(e) {}
+    }
+    renderLayer(null, varKey, ts, period, cfg.defaultPalette, getRangeOverride());
+    hideSpinner();
+
+    // Prefetch neighbor timescales (skip for SNODAS)
+    if (!cfg.isSnodas) {
       var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
       var idx = TIMESCALES.indexOf(ts);
       [-1, 1].forEach(function(offset) {
         var neighborTS = TIMESCALES[idx + offset];
         if (neighborTS) idle(function() { prefetch(varKey, neighborTS, period); });
       });
-    })
-    .catch(function(err) {
-      if (prevCogLayer) { try { map.removeLayer(prevCogLayer); } catch(e) {} }
-      hideSpinner();
-      console.error("Layer load error:", err);
-      activeDate = "Load error";
-      updateDateDisplay();
-    });
+    }
+  })
+  .catch(function(err) {
+    if (prevCogLayer) { try { map.removeLayer(prevCogLayer); } catch(e) {} }
+    hideSpinner();
+    console.error("Layer load error:", err);
+    activeDate = "Load error";
+    updateDateDisplay();
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2558,10 +2739,12 @@ document.getElementById("range-reset").addEventListener("click", function() {
    CONVERGENCE OF EVIDENCE
    ════════════════════════════════════════════════════════════════ */
 const CONV_INDICES = {
-  spi:   { label: 'SPI',   negate: false },
-  spei:  { label: 'SPEI',  negate: false },
-  eddi:  { label: 'EDDI',  negate: true },
-  svpdi: { label: 'SVPDI', negate: true }
+  spi:          { label: 'SPI',   negate: false },
+  spei:         { label: 'SPEI',  negate: false },
+  eddi:         { label: 'EDDI',  negate: true },
+  svpdi:        { label: 'SVPDI', negate: true },
+  'snodas-swe': { label: 'Standardized SWE', negate: false, isSnodas: true, rawScale: 0.01 },
+  'hhp':        { label: 'HHP Streamflow',   negate: false, isHhp: true, rawScale: 1 }
 };
 let convLayers = []; // array of { varKey, ts }
 let convActive = false;
@@ -2574,7 +2757,7 @@ function convRenderList() {
   convLayers.forEach(function(layer, idx) {
     if (!layer.weight) layer.weight = 1;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;';
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;min-width:0;';
     row.innerHTML =
       '<select class="conv-var" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;font-family:var(--font-display);">' +
         Object.keys(CONV_INDICES).map(function(k) {
@@ -2586,13 +2769,26 @@ function convRenderList() {
           return '<option value="' + ts + '"' + (ts === layer.ts ? ' selected' : '') + '>' + ts + '</option>';
         }).join('') +
       '</select>' +
-      '<input type="number" class="conv-weight conv-wt-col" value="' + layer.weight + '" min="0" max="10" step="0.1" title="Weight" style="display:none;width:46px;padding:4px 3px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.72rem;font-family:var(--font-mono);text-align:center;">' +
-      '<button class="conv-remove" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px 4px;" title="Remove">&times;</button>';
-    row.querySelector('.conv-var').addEventListener('change', function() { convLayers[idx].varKey = this.value; });
-    row.querySelector('.conv-ts').addEventListener('change', function() { convLayers[idx].ts = this.value; });
+      '<input type="number" class="conv-weight conv-wt-col" value="' + layer.weight + '" min="0" max="10" step="0.1" title="Weight" style="display:none;width:36px;padding:4px 1px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.7rem;font-family:var(--font-mono);text-align:center;">' +
+      '<button class="conv-remove" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:2px 4px;min-width:22px;" title="Remove">&times;</button>';
+    row.querySelector('.conv-var').addEventListener('change', function() {
+      convLayers[idx].varKey = this.value;
+      if (CONV_INDICES[this.value].isSnodas || CONV_INDICES[this.value].isHhp) { convLayers[idx].ts = 'daily'; }
+      convRenderList(); // re-render to show/hide timescale
+    });
+    var tsSelect = row.querySelector('.conv-ts');
+    if (CONV_INDICES[layer.varKey] && (CONV_INDICES[layer.varKey].isSnodas || CONV_INDICES[layer.varKey].isHhp)) {
+      tsSelect.disabled = true;
+      tsSelect.innerHTML = '<option value="daily">Daily</option>';
+      layer.ts = 'daily';
+    }
+    tsSelect.addEventListener('change', function() { convLayers[idx].ts = this.value; });
     var wtInput = row.querySelector('.conv-weight');
     if (document.getElementById('conv-weights-chk').checked) wtInput.style.display = '';
-    wtInput.addEventListener('change', function() { convLayers[idx].weight = parseFloat(this.value) || 1; });
+    wtInput.addEventListener('change', function() {
+      var v = parseFloat(this.value);
+      convLayers[idx].weight = isNaN(v) ? 1 : v;
+    });
     row.querySelector('.conv-remove').addEventListener('click', function() {
       convLayers.splice(idx, 1);
       convRenderList();
@@ -2611,8 +2807,9 @@ document.getElementById('conv-add-btn').addEventListener('click', function() {
 document.getElementById('conv-preset').addEventListener('change', function() {
   var ts = this.value;
   if (!ts) return;
-  // Append all 4 indices at this timescale (skip duplicates)
+  // Append drought indices at this timescale (skip SNODAS and duplicates)
   Object.keys(CONV_INDICES).forEach(function(k) {
+    if (CONV_INDICES[k].isSnodas || CONV_INDICES[k].isHhp) return; // must be explicitly added
     var exists = convLayers.some(function(l) { return l.varKey === k && l.ts === ts; });
     if (!exists) convLayers.push({ varKey: k, ts: ts, weight: 1 });
   });
@@ -2652,8 +2849,8 @@ function cleanupConvergence() {
 
 document.getElementById('conv-apply-btn').addEventListener('click', function() {
   var errEl = document.getElementById('conv-error');
-  if (convLayers.length < 2) {
-    errEl.textContent = 'Select at least 2 layers to composite.';
+  if (convLayers.length < 1) {
+    errEl.textContent = 'Select at least 1 layer.';
     errEl.style.display = 'block';
     return;
   }
@@ -2671,8 +2868,21 @@ document.getElementById('conv-apply-btn').addEventListener('click', function() {
 });
 
 function getConvLayerSummary() {
+  var hasCustomWeights = convLayers.some(function(l) {
+    var w = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
+    return w !== 1;
+  });
+
+  // If custom weights, show each layer explicitly with weight
+  if (hasCustomWeights) {
+    return convLayers.map(function(l) {
+      var w = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
+      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts;
+      return w !== 1 ? label + ' (w:' + w + ')' : label;
+    }).join(', ');
+  }
+
   // Smart grouping: if all indices share timescales, show "SPI, SPEI, EDDI, SVPDI × 30d, 60d"
-  // If mixed, group by index: "SPI 30d/60d, SPEI 30d, EDDI 90d"
   var indices = {};
   var timescales = {};
   convLayers.forEach(function(l) {
@@ -2685,19 +2895,16 @@ function getConvLayerSummary() {
   var indexKeys = Object.keys(indices);
   var tsKeys = Object.keys(timescales);
 
-  // Check if every index has the same set of timescales
   var allSameTS = indexKeys.length > 1 && indexKeys.every(function(k) {
     return indices[k].length === tsKeys.length && tsKeys.every(function(t) { return indices[k].includes(t); });
   });
 
   if (allSameTS) {
-    // "SPI, SPEI, EDDI, SVPDI × 30d, 60d, 90d"
     var idxLabels = indexKeys.map(function(k) { return CONV_INDICES[k].label; }).join(', ');
     var tsLabels = tsKeys.join(', ');
     return idxLabels + ' \u00d7 ' + tsLabels;
   }
 
-  // Group by index: "SPI 30d/60d, SPEI 30d"
   return indexKeys.map(function(k) {
     return CONV_INDICES[k].label + ' ' + indices[k].join('/');
   }).join(', ');
@@ -2715,9 +2922,76 @@ function getConvMethod() {
 
 document.querySelectorAll('input[name="conv-method"]').forEach(function(radio) {
   radio.addEventListener('change', function() {
-    if (convActive && convLayers.length >= 2) applyConvergence();
+    if (convActive && convLayers.length >= 1) applyConvergence();
   });
 });
+
+// ── HHP rasterization helpers for convergence ────────────────────
+function pointInPolygon(x, y, ring) {
+  var inside = false;
+  for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    var xi = ring[i][0], yi = ring[i][1];
+    var xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// Approximate inverse normal CDF (percentile → standardized value)
+function qnorm(p) {
+  if (p <= 0.0001) return -3.5;
+  if (p >= 0.9999) return 3.5;
+  if (Math.abs(p - 0.5) < 0.0001) return 0;
+  // Rational approximation (Abramowitz & Stegun 26.2.23)
+  var t = p < 0.5 ? Math.sqrt(-2 * Math.log(p)) : Math.sqrt(-2 * Math.log(1 - p));
+  var c0 = 2.515517, c1 = 0.802853, c2 = 0.010328;
+  var d1 = 1.432788, d2 = 0.189269, d3 = 0.001308;
+  var val = t - (c0 + c1*t + c2*t*t) / (1 + d1*t + d2*t*t + d3*t*t*t);
+  return p < 0.5 ? -val : val;
+}
+
+// Rasterize HHP basins to a gridMET-compatible raster
+function rasterizeHhp(hhpGeojson, w, h, bbox) {
+  console.time('HHP rasterize');
+  var raster = new Float32Array(w * h);
+  raster.fill(NaN);
+  var resX = (bbox[2] - bbox[0]) / w;
+  var resY = (bbox[3] - bbox[1]) / h;
+
+  hhpGeojson.features.forEach(function(f) {
+    var pctile = f.properties.ft3_s_ecdf;
+    if (pctile == null || isNaN(pctile)) return;
+    var standardized = qnorm(pctile);
+    var geom = f.geometry;
+    var rings = geom.type === 'Polygon' ? [geom.coordinates[0]] :
+                geom.type === 'MultiPolygon' ? geom.coordinates.map(function(p) { return p[0]; }) : [];
+
+    rings.forEach(function(ring) {
+      // Bounding box of this ring in pixel coords
+      var minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      ring.forEach(function(c) {
+        if (c[0] < minLon) minLon = c[0]; if (c[0] > maxLon) maxLon = c[0];
+        if (c[1] < minLat) minLat = c[1]; if (c[1] > maxLat) maxLat = c[1];
+      });
+      var colMin = Math.max(0, Math.floor((minLon - bbox[0]) / resX));
+      var colMax = Math.min(w - 1, Math.ceil((maxLon - bbox[0]) / resX));
+      var rowMin = Math.max(0, Math.floor((bbox[3] - maxLat) / resY));
+      var rowMax = Math.min(h - 1, Math.ceil((bbox[3] - minLat) / resY));
+
+      for (var row = rowMin; row <= rowMax; row++) {
+        var lat = bbox[3] - (row + 0.5) * resY;
+        for (var col = colMin; col <= colMax; col++) {
+          var lon = bbox[0] + (col + 0.5) * resX;
+          if (pointInPolygon(lon, lat, ring)) {
+            raster[row * w + col] = standardized;
+          }
+        }
+      }
+    });
+  });
+  console.timeEnd('HHP rasterize');
+  return raster;
+}
 
 function applyConvergence() {
   // Remove existing raster and convergence layers
@@ -2728,65 +3002,151 @@ function applyConvergence() {
 
   var n = convLayers.length;
   var method = getConvMethod();
-  var weights = convLayers.map(function(l) { return l.weight || 1; });
+  var weights = convLayers.map(function(l) { return (l.weight != null && !isNaN(l.weight)) ? l.weight : 1; });
 
   showSpinner();
 
-  // Fetch all COGs in parallel using geotiff.js
-  var urls = convLayers.map(function(l) {
-    return BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
-  });
+  // Fetch all COGs in parallel — use geotiff.js v3 for SNODAS (ZSTD), v2 for gridMET (DEFLATE)
+  var hasSnodasLayers = convLayers.some(function(l) { return CONV_INDICES[l.varKey].isSnodas; });
 
-  Promise.all(urls.map(function(url) {
-    return GeoTIFF.fromUrl(url).then(function(tiff) {
-      return tiff.getImage().then(function(image) {
-        return image.readRasters().then(function(rasters) {
-          return {
-            data: rasters[0],
-            width: image.getWidth(),
-            height: image.getHeight(),
-            bbox: image.getBoundingBox()
-          };
+  // Build fetch promises
+  var fetchPromises = convLayers.map(function(l) {
+    var ci = CONV_INDICES[l.varKey];
+    if (ci.isHhp) {
+      // HHP: load GeoJSON, rasterize later once we know the reference grid
+      return fetch('https://data.climate.umt.edu/share/current_flow_percentile.geojson')
+        .then(function(r) { return r.json(); })
+        .then(function(geojson) {
+          var features = geojson.features.filter(function(f) {
+            return !EXCLUDED_BASINS.includes(f.properties?.basin_name?.trim());
+          });
+          return { isHhp: true, geojson: { type: 'FeatureCollection', features: features } };
+        });
+    } else if (ci.isSnodas) {
+      var sUrl = 'https://mco-snodas.s3.us-west-2.amazonaws.com/normals/gridded/zig/2026-03-30/2026-03-30_zig_swe_standardized.tif';
+      return import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm').then(function(gt3) {
+        return gt3.fromUrl(sUrl);
+      }).then(function(tiff) {
+        return tiff.getImage().then(function(image) {
+          return image.readRasters().then(function(rasters) {
+            return { data: rasters[0], width: image.getWidth(), height: image.getHeight(), bbox: image.getBoundingBox(), isSnodas: true };
+          });
         });
       });
+    } else {
+      var gUrl = BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
+      return GeoTIFF.fromUrl(gUrl).then(function(tiff) {
+        return tiff.getImage().then(function(image) {
+          return image.readRasters().then(function(rasters) {
+            return { data: rasters[0], width: image.getWidth(), height: image.getHeight(), bbox: image.getBoundingBox() };
+          });
+        });
+      });
+    }
+  });
+
+  Promise.all(fetchPromises).then(function(rasters) {
+    // Use the first gridMET raster as the reference grid
+    var refIdx = rasters.findIndex(function(r) { return !r.isSnodas && !r.isHhp; });
+    var w, h, bbox;
+    if (refIdx >= 0) {
+      w = rasters[refIdx].width;
+      h = rasters[refIdx].height;
+      bbox = rasters[refIdx].bbox;
+    } else {
+      // No gridMET layer — use hardcoded gridMET grid dimensions
+      w = 1386; h = 584;
+      bbox = [-124.7875, 25.0458333, -67.0375, 49.3791667];
+    }
+
+    // Rasterize any HHP layers to the reference grid
+    rasters.forEach(function(rr, idx) {
+      if (rr.isHhp) {
+        rr.data = rasterizeHhp(rr.geojson, w, h, bbox);
+        rr.width = w;
+        rr.height = h;
+        rr.bbox = bbox;
+      }
     });
-  })).then(function(rasters) {
-    var w = rasters[0].width;
-    var h = rasters[0].height;
-    var bbox = rasters[0].bbox;
 
     // Compute weighted composite into Float32Array
+    var refResX = (bbox[2] - bbox[0]) / w;
+    var refResY = (bbox[3] - bbox[1]) / h;
     var compositeData = new Float32Array(w * h);
     compositeData.fill(-9999);
     for (var ry = 0; ry < h; ry++) {
       for (var rx = 0; rx < w; rx++) {
         var ri = ry * w + rx;
+        // Geographic coords for this reference grid pixel
+        var pixLon = bbox[0] + (rx + 0.5) * refResX;
+        var pixLat = bbox[3] - (ry + 0.5) * refResY;
         var rvals = [];
         var rweights = [];
-        var rNodata = false;
+        var rAllNodata = true;
         for (var rli = 0; rli < rasters.length; rli++) {
-          var rraw = rasters[rli].data[ri];
-          if (rraw === -9999) { rNodata = true; break; }
-          var rscaled = rraw * 0.01;
+          var rr = rasters[rli];
+          var layerWeight = weights[rli];
+          var rraw;
+          var layerNodata = false;
+          if (rr.isSnodas) {
+            var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
+            var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
+            var sColMin = Math.floor((pixLon - refResX/2 - rr.bbox[0]) / sResX);
+            var sColMax = Math.ceil((pixLon + refResX/2 - rr.bbox[0]) / sResX);
+            var sRowMin = Math.floor((rr.bbox[3] - pixLat - refResY/2) / sResY);
+            var sRowMax = Math.ceil((rr.bbox[3] - pixLat + refResY/2) / sResY);
+            sColMin = Math.max(0, sColMin); sColMax = Math.min(rr.width, sColMax);
+            sRowMin = Math.max(0, sRowMin); sRowMax = Math.min(rr.height, sRowMax);
+            var sSum = 0, sCount = 0;
+            for (var sr = sRowMin; sr < sRowMax; sr++) {
+              for (var sc = sColMin; sc < sColMax; sc++) {
+                var sv = rr.data[sr * rr.width + sc];
+                if (!isNaN(sv) && isFinite(sv) && sv > -500 && sv < 500) { sSum += sv; sCount++; }
+              }
+            }
+            if (sCount === 0) { layerNodata = true; }
+            else {
+              rraw = sSum / sCount;
+              if (rraw < -400) rraw = -400;
+              if (rraw > 400) rraw = 400;
+            }
+          } else {
+            rraw = rr.data[ri];
+            if (rraw === -9999 || isNaN(rraw) || !isFinite(rraw)) { layerNodata = true; }
+          }
+          // If a non-zero-weight layer has nodata, mark entire pixel as nodata
+          if (layerNodata) {
+            if (layerWeight > 0) { rAllNodata = true; break; }
+            continue;
+          }
+          rAllNodata = false;
+          var scale = CONV_INDICES[convLayers[rli].varKey].rawScale || 0.01;
+          var rscaled = rraw * scale;
           if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
           rvals.push(rscaled);
-          rweights.push(weights[rli]);
+          rweights.push(layerWeight);
         }
-        if (rNodata || rvals.length === 0) {
+        // Filter out null entries
+        var validVals = [], validWeights = [];
+        for (var vi = 0; vi < rvals.length; vi++) {
+          if (rvals[vi] !== null && rweights[vi] > 0) {
+            validVals.push(rvals[vi]);
+            validWeights.push(rweights[vi]);
+          }
+        }
+        if (rAllNodata || validVals.length === 0) {
           compositeData[ri] = -9999;
         } else if (method === 'mean') {
-          // Weighted mean
           var wsum = 0, wtotal = 0;
-          for (var wi = 0; wi < rvals.length; wi++) {
-            wsum += rvals[wi] * rweights[wi];
-            wtotal += rweights[wi];
+          for (var wi = 0; wi < validVals.length; wi++) {
+            wsum += validVals[wi] * validWeights[wi];
+            wtotal += validWeights[wi];
           }
           compositeData[ri] = wtotal > 0 ? wsum / wtotal : -9999;
         } else {
-          // Weighted median: sort by value, accumulate weights, find 50% crossing
-          var paired = rvals.map(function(v, pi) { return { v: v, w: rweights[pi] }; });
+          var paired = validVals.map(function(v, pi) { return { v: v, w: validWeights[pi] }; });
           paired.sort(function(a, b) { return a.v - b.v; });
-          var wtotal = rweights.reduce(function(a, b) { return a + b; }, 0);
+          var wtotal = validWeights.reduce(function(a, b) { return a + b; }, 0);
           var half = wtotal / 2;
           var cumW = 0;
           compositeData[ri] = paired[paired.length - 1].v; // fallback
@@ -2881,20 +3241,22 @@ function applyConvergence() {
     convCogLayer._w = w;
     convCogLayer._h = h;
 
-    // Extract date from first COG
-    var firstUrl = urls[0];
-    if (!dateCache[firstUrl]) {
+    // Extract date from first non-SNODAS COG
+    var firstNonSnodas = convLayers.find(function(l) { return !CONV_INDICES[l.varKey].isSnodas; });
+    var firstUrl = firstNonSnodas
+      ? BASE_URL + '/' + VAR_CONFIG[firstNonSnodas.varKey].prefix + firstNonSnodas.ts + '_' + getConvPeriod() + '.tif'
+      : null;
+    if (firstUrl && !dateCache[firstUrl]) {
       fetch(firstUrl, { headers: { Range: 'bytes=0-200000' } })
         .then(function(r) { return r.arrayBuffer(); })
         .then(function(buf) {
           dateCache[firstUrl] = extractDateFromTiff(buf) || "Date N/A";
           activeDate = dateCache[firstUrl];
           updateDateDisplay();
-          // Update legend date too
           var dateEl = document.querySelector('.map-legend .legend-date');
           if (dateEl) dateEl.textContent = formatDate(activeDate);
         }).catch(function() {});
-    } else {
+    } else if (firstUrl) {
       activeDate = dateCache[firstUrl];
       updateDateDisplay();
     }
@@ -3022,7 +3384,7 @@ function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.d
 function getExportAttribution() {
   const sources = new Set();
   // Active data layer
-  if (convActive && convLayers.length >= 2) {
+  if (convActive && convLayers.length >= 1) {
     sources.add("gridMET");
   } else {
     const cfg = VAR_CONFIG[activeVar];
@@ -3423,10 +3785,18 @@ async function takeScreenshot(exportScale) {
           // on retina screens; we want the raw pixels for export.
           // Apply greyscale filter if this is the basemap-grey layer
           var isGrey = layerDiv && layerDiv.classList.contains('basemap-grey');
-          if (isGrey) mapContext.filter = 'grayscale(1)';
           mapContext.setTransform(1, 0, 0, 1, 0, 0);
           mapContext.drawImage(canvas, 0, 0);
-          if (isGrey) mapContext.filter = 'none';
+          // Apply greyscale manually (Safari doesn't support canvas filter)
+          if (isGrey) {
+            var greyData = mapContext.getImageData(0, 0, mapCanvas.width, mapCanvas.height);
+            var px = greyData.data;
+            for (var gi = 0; gi < px.length; gi += 4) {
+              var grey = px[gi] * 0.299 + px[gi+1] * 0.587 + px[gi+2] * 0.114;
+              px[gi] = px[gi+1] = px[gi+2] = grey;
+            }
+            mapContext.putImageData(greyData, 0, 0);
+          }
         });
         mapContext.globalAlpha = 1;
         mapContext.setTransform(1, 0, 0, 1, 0, 0);
@@ -3497,7 +3867,7 @@ async function takeScreenshot(exportScale) {
 
     // Title text block
     var cfg, periodLabel, dateTxt, titleLine1, titleLine2;
-    if (convActive && convLayers.length >= 2) {
+    if (convActive && convLayers.length >= 1) {
       cfg = { label: 'Convergence', attribution: 'gridMET', noRaster: false };
       periodLabel = getPeriodLabel(getConvPeriod());
       dateTxt = formatDate(activeDate);
@@ -3603,7 +3973,7 @@ async function takeScreenshot(exportScale) {
     // Draw primary legend (horizontal) in footer — returns rightEdgeX
     const footerContentY = footerTop + Math.round(3 * SCALE);
     let legendRightX = Math.round(24 * SCALE);
-    if (convActive && convLayers.length >= 2) {
+    if (convActive && convLayers.length >= 1) {
       const rx = drawConvergenceFooterLegend(ctx, footerContentY, SCALE);
       if (rx) legendRightX = rx;
     } else if (!cfg.noRaster) {
@@ -3855,14 +4225,14 @@ function buildShareUrl() {
   if (activeBasemap && activeBasemap !== 'natgeo') qp.set('basemap', activeBasemap);
 
   let hash;
-  if (convActive && convLayers.length >= 2) {
+  if (convActive && convLayers.length >= 1) {
     // Encode convergence state
     var method = getConvMethod();
     var period = getConvPeriod();
     hash = '#conv/' + method + '/' + period;
     // Encode layers as query param: spi:30d:1,spei:60d:0.5
     var layerStr = convLayers.map(function(l) {
-      var w = l.weight || 1;
+      var w = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
       return l.varKey + ':' + l.ts + (w !== 1 ? ':' + w : '');
     }).join(',');
     qp.set('conv', layerStr);
@@ -3950,7 +4320,7 @@ function loadState() {
         }
       });
     }
-    if (layers.length < 2) return null;
+    if (layers.length < 1) return null;
     return {
       isConvergence: true,
       convMethod: convMethod,

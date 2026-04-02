@@ -1805,3 +1805,13 @@
 
       #mobile-overlay.active { display: block; }
     }
+
+    /* Hide number input spinners in convergence weight fields */
+    .conv-weight::-webkit-outer-spin-button,
+    .conv-weight::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .conv-weight {
+      -moz-appearance: textfield;
+    }
