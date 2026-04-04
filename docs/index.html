@@ -4434,11 +4434,13 @@ async function downloadGeoTIFF() {
       a.href = url;
       var convDate = activeDate.replace(/[^0-9-]/g, '') || 'unknown';
       var convMethod = getConvMethod();
-      var convIndices = convLayers.map(function(l) { return l.varKey; });
-      var convTS = convLayers.map(function(l) { return l.ts; });
-      var uniqueIndices = convIndices.filter(function(v, i, a) { return a.indexOf(v) === i; });
-      var uniqueTS = convTS.filter(function(v, i, a) { return a.indexOf(v) === i; });
-      a.download = 'convergence_' + convMethod + '_' + uniqueIndices.join('-') + '_' + uniqueTS.join('-') + '_' + getConvPeriod() + '_' + convDate + '.tif';
+      // Reuse the smart summary (e.g., "SPI, SPEI, EDDI × 30d, 60d" or "SPI 180d, SPEI 365d")
+      var summary = getConvLayerSummary()
+        .replace(/\s*×\s*/g, '_x_')
+        .replace(/,\s*/g, '_')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9_x-]/g, '');
+      a.download = 'convergence_' + convMethod + '_' + summary + '_' + getConvPeriod() + '_' + convDate + '.tif';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
