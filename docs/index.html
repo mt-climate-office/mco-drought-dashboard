@@ -252,8 +252,8 @@
       </div>
 
       <!-- Reference Period — section index 2 -->
-      <div class="section-label" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0" data-tip="ref-period">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-period">
+      <div class="section-label sec-collapsed" data-sec="sec-period" style="--i:2">Reference Period <span class="info-tip" tabindex="0" data-tip="ref-period">&#9432;</span><span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-period">
         <div id="period-strip">
           <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling" aria-label="Rolling 30-year reference period"></button>
           <button class="period-btn" data-period="full" id="period-btn-full" aria-label="Full period of record"></button>
@@ -3021,10 +3021,11 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   }
 
   var _anyZonal = countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive;
+  var _hideDynamic = cfg.dynamic && !rangeOverride && !_anyZonal;
   cogLayer = new ol.layer.WebGLTile({
     source: cogSource,
     style: { color: colorExpr },
-    opacity: _anyZonal ? 0 : parseFloat(opacitySlider.value),
+    opacity: (_anyZonal || _hideDynamic) ? 0 : parseFloat(opacitySlider.value),
     zIndex: 1
   });
 
@@ -3052,10 +3053,14 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
           document.getElementById("range-max").placeholder = sym.max.toFixed(2);
           const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
           cogLayer.setStyle({ color: colorExpr });
+          cogLayer.setOpacity(parseFloat(opacitySlider.value));
           const result = buildScale(varKey, paletteKey, null, sym);
           buildLegend(varKey, ts, period, result.legendRows);
         } else if (attempts > 0) {
           setTimeout(function() { retryAutoScale(attempts - 1); }, 300);
+        } else {
+          // Fallback: reveal layer even if auto-scale couldn't sample pixels
+          cogLayer.setOpacity(parseFloat(opacitySlider.value));
         }
       }
       retryAutoScale(8);
