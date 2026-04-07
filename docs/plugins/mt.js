@@ -207,7 +207,8 @@ function injectSidebar(sidebar) {
     if (chk.checked) {
       strip.style.display = '';
       await loadDepthLayer(_map);
-      if (mesoLeg) mesoLeg.style.display = 'block';
+      if (mesoLeg && window.showLegendEl) window.showLegendEl(mesoLeg);
+      else if (mesoLeg) mesoLeg.style.display = 'block';
       if (_helpers.stackRightLegends) _helpers.stackRightLegends();
     } else {
       strip.style.display = 'none';

@@ -1819,16 +1819,17 @@
         z-index: 1200;
         width: var(--sidebar-w);
         min-width: var(--sidebar-w);
-        transform: translateX(0);
-        transition: transform 0.25s ease;
+        transform: translateX(calc(-1 * var(--sidebar-w)));
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
 
-      #sidebar.collapsed {
-        transform: translateX(calc(-1 * var(--sidebar-w)));
-        width: var(--sidebar-w);
-        min-width: var(--sidebar-w);
+      #sidebar.sidebar-ready {
+        transition: transform 0.25s ease;
+      }
+
+      #sidebar.sidebar-open {
+        transform: translateX(0);
       }
 
       #sidebar.collapsed .sidebar-inner {

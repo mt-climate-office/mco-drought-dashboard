@@ -56,6 +56,7 @@
   <!-- chroma.js -->
   <script defer src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
+
   <!-- topojson -->
   <script defer src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
 
@@ -175,8 +176,8 @@
 <!-- App shell -->
 <div id="shell">
 
-  <!-- Sidebar (starts collapsed; JS removes on desktop) -->
-  <div id="sidebar" class="collapsed">
+  <!-- Sidebar -->
+  <div id="sidebar">
     <div class="sidebar-inner">
 
       <!-- Data Layer — section index 0 -->
@@ -1045,6 +1046,16 @@ map.getView().fit(
 })();
 
 // Legend toggle control
+var legendsHidden = false;
+function showLegendEl(el) {
+  if (legendsHidden) {
+    el.style.display = 'none';
+    el._wasVisible = true;
+    el._savedDisplay = 'block';
+  } else {
+    el.style.display = 'block';
+  }
+}
 (function() {
   let legendsVisible = true;
   const eyeOpen = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -1059,10 +1070,10 @@ map.getView().fit(
   togContainer.appendChild(togBtn);
   togBtn.addEventListener('click', function() {
     legendsVisible = !legendsVisible;
+    legendsHidden = !legendsVisible;
     var els = document.querySelectorAll('.map-legend, #sf-legend, #usdm-legend, #mesonet-legend');
     els.forEach(function(el) {
       if (legendsVisible) {
-        // Restore: only show if it was visible before hiding
         if (el._wasVisible) el.style.display = el._savedDisplay || 'block';
       } else {
         el._wasVisible = el.style.display !== 'none';
@@ -1073,6 +1084,7 @@ map.getView().fit(
     togBtn.innerHTML = legendsVisible ? eyeOpen : eyeClosed;
     togBtn.style.opacity = legendsVisible ? '1' : '0.5';
     togBtn.title = legendsVisible ? 'Hide legends' : 'Show legends';
+    if (legendsVisible) stackRightLegends();
   });
   map.addControl(new ol.control.Control({ element: togContainer }));
 })();
@@ -1333,7 +1345,7 @@ document.getElementById("var-select").addEventListener("change", function() {
       if (!map.getLayers().getArray().includes(hhpLayer)) map.addLayer(hhpLayer);
       document.getElementById('map-skeleton')?.remove();
       ensureLayerStack();
-      document.getElementById("sf-legend").style.display = "block";
+      showLegendEl(document.getElementById("sf-legend"));
       stackRightLegends();
     })();
     return;
@@ -2466,7 +2478,7 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
   map.addLayer(usgsStreamLayer);
   this.querySelector("span").textContent = "Remove Current USGS Percentiles";
   this.classList.add("is-on");
-  document.getElementById("sf-legend").style.display = "block";
+  showLegendEl(document.getElementById("sf-legend"));
   stackRightLegends();
 });
 
@@ -2694,22 +2706,28 @@ document.getElementById("usdm-date-select").addEventListener("change", async fun
   try { await loadUsdmForDate(dateStr); } finally { hideSpinner(); }
 });
 
+function _isLegendActive(el) {
+  if (!el) return false;
+  if (el.style.display !== "none") return true;
+  if (legendsHidden && el._wasVisible) return true;
+  return false;
+}
 function stackRightLegends() {
   const sf = document.getElementById("sf-legend");
   const usdm = document.getElementById("usdm-legend");
   const meso = document.getElementById("mesonet-legend");
   let bottom = isMobileView() ? 10 : 30;
   // Stack from bottom up: streamflow, mesonet, usdm
-  if (sf && sf.style.display !== "none") {
+  if (_isLegendActive(sf)) {
     sf.style.bottom = bottom + "px";
-    bottom += sf.offsetHeight + 8;
+    bottom += (sf.offsetHeight || 180) + 8;
   }
-  if (meso && meso.style.display !== "none") {
+  if (_isLegendActive(meso)) {
     meso.style.bottom = bottom + "px";
-    bottom += meso.offsetHeight + 8;
+    bottom += (meso.offsetHeight || 200) + 8;
   }
   if (usdm) {
-    usdm.style.bottom = (usdm.style.display !== "none" ? bottom : 30) + "px";
+    usdm.style.bottom = (_isLegendActive(usdm) ? bottom : 30) + "px";
   }
 }
 
@@ -2733,7 +2751,7 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
   usdmLayer.changed(); // triggers re-style with current opacity
   if (!map.getLayers().getArray().includes(usdmLayer)) map.addLayer(usdmLayer);
   ensureLayerStack();
-  document.getElementById("usdm-legend").style.display = "block";
+  showLegendEl(document.getElementById("usdm-legend"));
   stackRightLegends();
 });
 
@@ -2793,6 +2811,11 @@ function buildLegend(varKey, ts, period, legendRows) {
     legendBody;
 
   legendEl = div;
+  if (legendsHidden) {
+    div.style.display = 'none';
+    div._wasVisible = true;
+    div._savedDisplay = 'block';
+  }
   // Append to OL's overlay container so it renders above map layers
   const overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
     || document.querySelector('#map .ol-viewport')
@@ -3941,6 +3964,11 @@ function applyConvergence() {
         return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
       }).join('');
     legendEl = div;
+    if (legendsHidden) {
+      div.style.display = 'none';
+      div._wasVisible = true;
+      div._savedDisplay = 'block';
+    }
     var overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
       || document.querySelector('#map .ol-viewport')
       || document.getElementById('map');
@@ -3976,19 +4004,16 @@ function applyConvergence() {
    SIDEBAR COLLAPSE
    ════════════════════════════════════════════════════════════════ */
 let sidebarOpen = !isMobileView();
-if (sidebarOpen) {
-  // Desktop: remove collapsed class that was set in HTML
-  document.getElementById('sidebar').classList.remove('collapsed');
-} else {
-  // Mobile: peek animation
+if (!sidebarOpen) {
+  // Mobile: enable transitions then peek
   var sb = document.getElementById('sidebar');
   setTimeout(function() {
-    sb.style.transition = 'transform 0.4s ease';
+    sb.classList.add('sidebar-ready');
+    sb.offsetHeight;
     sb.style.transform = 'translateX(-220px)';
     setTimeout(function() {
-      sb.style.transition = 'transform 0.3s ease';
-      sb.style.transform = 'translateX(calc(-1 * var(--sidebar-w)))';
-      setTimeout(function() { sb.style.transition = ''; sb.style.transform = ''; }, 350);
+      sb.style.transform = '';
+      // sidebar-ready stays on for future toggle animations
       document.getElementById('hamburger').classList.add('pulse-hint');
     }, 1000);
   }, 600);
@@ -3999,23 +4024,22 @@ const spinner     = document.getElementById("spinner");
 
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
-  sidebar.classList.toggle("collapsed", !sidebarOpen);
 
-  if (sidebarOpen) {
-    collapseBtn.style.left = "var(--sidebar-w)";
-    collapseBtn.innerHTML  = "&#9664;";
-    spinner.style.left     = "var(--sidebar-w)";
-  } else {
-    collapseBtn.style.left = "0";
-    collapseBtn.innerHTML  = "&#9654;";
-    spinner.style.left     = "0";
-  }
-
-  const overlay = document.getElementById('mobile-overlay');
   if (isMobileView()) {
+    sidebar.classList.toggle("sidebar-open", sidebarOpen);
+    const overlay = document.getElementById('mobile-overlay');
     overlay.classList.toggle('active', sidebarOpen);
   } else {
-    overlay.classList.remove('active');
+    sidebar.classList.toggle("collapsed", !sidebarOpen);
+    if (sidebarOpen) {
+      collapseBtn.style.left = "var(--sidebar-w)";
+      collapseBtn.innerHTML  = "&#9664;";
+      spinner.style.left     = "var(--sidebar-w)";
+    } else {
+      collapseBtn.style.left = "0";
+      collapseBtn.innerHTML  = "&#9654;";
+      spinner.style.left     = "0";
+    }
   }
 
   setTimeout(function() { map.updateSize(); }, 260);
@@ -5574,7 +5598,7 @@ if (activeVar === 'hhp') {
     if (!map.getLayers().getArray().includes(hhpLayer)) map.addLayer(hhpLayer);
     document.getElementById('map-skeleton')?.remove();
     ensureLayerStack();
-    document.getElementById("sf-legend").style.display = "block";
+    showLegendEl(document.getElementById("sf-legend"));
     stackRightLegends();
 
   })();
