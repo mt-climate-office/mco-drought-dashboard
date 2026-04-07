@@ -911,6 +911,9 @@ let activeZoomState  = "";
 const STATE_PLUGINS  = { MT: './plugins/mt.js' };
 let _activePlugin    = null;
 let _activePluginCode = null;
+let _autoActivatedPlugin = false;
+let _userDismissedPlugin = null;
+let _moveEndTimer = null;
 let activeDate       = "Loading\u2026";
 let statesLayer      = null;
 
@@ -1175,6 +1178,50 @@ function zoomToState(code) {
 }
 map.on('moveend', function() {
   if (!_programmaticMove) customMapView = true;
+
+  // Debounced auto-plugin detection
+  clearTimeout(_moveEndTimer);
+  _moveEndTimer = setTimeout(function() {
+    if (_programmaticMove) return;
+
+    var matchedState = checkViewportStateOverlap();
+
+    if (matchedState) {
+      // Don't re-activate a state the user explicitly navigated away from
+      if (matchedState === _userDismissedPlugin) return;
+
+      if (_activePluginCode !== matchedState) {
+        _autoActivatedPlugin = true;
+        activeZoomState = matchedState;
+        var opt = document.querySelector('#state-select option[value="' + matchedState + '"]');
+        stateLabel.textContent = opt ? opt.textContent : matchedState;
+        autoEnableLayerForZoom(matchedState);
+        handleStatePlugin(matchedState);
+        saveState();
+        // Open sidebar on mobile so user sees the plugin content
+        if (isMobileView() && !sidebarOpen) toggleSidebar();
+        // Show notification toast next to the plugin section
+        var stateName = opt ? opt.textContent : matchedState;
+        setTimeout(function() {
+          var pluginLabel = document.querySelector('[data-sec="sec-mt-soil"]');
+          if (!pluginLabel) return;
+          var toast = document.createElement('div');
+          toast.id = 'plugin-toast';
+          toast.innerHTML = '<strong>' + stateName + ' data available</strong><br><span style="font-size:0.65rem;opacity:0.8;">Enhanced station data loaded</span>';
+          var rect = pluginLabel.getBoundingClientRect();
+          var sidebar = document.getElementById('sidebar');
+          var sidebarRight = sidebar ? sidebar.getBoundingClientRect().right : 290;
+          toast.style.cssText = 'position:fixed;top:' + rect.top + 'px;left:' + (sidebarRight + 8) + 'px;background:var(--accent);color:var(--text-on-accent);padding:8px 14px;border-radius:var(--radius-md);font-size:0.72rem;font-family:var(--font-display);font-weight:500;z-index:9999;box-shadow:var(--shadow-lg);animation:hint-fade-in 0.4s ease;cursor:pointer;white-space:nowrap;';
+          toast.addEventListener('click', function() { fadeOutHint(toast); });
+          document.body.appendChild(toast);
+          setTimeout(function() { fadeOutHint(toast); }, 4000);
+        }, 200);
+      }
+    } else {
+      // Clear dismissal when that state is no longer in view
+      _userDismissedPlugin = null;
+    }
+  }, 300);
 });
 
 function autoEnableLayerForZoom(code) {
@@ -1199,9 +1246,50 @@ async function handleStatePlugin(newCode) {
       const mod = await import(STATE_PLUGINS[newCode]);
       _activePlugin = mod;
       _activePluginCode = newCode;
-      mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack, stackRightLegends });
+      mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack, stackRightLegends, removePlugin: function() {
+        _userDismissedPlugin = _activePluginCode;
+        _autoActivatedPlugin = false;
+        activeZoomState = '';
+        stateLabel.textContent = 'CONUS (default)';
+        handleStatePlugin('');
+        saveState();
+      }});
     } catch (e) { console.error('Plugin ' + newCode + ' failed:', e); }
   }
+}
+
+// Auto-detect if a plugin-enabled state dominates the viewport
+function checkViewportStateOverlap() {
+  if (_programmaticMove) return null;
+  var mapExtent = map.getView().calculateExtent(map.getSize());
+  var vExt = ol.proj.transformExtent(mapExtent, 'EPSG:3857', 'EPSG:4326');
+  var vW = vExt[0], vS = vExt[1], vE = vExt[2], vN = vExt[3];
+  var viewportArea = (vE - vW) * (vN - vS);
+  if (viewportArea <= 0) return null;
+
+  var pluginStates = Object.keys(STATE_PLUGINS);
+  for (var i = 0; i < pluginStates.length; i++) {
+    var code = pluginStates[i];
+    var bounds = STATE_BOUNDS[code];
+    if (!bounds) continue;
+    var s = bounds[0][0], w = bounds[0][1], n = bounds[1][0], e = bounds[1][1];
+    var stateArea = (e - w) * (n - s);
+
+    // Intersection
+    var iW = Math.max(vW, w), iS = Math.max(vS, s);
+    var iE = Math.min(vE, e), iN = Math.min(vN, n);
+    if (iE <= iW || iN <= iS) continue;
+
+    var interArea = (iE - iW) * (iN - iS);
+    var stateVisibleFraction = interArea / viewportArea;
+    var viewportCoverageFraction = interArea / stateArea;
+
+    // Activate if: state fills most of viewport, OR viewport is mostly inside the state
+    if (stateVisibleFraction > 0.5 || (stateVisibleFraction > 0.3 && viewportCoverageFraction > 0.3)) {
+      return code;
+    }
+  }
+  return null;
 }
 
 // Use both change (for new selections) and a re-select workaround:
@@ -1217,6 +1305,11 @@ stateSelect.style.color = 'transparent';
 stateSelectWrap.insertBefore(stateLabel, stateSelect.nextSibling);
 
 stateSelect.addEventListener("change", function() {
+  // Track dismissal if overriding an auto-activated plugin
+  if (_autoActivatedPlugin && _activePluginCode && this.value !== _activePluginCode) {
+    _userDismissedPlugin = _activePluginCode;
+  }
+  _autoActivatedPlugin = false;
   activeZoomState = this.value;
   // Update the visible label
   stateLabel.textContent = this.selectedOptions[0]?.textContent || 'CONUS (default)';

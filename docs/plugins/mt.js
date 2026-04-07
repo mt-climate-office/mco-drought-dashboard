@@ -218,13 +218,25 @@ function injectSidebar(sidebar) {
     }
   });
 
+  // Remove plugin button
+  const removeBtn = document.createElement('button');
+  removeBtn.textContent = '\u2715 Remove Montana Plugin';
+  removeBtn.style.cssText = 'margin-top:8px;width:100%;padding:6px 10px;font-size:0.7rem;font-family:var(--font-display);background:var(--overlay-hover-sm);color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:var(--transition);';
+  removeBtn.addEventListener('mouseenter', () => { removeBtn.style.background = 'var(--accent-hover)'; removeBtn.style.color = 'var(--text-primary)'; });
+  removeBtn.addEventListener('mouseleave', () => { removeBtn.style.background = 'var(--overlay-hover-sm)'; removeBtn.style.color = 'var(--text-muted)'; });
+  removeBtn.addEventListener('click', () => {
+    if (_helpers.removePlugin) _helpers.removePlugin();
+  });
+  sectionBodyEl.appendChild(removeBtn);
+
   // CONUS revert button
   const revertBtn = document.createElement('button');
   revertBtn.textContent = '\u2190 Back to CONUS';
-  revertBtn.style.cssText = 'margin-top:8px;width:100%;padding:6px 10px;font-size:0.7rem;font-family:var(--font-display);background:var(--overlay-hover-sm);color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:var(--transition);';
+  revertBtn.style.cssText = 'margin-top:4px;width:100%;padding:6px 10px;font-size:0.7rem;font-family:var(--font-display);background:var(--overlay-hover-sm);color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:var(--transition);';
   revertBtn.addEventListener('mouseenter', () => { revertBtn.style.background = 'var(--accent-hover)'; revertBtn.style.color = 'var(--text-primary)'; });
   revertBtn.addEventListener('mouseleave', () => { revertBtn.style.background = 'var(--overlay-hover-sm)'; revertBtn.style.color = 'var(--text-muted)'; });
   revertBtn.addEventListener('click', () => {
+    if (_helpers.removePlugin) _helpers.removePlugin();
     const sel = document.getElementById('state-select');
     const label = sel.parentElement.querySelector('div');
     if (label) label.textContent = 'CONUS (default)';
