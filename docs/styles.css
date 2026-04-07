@@ -265,6 +265,14 @@
 
     #hamburger:hover { background: var(--bg-elevated); }
 
+    @keyframes hamburger-pulse {
+      0%, 100% { box-shadow: none; }
+      50% { box-shadow: 0 0 0 4px var(--accent); }
+    }
+    #hamburger.pulse-hint {
+      animation: hamburger-pulse 1s ease 3;
+    }
+
     /* ================================================================
        Nav Action Buttons (shared)
        ================================================================ */
@@ -1513,6 +1521,29 @@
       flex-shrink: 0;
     }
 
+    .sf-swatch.meso-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.5);
+    }
+
+    #mesonet-legend {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      z-index: 900;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 12px;
+      min-width: 150px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-glass);
+    }
+
     /* ================================================================
        USGS Button
        ================================================================ */
@@ -1686,6 +1717,20 @@
 
     .ol-attribution { display: none; }
 
+    .loc-control button,
+    .legend-toggle-control button {
+      background: var(--glass) !important;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass) !important;
+      color: var(--text-secondary) !important;
+      transition: var(--transition);
+    }
+    .loc-control button:hover,
+    .legend-toggle-control button:hover {
+      background: var(--accent-active-strong) !important;
+      color: var(--text-on-accent) !important;
+    }
+
     /* Crisp pixel rendering for convergence composite and non-interpolated rasters */
     .conv-layer-crisp img,
     .conv-layer-crisp canvas,
@@ -1721,9 +1766,8 @@
       display: none;
       position: fixed;
       top: var(--navbar-h);
-      left: 0; right: 0; bottom: 0;
+      left: var(--sidebar-w); right: 0; bottom: 0;
       background: var(--overlay-dark);
-      backdrop-filter: blur(2px);
       z-index: 1040;
     }
 
@@ -1761,9 +1805,9 @@
     }
 
     /* ================================================================
-       Mobile (max-width: 640px)
+       Mobile (narrow screens or touch devices under 1024px)
        ================================================================ */
-    @media (max-width: 640px) {
+    @media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
       #hamburger { display: flex; }
       #collapse-btn { display: none; }
 
@@ -1777,12 +1821,19 @@
         min-width: var(--sidebar-w);
         transform: translateX(0);
         transition: transform 0.25s ease;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
       }
 
       #sidebar.collapsed {
         transform: translateX(calc(-1 * var(--sidebar-w)));
         width: var(--sidebar-w);
         min-width: var(--sidebar-w);
+      }
+
+      #sidebar.collapsed .sidebar-inner {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       #spinner { left: 0; }
@@ -1813,6 +1864,114 @@
       .cs-trigger { min-height: 44px; }
 
       #mobile-overlay.active { display: block; }
+
+      /* ── Brand: scale down to fit mobile ── */
+      #navbar .brand .brand-acronym { font-size: 1.4rem; }
+      #navbar .brand .brand-full { font-size: 0.55rem; }
+      #navbar .brand .brand-sub { font-size: 0.45rem; line-height: 1.1; }
+      #navbar .brand { flex: 1; min-width: 0; }
+      #mco-logo { height: 28px; width: 28px; }
+      #navbar { padding: 0 8px; gap: 4px; overflow: visible; }
+      #navbar .brand .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+      /* ── Nav: hide inline actions, always show More (far right) ── */
+      #nav-actions { display: none !important; }
+      #nav-more-wrap { display: block !important; margin-left: auto; }
+
+      /* ── Left raster legend ── */
+      .map-legend {
+        left: 6px;
+        bottom: 10px;
+        padding: 6px 10px;
+        min-width: 120px;
+        max-width: 160px;
+        font-size: 0.7rem;
+      }
+      .map-legend h4 { font-size: 0.75rem; }
+      .legend-gradient,
+      .legend-gradient-labels { height: 140px; }
+
+      /* ── Right legends (streamflow, USDM, mesonet) ── */
+      #sf-legend,
+      #usdm-legend,
+      #mesonet-legend {
+        right: 6px;
+        padding: 6px 10px;
+        font-size: 10px;
+        min-width: 120px;
+      }
+      .sf-leg-title { font-size: 11px; }
+      .sf-leg-period { font-size: 9px; }
+      #mesonet-legend {
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+
+      /* ── Info-tip portal ── */
+      #info-tip-portal {
+        width: auto !important;
+        max-width: calc(100vw - 20px);
+        z-index: 1300;
+      }
+
+      /* ── Query popup ── */
+      .query-popup {
+        max-width: calc(100vw - 40px);
+        font-size: 0.78rem;
+      }
+      .query-popup .ol-popup-closer {
+        font-size: 22px;
+        padding: 4px;
+      }
+
+      /* ── Navbar dropdowns: anchor right ── */
+      #export-dropdown,
+      #archive-dropdown,
+      #github-dropdown,
+      #impact-dropdown {
+        left: auto !important;
+        right: 8px !important;
+        max-width: calc(100vw - 16px);
+      }
+
+      #nav-more-wrap {
+        z-index: 2100;
+        position: static;
+      }
+      #nav-more-dropdown {
+        position: fixed !important;
+        top: var(--navbar-h) !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-height: calc(100vh - var(--navbar-h) - 20px);
+        overflow-y: auto;
+        z-index: 9999 !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        min-width: unset !important;
+      }
+      #nav-more-dropdown a,
+      #nav-more-dropdown button {
+        min-height: 44px;
+        padding: 12px 16px !important;
+      }
+      #nav-more-btn {
+        min-height: 44px;
+        min-width: 44px;
+        justify-content: center;
+      }
+
+      /* ── Custom select panel ── */
+      .cs-panel {
+        max-width: calc(var(--sidebar-w) - 20px);
+        max-height: 50vh;
+      }
+
+      /* ── Hide map zoom controls on mobile (pinch to zoom) ── */
+      .ol-zoom { display: none !important; }
+      .loc-control { top: 8px !important; }
+      .legend-toggle-control { top: 46px !important; }
     }
 
     /* Hide number input spinners in convergence weight fields */

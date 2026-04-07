@@ -203,12 +203,17 @@ function injectSidebar(sidebar) {
   // Wire checkbox to toggle layer and depth strip
   const chk = enableLabel.querySelector('input');
   chk.addEventListener('change', async () => {
+    const mesoLeg = document.getElementById('mesonet-legend');
     if (chk.checked) {
       strip.style.display = '';
       await loadDepthLayer(_map);
+      if (mesoLeg) mesoLeg.style.display = 'block';
+      if (_helpers.stackRightLegends) _helpers.stackRightLegends();
     } else {
       strip.style.display = 'none';
       if (markerLayer) { _map.removeLayer(markerLayer); markerLayer = null; }
+      if (mesoLeg) mesoLeg.style.display = 'none';
+      if (_helpers.stackRightLegends) _helpers.stackRightLegends();
     }
   });
 
@@ -282,6 +287,10 @@ export function deactivate(map, sidebar) {
     map.removeLayer(markerLayer);
     markerLayer = null;
   }
+  // Hide mesonet legend
+  const mesoLeg = document.getElementById('mesonet-legend');
+  if (mesoLeg) mesoLeg.style.display = 'none';
+  if (_helpers.stackRightLegends) _helpers.stackRightLegends();
   if (sectionLabelEl && sectionLabelEl.parentNode) sectionLabelEl.remove();
   if (sectionBodyEl && sectionBodyEl.parentNode) sectionBodyEl.remove();
   sectionLabelEl = null;

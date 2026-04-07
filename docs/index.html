@@ -29,6 +29,19 @@
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 
+  <!-- Patch canvas getContext to suppress willReadFrequently warnings from OpenLayers -->
+  <script>
+  (function() {
+    var _origGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+      if (type === '2d') {
+        attrs = Object.assign({ willReadFrequently: true }, attrs);
+      }
+      return _origGetContext.call(this, type, attrs);
+    };
+  })();
+  </script>
+
   <!-- OpenLayers CSS + JS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.5.0/ol.css">
   <script src="https://cdn.jsdelivr.net/npm/ol@10.5.0/dist/ol.js"></script>
@@ -77,6 +90,8 @@
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Raster Data</div>
         <button id="download-tiff-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Download GeoTIFF</button>
+        <button id="copy-cog-url-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Copy COG URL (for GIS / R / Python)</button>
+        <div style="padding:2px 14px 8px;font-size:0.62rem;color:var(--text-dim);line-height:1.4;font-family:var(--font-display);">VSICURL path — paste into ArcGIS Pro, QGIS, or use with R/Python (terra, rasterio, gdal)</div>
       </div>
     </div>
     <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" class="nav-action-item" title="View methodology documentation">
@@ -160,8 +175,8 @@
 <!-- App shell -->
 <div id="shell">
 
-  <!-- Sidebar -->
-  <div id="sidebar">
+  <!-- Sidebar (starts collapsed; JS removes on desktop) -->
+  <div id="sidebar" class="collapsed">
     <div class="sidebar-inner">
 
       <!-- Data Layer — section index 0 -->
@@ -514,6 +529,23 @@
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#303B83"></span>98–100%</div>
 </div>
 
+<!-- Montana Mesonet soil moisture legend -->
+<div id="mesonet-legend" style="display:none">
+  <div class="sf-leg-title">Standardized Soil<br>Moisture Anomaly</div>
+  <div class="sf-leg-period">Montana Mesonet</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#730000"></span>Exceptionally Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#E60000"></span>Extremely Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#FFAA00"></span>Severely Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#FCD37F"></span>Moderately Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#FFFF00"></span>Abnormally Dry</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#FFFFFF;border:1px solid #ccc"></span>Near Normal</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#82FCF9"></span>Abnormally Wet</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#32E1FA"></span>Moderately Wet</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#325CFE"></span>Severely Wet</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#4030E3"></span>Extremely Wet</div>
+  <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#303B83"></span>Exceptionally Wet</div>
+</div>
+
 <!-- USDM legend -->
 <div id="usdm-legend" style="display:none">
   <div class="sf-leg-title">U.S. Drought Monitor</div>
@@ -552,6 +584,9 @@ document.addEventListener('DOMContentLoaded', function() {
    CONFIG
    ════════════════════════════════════════════════════════════════ */
 const BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web/latest";
+function isMobileView() {
+  return window.innerWidth <= 640 || (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024);
+}
 
 const TIMESCALES = ["15d","30d","45d","60d","90d","120d","180d","365d","730d","wy","ytd"];
 const DEFAULT_TS = "30d";
@@ -578,6 +613,12 @@ const EXCLUDED_BASINS = [
   "Carson Sink","Humboldt Sink","Summer Lake","Abert Lake",
   "Klamath Lake","Medicine Lake","Great Divide Basin"
 ];
+const EXCLUDED_BASIN_RE = /^Lake\b|\bLake$/;
+function isExcludedBasin(name) {
+  if (EXCLUDED_BASINS.includes(name)) return true;
+  if (EXCLUDED_BASIN_RE.test(name) && !/\b(River|Creek)\b/i.test(name)) return true;
+  return false;
+}
 
 let hhpLayer = null, hhpLoaded = false;
 let usgsStreamLayer = null, usgsStreamLoaded = false;
@@ -630,7 +671,6 @@ function getPaletteColors(key, n, reversed) {
     colors = chroma.scale(def.sample).colors(n);
   }
   const result = reversed ? colors.reverse() : colors;
-  console.log('[getPaletteColors]', key, 'n='+n, 'reversed='+reversed, 'first:', result[0], 'last:', result[result.length-1]);
   return result;
 }
 
@@ -976,6 +1016,7 @@ map.getView().fit(
   locBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;font-size:16px;cursor:pointer;background:#fff;border:none;border-radius:2px;';
   const locContainer = document.createElement('div');
   locContainer.className = 'ol-control ol-unselectable';
+  locContainer.className = 'ol-control ol-unselectable loc-control';
   locContainer.style.cssText = 'top:0.5em;right:0.5em;left:auto;bottom:auto;';
   locContainer.appendChild(locBtn);
   let locMarkerLayer = null;
@@ -1001,6 +1042,39 @@ map.getView().fit(
     });
   });
   map.addControl(new ol.control.Control({ element: locContainer }));
+})();
+
+// Legend toggle control
+(function() {
+  let legendsVisible = true;
+  const eyeOpen = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const eyeClosed = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  const togBtn = document.createElement('button');
+  togBtn.title = 'Hide legends';
+  togBtn.innerHTML = eyeOpen;
+  togBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;cursor:pointer;background:#fff;border:none;border-radius:2px;';
+  const togContainer = document.createElement('div');
+  togContainer.className = 'ol-control ol-unselectable legend-toggle-control';
+  togContainer.style.cssText = 'top:2.8em;right:0.5em;left:auto;bottom:auto;';
+  togContainer.appendChild(togBtn);
+  togBtn.addEventListener('click', function() {
+    legendsVisible = !legendsVisible;
+    var els = document.querySelectorAll('.map-legend, #sf-legend, #usdm-legend, #mesonet-legend');
+    els.forEach(function(el) {
+      if (legendsVisible) {
+        // Restore: only show if it was visible before hiding
+        if (el._wasVisible) el.style.display = el._savedDisplay || 'block';
+      } else {
+        el._wasVisible = el.style.display !== 'none';
+        el._savedDisplay = el.style.display;
+        el.style.display = 'none';
+      }
+    });
+    togBtn.innerHTML = legendsVisible ? eyeOpen : eyeClosed;
+    togBtn.style.opacity = legendsVisible ? '1' : '0.5';
+    togBtn.title = legendsVisible ? 'Hide legends' : 'Show legends';
+  });
+  map.addControl(new ol.control.Control({ element: togContainer }));
 })();
 
 const COUNTY_MIN_ZOOM = 6;
@@ -1113,7 +1187,7 @@ async function handleStatePlugin(newCode) {
       const mod = await import(STATE_PLUGINS[newCode]);
       _activePlugin = mod;
       _activePluginCode = newCode;
-      mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack });
+      mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack, stackRightLegends });
     } catch (e) { console.error('Plugin ' + newCode + ' failed:', e); }
   }
 }
@@ -1186,6 +1260,9 @@ function ensureLayerStack() {
    VARIABLE SELECT
    ════════════════════════════════════════════════════════════════ */
 document.getElementById("var-select").addEventListener("change", function() {
+  // Dismiss any open popup (e.g. HHP basin tip) when switching layers
+  popupOverlay.setPosition(undefined);
+
   // If switching away from HHP, remove the vector layer
   if (hhpLayer && map.getLayers().getArray().includes(hhpLayer)) {
     map.removeLayer(hhpLayer);
@@ -1799,9 +1876,15 @@ document.getElementById('huc-avg-chk').addEventListener('change', function() {
 });
 
 
-// County/tribal/USDM tooltip on pointer move
+// County/tribal/USDM tooltip on pointer move (skip on touch devices — no hover)
+let _tooltipRAF = null;
 map.on('pointermove', function(e) {
   if (e.dragging) { tooltipOverlay.setPosition(undefined); return; }
+  if (isMobileView()) return;
+  if (_tooltipRAF) return;
+  _tooltipRAF = requestAnimationFrame(() => { _tooltipRAF = null; _handleTooltipMove(e); });
+});
+function _handleTooltipMove(e) {
   const pixel = map.getEventPixel(e.originalEvent);
   var tooltipText = '';
   map.forEachFeatureAtPixel(pixel, function(feature, layer) {
@@ -1837,7 +1920,7 @@ map.on('pointermove', function(e) {
   } else {
     tooltipOverlay.setPosition(undefined);
   }
-});
+}
 
 /* ════════════════════════════════════════════════════════════════
    TRIBAL NATIONS OVERLAY
@@ -1926,9 +2009,36 @@ function queryRasterAt(coord) {
   queryLastLatLng = coord; // [lon, lat]
   const cfg = VAR_CONFIG[activeVar];
   if (!cfg || cfg.noRaster) {
-    if (activeVar === "hhp") {
+    if (activeVar === "hhp" && hhpLayer) {
+      const pixel = map.getPixelFromCoordinate(ol.proj.fromLonLat(coord));
+      let hit = null;
+      map.forEachFeatureAtPixel(pixel, function(feature, layer) {
+        if (layer === hhpLayer && !hit) hit = feature;
+      });
       const popupContent = popupEl.querySelector('.ol-popup-content');
-      popupContent.innerHTML = '<span class="query-label">Click a basin polygon for streamflow data</span>';
+      if (hit) {
+        const name = hit.get('basin_name') || 'Unknown Basin';
+        const v = hit.get('ft3_s_ecdf');
+        const hex = streamflowScale(v).hex();
+        let pctText;
+        if (v <= 0) pctText = 'Daily 30-yr Minimum';
+        else if (v >= 1) pctText = 'Daily 30-yr Maximum';
+        else {
+          const p = Math.round(v * 100);
+          const sfx = (p%100>=11&&p%100<=13)?'th':(p%10===1)?'st':(p%10===2)?'nd':(p%10===3)?'rd':'th';
+          pctText = p + sfx + ' percentile';
+        }
+        popupContent.innerHTML = '<div style="text-align:center;min-width:140px">' +
+          '<div style="font-weight:600;margin-bottom:4px">' + name + '</div>' +
+          '<div class="query-val" style="font-size:0.85rem">' +
+            '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
+            pctText +
+          '</div>' +
+          '<div class="query-label">HHP Streamflow</div>' +
+        '</div>';
+      } else {
+        popupContent.innerHTML = '<span class="query-label">No basin at this location</span>';
+      }
       popupOverlay.setPosition(ol.proj.fromLonLat(coord));
     }
     return;
@@ -2241,10 +2351,19 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
       const key = tip.getAttribute('data-tip');
       portal.innerHTML = tipContent[key] || '';
       const rect = tip.getBoundingClientRect();
-      const sidebar = document.getElementById('sidebar');
-      const sidebarRight = sidebar ? sidebar.getBoundingClientRect().right : 290;
-      portal.style.left = (sidebarRight + 10) + 'px';
-      portal.style.top = Math.max(10, rect.top - 10) + 'px';
+      if (isMobileView()) {
+        portal.style.left = '10px';
+        portal.style.right = '10px';
+        portal.style.width = 'auto';
+        portal.style.top = (rect.bottom + 6) + 'px';
+      } else {
+        portal.style.right = '';
+        portal.style.width = '';
+        const sidebar = document.getElementById('sidebar');
+        const sidebarRight = sidebar ? sidebar.getBoundingClientRect().right : 290;
+        portal.style.left = (sidebarRight + 10) + 'px';
+        portal.style.top = Math.max(10, rect.top - 10) + 'px';
+      }
       portal.style.display = 'block';
     }
     function hide() { portal.style.display = 'none'; }
@@ -2261,7 +2380,7 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
 async function loadHhpStreamflow() {
   const resp = await fetch("https://data.climate.umt.edu/share/current_flow_percentile.geojson");
   const data = await resp.json();
-  const features = data.features.filter(f => !EXCLUDED_BASINS.includes(f.properties?.basin_name?.trim()));
+  const features = data.features.filter(f => !isExcludedBasin((f.properties?.basin_name || '').trim()));
   const geojson = { type: "FeatureCollection", features: features };
   hhpLayer = new ol.layer.Vector({
     source: new ol.source.Vector({
@@ -2578,10 +2697,19 @@ document.getElementById("usdm-date-select").addEventListener("change", async fun
 function stackRightLegends() {
   const sf = document.getElementById("sf-legend");
   const usdm = document.getElementById("usdm-legend");
-  if (sf.style.display !== "none" && usdm.style.display !== "none") {
-    usdm.style.bottom = (30 + sf.offsetHeight + 8) + "px";
-  } else {
-    usdm.style.bottom = "30px";
+  const meso = document.getElementById("mesonet-legend");
+  let bottom = isMobileView() ? 10 : 30;
+  // Stack from bottom up: streamflow, mesonet, usdm
+  if (sf && sf.style.display !== "none") {
+    sf.style.bottom = bottom + "px";
+    bottom += sf.offsetHeight + 8;
+  }
+  if (meso && meso.style.display !== "none") {
+    meso.style.bottom = bottom + "px";
+    bottom += meso.offsetHeight + 8;
+  }
+  if (usdm) {
+    usdm.style.bottom = (usdm.style.display !== "none" ? bottom : 30) + "px";
   }
 }
 
@@ -3366,6 +3494,14 @@ function cleanupConvergence() {
   convSubLayers = [];
   // Restore HHP visibility if it was hidden by convergence
   if (hhpLayer) hhpLayer.setVisible(true);
+  // Restore dropdown label and highlight to current variable
+  var csTrigger = document.querySelector('#custom-var-select .cs-label');
+  var selOpt = document.getElementById('var-select').selectedOptions[0];
+  if (csTrigger && selOpt) csTrigger.textContent = selOpt.textContent;
+  var curVal = document.getElementById('var-select').value;
+  document.querySelectorAll('#custom-var-select .cs-item').forEach(function(i) {
+    i.classList.toggle('active', i.dataset.value === curVal);
+  });
 }
 
 document.getElementById('conv-apply-btn').addEventListener('click', function() {
@@ -3378,6 +3514,10 @@ document.getElementById('conv-apply-btn').addEventListener('click', function() {
   errEl.style.display = 'none';
   convActive = true;
   applyConvergence();
+  // Update dropdown label to show convergence is active
+  var csTrigger = document.querySelector('#custom-var-select .cs-label');
+  if (csTrigger) csTrigger.textContent = 'Convergence of Evidence';
+  document.querySelectorAll('#custom-var-select .cs-item').forEach(function(i) { i.classList.remove('active'); });
   updateVarInfo(activeVar);
   // Auto-expand the Information section to show convergence details
   var infoLabel = document.querySelector('[data-sec="sec-info"]');
@@ -3539,7 +3679,7 @@ function applyConvergence() {
         .then(function(r) { return r.json(); })
         .then(function(geojson) {
           var features = geojson.features.filter(function(f) {
-            return !EXCLUDED_BASINS.includes(f.properties?.basin_name?.trim());
+            return !isExcludedBasin((f.properties?.basin_name || '').trim());
           });
           return { isHhp: true, geojson: { type: 'FeatureCollection', features: features } };
         });
@@ -3603,10 +3743,13 @@ function applyConvergence() {
         var pixLat = bbox[3] - (ry + 0.5) * refResY;
         var rvals = [];
         var rweights = [];
-        var rAllNodata = true;
+        var totalWeight = 0;
+        var nodataWeight = 0;
         for (var rli = 0; rli < rasters.length; rli++) {
           var rr = rasters[rli];
           var layerWeight = weights[rli];
+          if (layerWeight <= 0) continue;
+          totalWeight += layerWeight;
           var rraw;
           var layerNodata = false;
           if (rr.isSnodas) {
@@ -3635,27 +3778,20 @@ function applyConvergence() {
             rraw = rr.data[ri];
             if (rraw === -9999 || isNaN(rraw) || !isFinite(rraw)) { layerNodata = true; }
           }
-          // If a non-zero-weight layer has nodata, mark entire pixel as nodata
           if (layerNodata) {
-            if (layerWeight > 0) { rAllNodata = true; break; }
+            nodataWeight += layerWeight;
             continue;
           }
-          rAllNodata = false;
           var scale = CONV_INDICES[convLayers[rli].varKey].rawScale || 0.01;
           var rscaled = rraw * scale;
           if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
           rvals.push(rscaled);
           rweights.push(layerWeight);
         }
-        // Filter out null entries
-        var validVals = [], validWeights = [];
-        for (var vi = 0; vi < rvals.length; vi++) {
-          if (rvals[vi] !== null && rweights[vi] > 0) {
-            validVals.push(rvals[vi]);
-            validWeights.push(rweights[vi]);
-          }
-        }
-        if (rAllNodata || validVals.length === 0) {
+        // Nodata if majority of weight is missing
+        var validVals = rvals;
+        var validWeights = rweights;
+        if (validVals.length === 0 || nodataWeight > totalWeight * 0.5) {
           compositeData[ri] = -9999;
         } else if (method === 'mean') {
           var wsum = 0, wtotal = 0;
@@ -3839,7 +3975,24 @@ function applyConvergence() {
 /* ════════════════════════════════════════════════════════════════
    SIDEBAR COLLAPSE
    ════════════════════════════════════════════════════════════════ */
-let sidebarOpen = true;
+let sidebarOpen = !isMobileView();
+if (sidebarOpen) {
+  // Desktop: remove collapsed class that was set in HTML
+  document.getElementById('sidebar').classList.remove('collapsed');
+} else {
+  // Mobile: peek animation
+  var sb = document.getElementById('sidebar');
+  setTimeout(function() {
+    sb.style.transition = 'transform 0.4s ease';
+    sb.style.transform = 'translateX(-220px)';
+    setTimeout(function() {
+      sb.style.transition = 'transform 0.3s ease';
+      sb.style.transform = 'translateX(calc(-1 * var(--sidebar-w)))';
+      setTimeout(function() { sb.style.transition = ''; sb.style.transform = ''; }, 350);
+      document.getElementById('hamburger').classList.add('pulse-hint');
+    }, 1000);
+  }, 600);
+}
 const sidebar     = document.getElementById("sidebar");
 const collapseBtn = document.getElementById("collapse-btn");
 const spinner     = document.getElementById("spinner");
@@ -3859,7 +4012,7 @@ function toggleSidebar() {
   }
 
   const overlay = document.getElementById('mobile-overlay');
-  if (window.innerWidth <= 640) {
+  if (isMobileView()) {
     overlay.classList.toggle('active', sidebarOpen);
   } else {
     overlay.classList.remove('active');
@@ -3937,6 +4090,9 @@ function getExportAttribution() {
   }
   // USGS streamflow overlay
   if (usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer)) sources.add("USGS");
+  // Montana Mesonet overlay
+  const mesoLeg = document.getElementById("mesonet-legend");
+  if (mesoLeg && mesoLeg.style.display !== "none") sources.add("Montana Mesonet");
   // USDM overlay
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) sources.add("USDM/NDMC");
   return sources.size ? "Data: " + [...sources].join(", ") : "";
@@ -4281,6 +4437,78 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
   return cx + Math.round(20 * sc);
 }
 
+function drawMesonetFooterLegend(ctx, footerY, startX, sc) {
+  const et = getExportTheme();
+  const mesoLeg = document.getElementById("mesonet-legend");
+  if (!mesoLeg || mesoLeg.style.display === "none") return 0;
+
+  const rows = [
+    { color: "#730000", label: "Exc. Dry" },
+    { color: "#E60000", label: "Ext. Dry" },
+    { color: "#FFAA00", label: "Sev. Dry" },
+    { color: "#FCD37F", label: "Mod. Dry" },
+    { color: "#FFFF00", label: "Abn. Dry" },
+    { color: "#FFFFFF", label: "Normal" },
+    { color: "#82FCF9", label: "Abn. Wet" },
+    { color: "#32E1FA", label: "Mod. Wet" },
+    { color: "#325CFE", label: "Sev. Wet" },
+    { color: "#4030E3", label: "Ext. Wet" },
+    { color: "#303B83", label: "Exc. Wet" }
+  ];
+
+  const title = "Standardized Soil Moisture Anomaly (Montana Mesonet)";
+  const titleFS = Math.round(13 * sc);
+  const labelFS = Math.round(11 * sc);
+  const circleR = Math.round(6 * sc);
+  const cellGap = Math.round(4 * sc);
+
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const minCellW = circleR * 2 + Math.round(4 * sc);
+  const cellWidths = rows.map(row => {
+    const lw = ctx.measureText(row.label).width;
+    return Math.max(minCellW, Math.round(lw + 2 * sc));
+  });
+  const totalW = cellWidths.reduce((a, b) => a + b, 0) + cellGap * (rows.length - 1);
+
+  let cx = startX;
+  let cy = footerY + Math.round(8 * sc);
+
+  ctx.textBaseline = "top";
+
+  ctx.fillStyle = et.legendTitle;
+  ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(title, startX + totalW / 2, cy);
+  ctx.textAlign = "left";
+  cy += titleFS + Math.round(4 * sc);
+
+  const circleY = cy + circleR;
+  rows.forEach((row, i) => {
+    const centerX = cx + cellWidths[i] / 2;
+    ctx.beginPath();
+    ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
+    ctx.fillStyle = row.color;
+    ctx.fill();
+    ctx.strokeStyle = et.circleStroke;
+    ctx.lineWidth = Math.round(0.8 * sc);
+    ctx.stroke();
+    cx += cellWidths[i] + cellGap;
+  });
+
+  ctx.fillStyle = et.legendLabel;
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const labelY = circleY + circleR + Math.round(3 * sc);
+  cx = startX;
+  rows.forEach((row, i) => {
+    ctx.textAlign = "center";
+    ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+    cx += cellWidths[i] + cellGap;
+  });
+  ctx.textAlign = "left";
+
+  return cx + Math.round(20 * sc);
+}
+
 /* ════════════════════════════════════════════════════════════════
    DOWNLOAD GEOTIFF
    ════════════════════════════════════════════════════════════════ */
@@ -4386,9 +4614,11 @@ async function downloadGeoTIFF() {
           var ri = ry * w + rx;
           var pixLon = bbox[0] + (rx + 0.5) * refResX;
           var pixLat = bbox[3] - (ry + 0.5) * refResY;
-          var vals = [], wts = [], allNodata = true;
+          var vals = [], wts = [], eTotalW = 0, eNodataW = 0;
           for (var rli = 0; rli < rasters.length; rli++) {
             var rr = rasters[rli], lw = weights[rli], raw, nodata = false;
+            if (lw <= 0) continue;
+            eTotalW += lw;
             if (rr.isSnodas) {
               var sRX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
               var sRY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
@@ -4407,14 +4637,13 @@ async function downloadGeoTIFF() {
               raw = rr.data[ri];
               if (raw === -9999 || isNaN(raw) || !isFinite(raw)) nodata = true;
             }
-            if (nodata) { if (lw > 0) { allNodata = true; break; } continue; }
-            allNodata = false;
+            if (nodata) { eNodataW += lw; continue; }
             var scl = (CONV_INDICES[convLayers[rli].varKey].rawScale || 0.01);
             var scaled = raw * scl;
             if (CONV_INDICES[convLayers[rli].varKey].negate) scaled = -scaled;
             vals.push(scaled); wts.push(lw);
           }
-          if (allNodata || vals.length === 0) continue;
+          if (vals.length === 0 || eNodataW > eTotalW * 0.5) continue;
           if (method === 'mean') {
             var ws = 0, wt = 0;
             for (var i = 0; i < vals.length; i++) { ws += vals[i] * wts[i]; wt += wts[i]; }
@@ -4739,6 +4968,10 @@ async function takeScreenshot(exportScale) {
     const sfRx = drawStreamflowFooterLegend(ctx, footerContentY, legendRightX, SCALE);
     if (sfRx) legendRightX = sfRx;
 
+    // Draw Mesonet legend in footer (circles like on map) if active
+    const mesoRx = drawMesonetFooterLegend(ctx, footerContentY, legendRightX, SCALE);
+    if (mesoRx) legendRightX = mesoRx;
+
     // Draw USDM legend in footer (to right of other legends)
     drawUsdmFooterLegend(ctx, footerContentY, legendRightX, SCALE);
 
@@ -4778,6 +5011,26 @@ document.getElementById("download-tiff-btn").addEventListener("click", function(
   downloadGeoTIFF();
 });
 
+document.getElementById("copy-cog-url-btn").addEventListener("click", function() {
+  if (convActive) return;
+  const cfg = VAR_CONFIG[activeVar];
+  if (!cfg || cfg.noRaster) return;
+  var url;
+  if (cfg.isSnodasRaw) {
+    url = 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif';
+  } else if (cfg.isSnodas) {
+    url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+  } else {
+    url = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
+  }
+  const vsicurl = '/vsicurl/' + url;
+  navigator.clipboard.writeText(vsicurl).then(function() {
+    var btn = document.getElementById("copy-cog-url-btn");
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy COG URL (for GIS / R / Python)'; }, 2000);
+  });
+});
+
 document.getElementById("screenshot-btn").addEventListener("click", function(e) {
   e.stopPropagation();
   const dd = document.getElementById("export-dropdown");
@@ -4786,6 +5039,13 @@ document.getElementById("screenshot-btn").addEventListener("click", function(e) 
     dd.style.top = (rect.bottom + 4) + 'px';
     dd.style.left = rect.left + 'px';
     dd.style.display = 'block';
+    // Hide COG URL button for convergence/noRaster layers
+    const cogBtn = document.getElementById("copy-cog-url-btn");
+    const cogHint = cogBtn.nextElementSibling;
+    const cfg = VAR_CONFIG[activeVar];
+    const hideCog = convActive || !cfg || cfg.noRaster;
+    cogBtn.style.display = hideCog ? 'none' : 'flex';
+    if (cogHint) cogHint.style.display = hideCog ? 'none' : 'block';
   } else {
     dd.style.display = 'none';
   }
@@ -4940,7 +5200,7 @@ document.getElementById("flow-panel-close").addEventListener("click", function (
   header.addEventListener("mousedown", function (e) {
     if (e.target === document.getElementById("flow-panel-close")) return;
     // Skip on mobile (handled by touch / bottom-sheet)
-    if (window.innerWidth <= 640) return;
+    if (isMobileView()) return;
     switchToLeft();
     dragging = true;
     const r = panel.getBoundingClientRect();
@@ -4968,7 +5228,7 @@ document.getElementById("flow-panel-close").addEventListener("click", function (
   let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
 
   handle.addEventListener("mousedown", function (e) {
-    if (window.innerWidth <= 640) return;
+    if (isMobileView()) return;
     switchToLeft();
     resizing = true;
     rsX = e.clientX;
@@ -5404,49 +5664,83 @@ window.addEventListener('popstate', function() {
     moreWrap.style.display = 'none';
     dropdown.innerHTML = '';
 
-    // Check which items overflow the container
-    const containerRight = actions.getBoundingClientRect().right;
+    // On mobile: force all items into the More dropdown
+    const isMobile = isMobileView();
     const overflowed = [];
-    items.forEach(el => {
-      if (el.getBoundingClientRect().right > containerRight + 1) {
-        overflowed.push(el);
-      }
-    });
 
-    if (overflowed.length === 0) return;
+    if (isMobile) {
+      overflowed.push(...items);
+    } else {
+      // Check which items overflow the container
+      const containerRight = actions.getBoundingClientRect().right;
+      items.forEach(el => {
+        if (el.getBoundingClientRect().right > containerRight + 1) {
+          overflowed.push(el);
+        }
+      });
 
-    // Show More button, hide overflowed items
-    moreWrap.style.display = 'block';
+      if (overflowed.length === 0) return;
 
-    // Recheck after More button takes space
-    const containerRight2 = actions.getBoundingClientRect().right;
-    items.forEach(el => {
-      if (el.getBoundingClientRect().right > containerRight2 + 1) {
-        if (!overflowed.includes(el)) overflowed.push(el);
-      }
-    });
+      // Show More button, hide overflowed items
+      moreWrap.style.display = 'block';
+
+      // Recheck after More button takes space
+      const containerRight2 = actions.getBoundingClientRect().right;
+      items.forEach(el => {
+        if (el.getBoundingClientRect().right > containerRight2 + 1) {
+          if (!overflowed.includes(el)) overflowed.push(el);
+        }
+      });
+    }
 
     overflowed.forEach(el => {
       el.style.display = 'none';
-      // Clone into dropdown
+
+      // Skip export on mobile, keep on desktop overflow
+      if (el.id === 'export-wrap') {
+        if (isMobile) return;
+        const exportBtn = document.createElement('button');
+        exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Export (2x)';
+        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(2); });
+        dropdown.appendChild(exportBtn);
+        return;
+      }
+
+      // For wraps with sub-dropdowns (archive, github, impact): flatten inner links
+      const parentWrap = el.parentElement;
+      const innerDropdown = parentWrap && parentWrap.id !== 'nav-actions' && parentWrap.querySelector('[id$="-dropdown"]');
+      if (innerDropdown) {
+        // Add a section header from the button text
+        const header = document.createElement('div');
+        header.textContent = el.textContent.replace(/[▾▸]/g, '').trim();
+        header.style.cssText = 'padding:6px 16px 2px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);';
+        dropdown.appendChild(header);
+        innerDropdown.querySelectorAll('a').forEach(link => {
+          const a = document.createElement('a');
+          a.href = link.href;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = link.textContent.trim();
+          a.addEventListener('click', () => dropdown.classList.remove('open'));
+          dropdown.appendChild(a);
+        });
+        return;
+      }
+
+      // For simple buttons (methods, feedback, tips, share): clone as button
       const clone = el.cloneNode(true);
       clone.removeAttribute('id');
       clone.classList.remove('nav-action-item');
       clone.style.display = '';
-      // For screenshot button, wire up the onclick
-      if (el.id === 'export-wrap') {
-        clone.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Export (2x)';
-        clone.style.cursor = 'pointer';
-        clone.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(2); });
-      }
-      // For share button, wire up click
+
       if (el.id === 'share-btn') {
+        const toast = clone.querySelector('.share-toast');
+        if (toast) toast.remove();
         clone.addEventListener('click', () => {
           dropdown.classList.remove('open');
           document.getElementById('share-btn').click();
         });
       }
-      // Close dropdown on link click
       if (clone.tagName === 'A') {
         clone.addEventListener('click', () => dropdown.classList.remove('open'));
       }
@@ -5456,10 +5750,13 @@ window.addEventListener('popstate', function() {
 
   moreBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    e.preventDefault();
     dropdown.classList.toggle('open');
   });
 
-  document.addEventListener('click', () => dropdown.classList.remove('open'));
+  document.addEventListener('click', (e) => {
+    if (!moreWrap.contains(e.target)) dropdown.classList.remove('open');
+  });
   dropdown.addEventListener('click', (e) => e.stopPropagation());
 
   window.addEventListener('resize', updateOverflow);
@@ -5524,6 +5821,10 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
     <div class="tips-item">
       <div class="tips-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></div>
       <div class="tips-text"><strong>Open source.</strong> Click <strong>GitHub</strong> to view the source code and data pipeline behind this dashboard.</div>
+    </div>
+    <div class="tips-item">
+      <div class="tips-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <div class="tips-text"><strong>Convergence of Evidence.</strong> Open the <strong>Convergence of Evidence</strong> section in the sidebar to composite multiple drought indices (SPI, SPEI, EDDI, SVPDI) into a single map. Choose your indices, timescales, and weights, then compute a median or mean composite to see where multiple indicators agree on drought conditions.</div>
     </div>
     <button id="tips-close-btn">Got it</button>
   </div>
