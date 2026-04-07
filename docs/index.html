@@ -1566,6 +1566,8 @@ async function loadStates() {
       style: new ol.style.Style({
         stroke: new ol.style.Stroke({ color: '#445', width: 2.5 })
       }),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
       zIndex: 10
     });
     map.addLayer(statesLayer);
@@ -1620,6 +1622,8 @@ async function loadCounties() {
         stroke: new ol.style.Stroke({ color: '#334', width: 0.6 }),
         fill: new ol.style.Fill({ color: 'rgba(0,0,0,0)' })
       }),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
       zIndex: 8
     });
     map.addLayer(countiesLayer);
@@ -1899,6 +1903,8 @@ function showHucLayer() {
         stroke: new ol.style.Stroke({ color: '#2196F3', width: 1.2 }),
         fill: new ol.style.Fill({ color: 'rgba(0,0,0,0)' })
       }),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
       zIndex: 6
     });
     map.addLayer(hucLayer);
@@ -2048,6 +2054,8 @@ async function loadTribalNations() {
       stroke: new ol.style.Stroke({ color: '#c47ddb', width: 1.5 }),
       fill: new ol.style.Fill({ color: 'rgba(196,125,219,0.12)' })
     }),
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
     zIndex: 9
   });
   tribalLoaded = true;
@@ -2471,18 +2479,29 @@ async function loadHhpStreamflow() {
   const data = await resp.json();
   const features = data.features.filter(f => !isExcludedBasin((f.properties?.basin_name || '').trim()));
   const geojson = { type: "FeatureCollection", features: features };
-  hhpLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-    }),
-    style: function(feature) {
-      return new ol.style.Style({
+  // Pre-compute styles for HHP features (avoid creating new Style per render)
+  var hhpFeatures = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
+  var hhpStyleCache = {};
+  hhpFeatures.forEach(function(f) {
+    var val = f.get('ft3_s_ecdf');
+    var key = Math.round(val * 1000);
+    if (!hhpStyleCache[key]) {
+      hhpStyleCache[key] = new ol.style.Style({
         fill: new ol.style.Fill({
-          color: streamflowScale(feature.get('ft3_s_ecdf')).alpha(parseFloat(opacitySlider.value)).css()
+          color: streamflowScale(val).alpha(parseFloat(opacitySlider.value)).css()
         }),
         stroke: new ol.style.Stroke({ color: '#333', width: 0.4 })
       });
+    }
+  });
+  hhpLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features: hhpFeatures }),
+    style: function(feature) {
+      var key = Math.round(feature.get('ft3_s_ecdf') * 1000);
+      return hhpStyleCache[key] || null;
     },
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
     zIndex: 5
   });
 
@@ -2515,19 +2534,28 @@ async function loadUsgsStreamflow() {
     const pct = typeof raw === "number" ? Math.round(raw) + "%" : "";
     f.properties._tooltip = (p.STANAME || "USGS gage") + (p.STAID ? " (" + p.STAID + ")" : "") + ": " + pct;
   });
-  usgsStreamLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-      features: new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' })
-    }),
-    style: function(feature) {
-      return new ol.style.Style({
+  // Pre-compute USGS styles by fillColor
+  var usgsFeatures = new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' });
+  var usgsStyleCache = {};
+  usgsFeatures.forEach(function(f) {
+    var c = f.get('fillColor') || '#000';
+    if (!usgsStyleCache[c]) {
+      usgsStyleCache[c] = new ol.style.Style({
         image: new ol.style.Circle({
           radius: 4.5,
-          fill: new ol.style.Fill({ color: feature.get('fillColor') || '#000' }),
+          fill: new ol.style.Fill({ color: c }),
           stroke: new ol.style.Stroke({ color: '#000', width: 0.8 })
         })
       });
+    }
+  });
+  usgsStreamLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features: usgsFeatures }),
+    style: function(feature) {
+      return usgsStyleCache[feature.get('fillColor') || '#000'] || null;
     },
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
     zIndex: 12
   });
 
@@ -2716,17 +2744,23 @@ async function loadUsdmForDate(dateStr) {
 
   // Remove old layer, create new
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
+  // Pre-compute USDM styles by DM class
+  var usdmStyleCache = {};
+  for (var dm = 0; dm <= 4; dm++) {
+    usdmStyleCache[dm] = new ol.style.Style({
+      fill: new ol.style.Fill({ color: chroma(USDM_DM_COLORS[dm] || '#999').alpha(usdmOpacity).css() }),
+      stroke: new ol.style.Stroke({ color: '#333', width: 0.6 })
+    });
+  }
   usdmLayer = new ol.layer.Vector({
     source: new ol.source.Vector({
       features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
     }),
     style: function(feature) {
-      const dm = feature.get('DM');
-      return new ol.style.Style({
-        fill: new ol.style.Fill({ color: chroma(USDM_DM_COLORS[dm] || '#999').alpha(usdmOpacity).css() }),
-        stroke: new ol.style.Stroke({ color: '#333', width: 0.6 })
-      });
+      return usdmStyleCache[feature.get('DM')] || null;
     },
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
     zIndex: 3
   });
   usdmLayerCache[dateStr] = usdmLayer;
