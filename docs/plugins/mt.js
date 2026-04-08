@@ -75,23 +75,35 @@ async function loadDepthLayer(map) {
     geojson.features.forEach(f => {
       const name = f.properties.name || f.properties.NAME || 'Unknown Station';
       const stationId = f.properties.station || '';
+      const val = f.properties.anom;
       f.properties._name = name;
+      f.properties._val = val;
       f.properties._plotUrl = PLOT_BASE + stationId + '_' + depth.plot + '_current.png';
     });
 
-    markerLayer = new ol.layer.Vector({
-      source: new ol.source.Vector({
-        features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
-      }),
-      style: function(feature) {
-        return new ol.style.Style({
+    // Pre-compute styles by fillColor
+    var mesoStyleCache = {};
+    var mesoFeatures = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
+    mesoFeatures.forEach(f => {
+      var c = f.get('fillColor') || '#888';
+      if (!mesoStyleCache[c]) {
+        mesoStyleCache[c] = new ol.style.Style({
           image: new ol.style.Circle({
             radius: 6,
-            fill: new ol.style.Fill({ color: feature.get('fillColor') || '#888' }),
+            fill: new ol.style.Fill({ color: c }),
             stroke: new ol.style.Stroke({ color: '#000', width: 0.8 })
           })
         });
+      }
+    });
+
+    markerLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: mesoFeatures }),
+      style: function(feature) {
+        return mesoStyleCache[feature.get('fillColor') || '#888'] || null;
       },
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
       zIndex: 50
     });
 
@@ -118,7 +130,10 @@ function _onPointerMove(e) {
   const tooltipEl = document.querySelector('.county-tooltip');
   const tooltipOverlay = _map.getOverlays().getArray().find(o => o.getElement() === tooltipEl);
   if (hit && hit.get('_name')) {
-    if (tooltipEl) tooltipEl.innerHTML = hit.get('_name');
+    var valText = '';
+    var v = hit.get('_val');
+    if (v != null && !isNaN(v)) valText = ': ' + parseFloat(v).toFixed(2);
+    if (tooltipEl) tooltipEl.innerHTML = hit.get('_name') + valText;
     if (tooltipOverlay) tooltipOverlay.setPosition(e.coordinate);
     _map.getTargetElement().style.cursor = 'pointer';
   } else {
@@ -140,8 +155,10 @@ function _onMarkerClick(e) {
   if (!plotUrl) return;
 
   // Open in the flow panel (same as HHP)
+  var val = hit.get('_val');
+  var valStr = (val != null && !isNaN(val)) ? ' (Anomaly: ' + parseFloat(val).toFixed(2) + ')' : '';
   document.getElementById('flow-panel-title').textContent = name;
-  document.getElementById('flow-panel-sub').textContent = 'Soil Moisture \u2014 ' + depth.label;
+  document.getElementById('flow-panel-sub').textContent = 'Soil Moisture \u2014 ' + depth.label + valStr;
   const content = document.getElementById('flow-panel-content');
   content.innerHTML = '';
   const img = document.createElement('img');

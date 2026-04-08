@@ -1677,7 +1677,7 @@ function computeZonalAverages(srcLayer, type, zIdx) {
   var cfg = VAR_CONFIG[activeVar];
   // Minimum coverage ratio: fraction of grid cells inside zone that must have valid data
   // SNODAS has seasonal nodata (no snow), so use a lower threshold
-  var minCoverage = (cfg && cfg.isSnodas) ? 0.25 : 0.9;
+  var minCoverage = (cfg && cfg.isSnodas) ? 0.25 : 0.5;
   var scale = cfg ? (cfg.rawScale || 0.01) : 0.01;
   var isConv = convActive && convCogLayer;
 
@@ -1972,14 +1972,9 @@ document.getElementById('huc-avg-chk').addEventListener('change', function() {
 
 
 // County/tribal/USDM tooltip on pointer move (skip on touch devices — no hover)
-let _tooltipRAF = null;
 map.on('pointermove', function(e) {
   if (e.dragging) { tooltipOverlay.setPosition(undefined); return; }
   if (isMobileView()) return;
-  if (_tooltipRAF) return;
-  _tooltipRAF = requestAnimationFrame(() => { _tooltipRAF = null; _handleTooltipMove(e); });
-});
-function _handleTooltipMove(e) {
   const pixel = map.getEventPixel(e.originalEvent);
   var tooltipText = '';
   map.forEachFeatureAtPixel(pixel, function(feature, layer) {
@@ -2015,7 +2010,7 @@ function _handleTooltipMove(e) {
   } else {
     tooltipOverlay.setPosition(undefined);
   }
-}
+});
 
 /* ════════════════════════════════════════════════════════════════
    TRIBAL NATIONS OVERLAY
@@ -2352,13 +2347,18 @@ map.on("click", function(e) {
   // Check for click on aggregated zonal average features first
   var zonalHit = null;
   var zonalType = '';
+  var pluginHit = false;
   map.forEachFeatureAtPixel(e.pixel, function(feature, layer) {
-    if (zonalHit) return;
+    if (zonalHit || pluginHit) return;
     if (layer === countyAvgLayer) { zonalHit = feature; zonalType = 'County'; }
     else if (layer === stateAvgLayer) { zonalHit = feature; zonalType = 'State'; }
     else if (layer === tribalAvgLayer) { zonalHit = feature; zonalType = 'Tribal Nation'; }
     else if (layer === hucAvgLayer) { zonalHit = feature; zonalType = 'HUC'; }
+    else if (feature.get('_plotUrl')) { pluginHit = true; }
   });
+
+  // If a plugin marker (e.g. Mesonet) was clicked, let the plugin handle it
+  if (pluginHit) return;
 
   if (zonalHit) {
     var name = zonalHit.get('_name') || zonalType;
@@ -3343,27 +3343,28 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
       }
       retryQuery(5);
     }
-    // Recompute zonal averages if active — retry until tiles across CONUS are loaded
+    // Recompute zonal averages if active — quick retry until a test pixel has data
     if (countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive) {
+      showSpinner('Computing averages\u2026');
+      popupOverlay.setPosition(undefined);
       (function retryZonal(attempts) {
-        if (myGen !== _renderGen) return;
-        // Test multiple points across CONUS to confirm all tiles are loaded
-        var testPts = [[-98,38],[-82,35],[-120,42],[-75,40],[-90,32]];
-        var allReady = testPts.every(function(pt) {
-          var px = map.getPixelFromCoordinate(ol.proj.fromLonLat(pt));
-          if (!px) return true; // off-screen, skip
-          var d = cogLayer && cogLayer.getData(px);
-          return d && d.length && !isNaN(d[0]);
-        });
-        if (allReady) {
+        if (myGen !== _renderGen) { hideSpinner(); return; }
+        // Quick test: does the center of the viewport have data yet?
+        var viewCenter = ol.proj.toLonLat(map.getView().getCenter());
+        var px = map.getPixelFromCoordinate(ol.proj.fromLonLat(viewCenter));
+        var d = px && cogLayer && cogLayer.getData(px);
+        if (d && d.length && d[0] !== 0 && !isNaN(d[0])) {
           if (countyAvgActive) computeCountyAverages();
           if (stateAvgActive) computeStateAverages();
           if (tribalAvgActive) computeTribalAverages();
           if (hucAvgActive) computeHucAverages();
+          hideSpinner();
         } else if (attempts > 0) {
-          setTimeout(function() { retryZonal(attempts - 1); }, 400);
+          setTimeout(function() { retryZonal(attempts - 1); }, 150);
+        } else {
+          hideSpinner();
         }
-      })(20);
+      })(15);
     }
   });
 }
