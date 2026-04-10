@@ -60,7 +60,7 @@
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
     <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO" width="36" height="36">
   </a>
-  <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the Montana Climate Office &amp; the NGP-RIDR</span></span></div>
+  <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">NGP-RIDR</a></span></span></div>
   <div id="nav-actions">
     <div id="export-wrap" class="nav-action-item" style="position:relative;padding:0;">
       <button id="screenshot-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Export map as PNG">
@@ -263,6 +263,23 @@
         </div>
       </div>
 
+      <!-- Station Data — section index 2.3 -->
+      <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:2.3">Station Data <span class="info-tip" tabindex="0" data-tip="station">&#9432;</span><span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-station">
+        <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Meteorological Drought Metrics</div>
+        <div id="ghcn-btn-row" style="display:none;">
+          <button id="ghcn-btn" type="button">
+            <span>Add GHCN Station Data</span>
+          </button>
+        </div>
+        <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:10px;margin-bottom:4px;">Streamflow</div>
+        <div id="usgs-btn-row">
+          <button id="usgs-btn" type="button">
+            <span>Add Current USGS Percentiles</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Convergence of Evidence — section index 2.5 -->
       <div class="section-label sec-collapsed" data-sec="sec-convergence" style="--i:2.5">Convergence of Evidence <span class="info-tip" tabindex="0" data-tip="convergence">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-convergence">
@@ -451,15 +468,6 @@
         <button id="usdm-remove-btn" type="button" style="width:100%;margin-top:8px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">Remove USDM Overlay</button>
       </div>
 
-      <!-- Station Data — section index 6 -->
-      <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:6">Station Data <span class="info-tip" tabindex="0" data-tip="station">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body sec-collapsed" id="sec-station">
-        <div id="usgs-btn-row">
-          <button id="usgs-btn" type="button">
-            <span>Add Current USGS Percentiles</span>
-          </button>
-        </div>
-      </div>
 
 
       <!-- Basemap & Theme — section index 8 (collapsed by default) -->
@@ -610,6 +618,22 @@ function isExcludedBasin(name) {
 
 let hhpLayer = null, hhpLoaded = false;
 let usgsStreamLayer = null, usgsStreamLoaded = false;
+let ghcnLayer = null, ghcnLoaded = false;
+let ghcnActive = false;
+let ghcnStyleCache = {};
+let _ghcnScaleFn = null;
+
+// Map dashboard activeVar to GHCN GeoJSON property prefixes
+const GHCN_VAR_MAP = {
+  'spi': 'spi_', 'spei': 'spei_', 'eddi': 'eddi_',
+  'precip-in': 'precip_mm_', 'precip-pon': 'precip_pon_',
+  'precip-dev': 'precip_dev_', 'precip-pctile': 'precip_pctile_'
+};
+function ghcnPropKey(v, ts, period) {
+  var prefix = GHCN_VAR_MAP[v];
+  if (!prefix) return null;
+  return prefix + ts + '_' + period;
+}
 let usdmLayer = null, usdmLoaded = false;
 let usdmOpacity = 0.55;
 
@@ -1103,6 +1127,7 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
       updateVarInfo(activeVar);
       saveState();
       loadLayer(activeVar, activeTS, activePeriod);
+      if (ghcnActive) restyleGhcnLayer();
     });
     btn.addEventListener("mouseenter", () => {
       prefetch(activeVar, ts, activePeriod);
@@ -1134,6 +1159,7 @@ document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
     updateVarInfo(activeVar);
     saveState();
     loadLayer(activeVar, activeTS, activePeriod);
+    if (ghcnActive) restyleGhcnLayer();
   });
   btn.addEventListener("mouseenter", () => {
     prefetch(activeVar, activeTS, btn.dataset.period);
@@ -1391,6 +1417,7 @@ document.getElementById("var-select").addEventListener("change", function() {
     prLabel.style.display = "none";
     prBody.style.display  = "none";
     loadLayer(activeVar, activeTS, activePeriod);
+    if (ghcnActive) restyleGhcnLayer();
     return;
   }
   // Restore interpolate row for non-SNODAS variables
@@ -1445,6 +1472,7 @@ document.getElementById("var-select").addEventListener("change", function() {
   }
 
   loadLayer(activeVar, activeTS, activePeriod);
+  if (ghcnActive) restyleGhcnLayer();
 });
 
 document.getElementById("var-select").addEventListener("mouseover", function(e) {
@@ -1992,6 +2020,23 @@ map.on('pointermove', function(e) {
       tooltipText = USDM_DM_LABELS[dm] || ('D' + dm);
     } else if (layer === usgsStreamLayer) {
       tooltipText = feature.get('_tooltip') || '';
+    } else if (layer === ghcnLayer) {
+      var gName = feature.get('_ghcnName') || 'GHCN Station';
+      var gPropKey = ghcnPropKey(activeVar, activeTS, activePeriod);
+      if (gPropKey) {
+        var gVal = feature.get(gPropKey);
+        var gCfg = VAR_CONFIG[activeVar];
+        if (gVal != null && !isNaN(gVal)) {
+          var gDisp = gVal;
+          if (gCfg && gCfg.mmToIn) gDisp = gVal / 25.4;
+          if (gCfg && gCfg.cToF) gDisp = gVal * 9 / 5;
+          tooltipText = gName + ': ' + (gCfg && gCfg.labelFmt ? gCfg.labelFmt(gDisp) : gDisp.toFixed(2));
+        } else {
+          tooltipText = gName + ': No data';
+        }
+      } else {
+        tooltipText = gName;
+      }
     } else if (layer === hhpLayer) {
       const name = feature.get('basin_name');
       const v = feature.get('ft3_s_ecdf');
@@ -2348,17 +2393,58 @@ map.on("click", function(e) {
   var zonalHit = null;
   var zonalType = '';
   var pluginHit = false;
+  var ghcnHit = null;
   map.forEachFeatureAtPixel(e.pixel, function(feature, layer) {
-    if (zonalHit || pluginHit) return;
+    if (zonalHit || pluginHit || ghcnHit) return;
     if (layer === countyAvgLayer) { zonalHit = feature; zonalType = 'County'; }
     else if (layer === stateAvgLayer) { zonalHit = feature; zonalType = 'State'; }
     else if (layer === tribalAvgLayer) { zonalHit = feature; zonalType = 'Tribal Nation'; }
     else if (layer === hucAvgLayer) { zonalHit = feature; zonalType = 'HUC'; }
     else if (feature.get('_plotUrl')) { pluginHit = true; }
+    else if (layer === ghcnLayer) { ghcnHit = feature; }
   });
 
   // If a plugin marker (e.g. Mesonet) was clicked, let the plugin handle it
   if (pluginHit) return;
+
+  // GHCN station click popup
+  if (ghcnHit) {
+    var gPK = ghcnPropKey(activeVar, activeTS, activePeriod);
+    var gName = ghcnHit.get('_ghcnName') || 'GHCN Station';
+    var gState = ghcnHit.get('_ghcnState');
+    var gElev = ghcnHit.get('_ghcnElev');
+    var gDate = ghcnHit.get('_ghcnDate');
+    var gCfg = VAR_CONFIG[activeVar];
+    var gValHtml = 'N/A', gHex = '#888';
+    if (gPK) {
+      var gRaw = ghcnHit.get(gPK);
+      if (gRaw != null && !isNaN(gRaw)) {
+        var gV = gRaw;
+        if (gCfg && gCfg.mmToIn) gV = gRaw / 25.4;
+        if (gCfg && gCfg.cToF) gV = gRaw * 9 / 5;
+        gValHtml = (gCfg && gCfg.labelFmt) ? gCfg.labelFmt(gV) : gV.toFixed(2);
+        if (gCfg && gCfg.unit) gValHtml += ' ' + gCfg.unit;
+        var gColor = _ghcnScaleFn ? _ghcnScaleFn(gV) : null;
+        gHex = gColor ? gColor.hex() : '#888';
+      }
+    }
+    var gId = ghcnHit.get('id') || '';
+    var popupContent = popupEl.querySelector('.ol-popup-content');
+    popupContent.innerHTML = '<div style="text-align:center;min-width:160px">' +
+      '<div style="font-weight:600;margin-bottom:2px">' + gName + '</div>' +
+      '<div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;font-family:var(--font-mono)">' + gId + '</div>' +
+      '<div class="query-val" style="font-size:0.85rem">' +
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + gHex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
+        gValHtml +
+      '</div>' +
+      '<div class="query-label">' + (gCfg ? gCfg.label : activeVar) + ' &middot; ' + activeTS + '</div>' +
+      (gState ? '<div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px">' + gState + (gElev != null ? ' &middot; ' + Math.round(gElev) + ' m' : '') + '</div>' : '') +
+      (gDate ? '<div style="font-size:0.68rem;color:var(--text-dim);margin-top:1px">Data: ' + gDate + '</div>' : '') +
+      '<div style="font-size:0.6rem;color:var(--text-dim);margin-top:4px;border-top:1px solid var(--border);padding-top:3px;">GHCN &middot; NOAA/NCEI</div>' +
+    '</div>';
+    popupOverlay.setPosition(e.coordinate);
+    return;
+  }
 
   if (zonalHit) {
     var name = zonalHit.get('_name') || zonalType;
@@ -2433,7 +2519,7 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
     'timescale': 'The time window over which the selected variable is calculated. Shorter timescales (15&ndash;30 days) capture recent conditions, while longer timescales (90&ndash;365 days) reveal persistent trends. Water Year (WY) runs October 1 through September 30; Year to Date (YTD) runs January 1 through today.',
     'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing a longer historical baseline but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. Both may be valid based on your use case.',
     'zoom': 'Quickly zoom the map to a specific state or back to the full CONUS view. Select a state from the dropdown to center and zoom to its bounds.',
-    'station': 'Load real-time USGS streamgage observations onto the map. Stations are colored by their current flow percentile relative to historical conditions at each site.',
+    'station': 'Load station observations onto the map. <strong>USGS</strong> shows streamflow percentiles at gaging sites. <strong>GHCN</strong> shows drought index values (SPI, SPEI, EDDI) and precipitation statistics at ~5,000 weather stations, colored to match the active map layer.',
     'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
     'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
     'overlays': 'Toggle geographic boundaries and reference layers on the map, including state and county lines, tribal nation boundaries, and the U.S. Drought Monitor.',
@@ -2585,6 +2671,104 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
   this.classList.add("is-on");
   showLegendEl(document.getElementById("sf-legend"));
   stackRightLegends();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   GHCN STATION OVERLAY
+   ════════════════════════════════════════════════════════════════ */
+async function loadGhcnStations() {
+  var resp = await fetch('https://data.climate.umt.edu/share/all_stations.geojson.gz');
+  var ds = new DecompressionStream('gzip');
+  var text = await new Response(resp.body.pipeThrough(ds)).text();
+  var data = JSON.parse(text);
+
+  data.features.forEach(function(f) {
+    var p = f.properties || {};
+    f.properties._ghcnName = p.name || p.id || 'GHCN Station';
+    f.properties._ghcnState = p.state || '';
+    f.properties._ghcnElev = p.elev;
+    f.properties._ghcnDate = p.data_date || p.spi_last_obs || '';
+  });
+
+  var features = new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' });
+
+  ghcnLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features: features }),
+    style: function(feature) {
+      var propKey = ghcnPropKey(activeVar, activeTS, activePeriod);
+      if (!propKey) return null;
+      var val = feature.get(propKey);
+      if (val == null || isNaN(val)) return null;
+      var cfg = VAR_CONFIG[activeVar];
+      var displayVal = val;
+      if (cfg && cfg.mmToIn) displayVal = val / 25.4;
+      if (cfg && cfg.cToF) displayVal = val * 9 / 5;
+      var qKey = Math.round(displayVal * 100);
+      if (ghcnStyleCache[qKey]) return ghcnStyleCache[qKey];
+      var color = _ghcnScaleFn ? _ghcnScaleFn(displayVal) : null;
+      var hex = color ? color.hex() : '#888';
+      ghcnStyleCache[qKey] = new ol.style.Style({
+        image: new ol.style.Circle({ radius: 4, fill: new ol.style.Fill({ color: hex }), stroke: new ol.style.Stroke({ color: '#000', width: 0.7 }) })
+      });
+      return ghcnStyleCache[qKey];
+    },
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
+    zIndex: 13
+  });
+  ghcnLoaded = true;
+}
+
+function restyleGhcnLayer() {
+  ghcnStyleCache = {};
+  var propKey = ghcnPropKey(activeVar, activeTS, activePeriod);
+  if (propKey) {
+    var cfg = VAR_CONFIG[activeVar];
+    var rangeOv = getRangeOverride();
+    // For dynamic vars without manual range, compute from station data
+    if (cfg && cfg.dynamic && !rangeOv && ghcnLayer) {
+      var vals = [];
+      ghcnLayer.getSource().forEachFeature(function(f) {
+        var v = f.get(propKey);
+        if (v != null && !isNaN(v) && v > -9000) vals.push(cfg.mmToIn ? v / 25.4 : cfg.cToF ? v * 9 / 5 : v);
+      });
+      if (vals.length > 10) {
+        vals.sort(function(a, b) { return a - b; });
+        var sym = symmetrizeRange(cfg, vals[Math.floor(vals.length * 0.02)], vals[Math.floor(vals.length * 0.98)]);
+        rangeOv = sym;
+      }
+    }
+    var result = buildScale(activeVar, cfg ? cfg.defaultPalette : 'usdm', null, rangeOv);
+    _ghcnScaleFn = result.scaleFn;
+  } else {
+    _ghcnScaleFn = null;
+  }
+  if (ghcnLayer) {
+    ghcnLayer.setVisible(!!propKey);
+    ghcnLayer.changed();
+  }
+}
+
+/* ── GHCN button ────────────────────────────────────────────── */
+document.getElementById("ghcn-btn").addEventListener("click", async function() {
+  var isOn = ghcnLayer && map.getLayers().getArray().includes(ghcnLayer);
+  if (isOn) {
+    map.removeLayer(ghcnLayer);
+    ghcnActive = false;
+    this.querySelector("span").textContent = "Add GHCN Station Data";
+    this.classList.remove("is-on");
+    return;
+  }
+  if (!ghcnLoaded) {
+    showSpinner('Loading GHCN stations\u2026');
+    try { await loadGhcnStations(); } finally { hideSpinner(); }
+  }
+  ghcnActive = true;
+  restyleGhcnLayer();
+  map.addLayer(ghcnLayer);
+  this.querySelector("span").textContent = "Remove GHCN Station Data";
+  this.classList.add("is-on");
+  ensureLayerStack();
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -3318,6 +3502,7 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
           cogLayer.setOpacity(parseFloat(opacitySlider.value));
           const result = buildScale(varKey, paletteKey, null, sym);
           buildLegend(varKey, ts, period, result.legendRows);
+          if (ghcnActive) restyleGhcnLayer();
         } else if (attempts > 0) {
           setTimeout(function() { retryAutoScale(attempts - 1); }, 300);
         } else {
@@ -3485,6 +3670,7 @@ function initCollapsibles() {
     }
     // Re-render with new range override
     renderLayer(null, activeVar, activeTS, activePeriod, cfg.defaultPalette, getRangeOverride());
+    if (ghcnActive) restyleGhcnLayer();
   });
 });
 
@@ -3501,6 +3687,7 @@ document.getElementById("range-reset").addEventListener("click", function() {
     document.getElementById("range-max").value = "";
     renderLayer(null, activeVar, activeTS, activePeriod, cfg.defaultPalette, null);
   }
+  if (ghcnActive) restyleGhcnLayer();
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -4261,6 +4448,7 @@ function getExportAttribution() {
   }
   // USGS streamflow overlay
   if (usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer)) sources.add("USGS");
+  if (ghcnLayer && map.getLayers().getArray().includes(ghcnLayer)) sources.add("GHCN/NOAA");
   // Montana Mesonet overlay
   const mesoLeg = document.getElementById("mesonet-legend");
   if (mesoLeg && mesoLeg.style.display !== "none") sources.add("Montana Mesonet");
@@ -4604,6 +4792,99 @@ function drawStreamflowFooterLegend(ctx, footerY, startX, sc) {
     cx += cellWidths[i] + cellGap;
   });
   ctx.textAlign = "left";
+
+  return cx + Math.round(20 * sc);
+}
+
+function drawGhcnFooterLegend(ctx, footerY, startX, sc) {
+  var et = getExportTheme();
+  if (!ghcnLayer || !_ghcnScaleFn) return 0;
+
+  var cfg = VAR_CONFIG[activeVar];
+  var isDynamic = cfg && cfg.dynamic;
+
+  // Build rows: for SPI/SPEI/EDDI use fixed breakpoints, for dynamic use range
+  var rows = [];
+  if (!isDynamic) {
+    // Standard drought index breakpoints with range labels
+    var breaks = [-2.0, -1.6, -1.3, -0.8, -0.5, 0.5, 0.8, 1.3, 1.6, 2.0];
+    var rangeRows = [
+      { val: -2.5, label: '\u2264 -2.0' },
+      { val: -1.8, label: '-2.0\u2013-1.6' },
+      { val: -1.45, label: '-1.6\u2013-1.3' },
+      { val: -1.05, label: '-1.3\u2013-0.8' },
+      { val: -0.65, label: '-0.8\u2013-0.5' },
+      { val: 0, label: '-0.5\u20130.5' },
+      { val: 0.65, label: '0.5\u20130.8' },
+      { val: 1.05, label: '0.8\u20131.3' },
+      { val: 1.45, label: '1.3\u20131.6' },
+      { val: 1.8, label: '1.6\u20132.0' },
+      { val: 2.5, label: '\u2265 2.0' }
+    ];
+    rangeRows.forEach(function(r) {
+      var c = _ghcnScaleFn(r.val);
+      rows.push({ color: c ? c.hex() : '#888', label: r.label });
+    });
+  } else {
+    // Dynamic: sample the scale at evenly spaced ranges
+    var rangeOv = getRangeOverride();
+    var mn = rangeOv ? rangeOv.min : -5, mx = rangeOv ? rangeOv.max : 5;
+    var step = (mx - mn) / 9;
+    for (var di = 0; di < 9; di++) {
+      var lo = mn + step * di, hi = mn + step * (di + 1);
+      var mid = (lo + hi) / 2;
+      var dc = _ghcnScaleFn(mid);
+      rows.push({ color: dc ? dc.hex() : '#888', label: lo.toFixed(1) + '\u2013' + hi.toFixed(1) });
+    }
+  }
+
+  var title = 'GHCN Stations \u2014 ' + (cfg ? cfg.label : activeVar);
+  var titleFS = Math.round(13 * sc);
+  var labelFS = Math.round(11 * sc);
+  var circleR = Math.round(6 * sc);
+  var cellGap = Math.round(4 * sc);
+
+  ctx.font = labelFS + 'px "Segoe UI", sans-serif';
+  var minCellW = circleR * 2 + Math.round(4 * sc);
+  var cellWidths = rows.map(function(row) {
+    return Math.max(minCellW, Math.round(ctx.measureText(row.label).width + 2 * sc));
+  });
+  var totalW = cellWidths.reduce(function(a, b) { return a + b; }, 0) + cellGap * (rows.length - 1);
+
+  var cx = startX;
+  var cy = footerY + Math.round(8 * sc);
+  ctx.textBaseline = 'top';
+
+  ctx.fillStyle = et.legendTitle;
+  ctx.font = 'bold ' + titleFS + 'px "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(title, startX + totalW / 2, cy);
+  ctx.textAlign = 'left';
+  cy += titleFS + Math.round(4 * sc);
+
+  var circleY = cy + circleR;
+  rows.forEach(function(row, i) {
+    var centerX = cx + cellWidths[i] / 2;
+    ctx.beginPath();
+    ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
+    ctx.fillStyle = row.color;
+    ctx.fill();
+    ctx.strokeStyle = et.circleStroke;
+    ctx.lineWidth = Math.round(0.8 * sc);
+    ctx.stroke();
+    cx += cellWidths[i] + cellGap;
+  });
+
+  ctx.fillStyle = et.legendLabel;
+  ctx.font = labelFS + 'px "Segoe UI", sans-serif';
+  var labelY = circleY + circleR + Math.round(3 * sc);
+  cx = startX;
+  rows.forEach(function(row, i) {
+    ctx.textAlign = 'center';
+    ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+    cx += cellWidths[i] + cellGap;
+  });
+  ctx.textAlign = 'left';
 
   return cx + Math.round(20 * sc);
 }
@@ -5143,6 +5424,12 @@ async function takeScreenshot(exportScale) {
     const mesoRx = drawMesonetFooterLegend(ctx, footerContentY, legendRightX, SCALE);
     if (mesoRx) legendRightX = mesoRx;
 
+    // Draw GHCN station legend in footer if active
+    if (ghcnLayer && map.getLayers().getArray().includes(ghcnLayer) && _ghcnScaleFn) {
+      var ghcnRx = drawGhcnFooterLegend(ctx, footerContentY, legendRightX, SCALE);
+      if (ghcnRx) legendRightX = ghcnRx;
+    }
+
     // Draw USDM legend in footer (to right of other legends)
     drawUsdmFooterLegend(ctx, footerContentY, legendRightX, SCALE);
 
@@ -5494,6 +5781,23 @@ function setupModal(overlayId, closeBtnId) {
 setupModal("share-modal-overlay", "share-close-btn");
 setupModal("tips-modal-overlay", "tips-close-btn");
 setupModal("feedback-modal-overlay", "feedback-close-btn");
+setupModal("welcome-modal-overlay", "welcome-close-btn");
+
+// Show welcome modal on first visit (not via share URL)
+(function() {
+  var hasHash = window.location.hash && window.location.hash.length > 1;
+  var seen = localStorage.getItem('d3-welcome-seen');
+  if (!seen && !hasHash) {
+    document.getElementById('welcome-modal-overlay').classList.add('active');
+  }
+  document.getElementById('welcome-close-btn').addEventListener('click', function() {
+    localStorage.setItem('d3-welcome-seen', '1');
+  });
+  // Also mark as seen if they click the overlay background to dismiss
+  document.getElementById('welcome-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) localStorage.setItem('d3-welcome-seen', '1');
+  });
+})();
 window.buildShareUrl = buildShareUrl;
 
 // Escape key closes any open modal
@@ -6010,6 +6314,35 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
 </div>
 
 <div id="info-tip-portal"></div>
+
+<!-- Welcome modal (first visit only) -->
+<div id="welcome-modal-overlay" class="modal-overlay">
+  <div id="welcome-modal" style="max-width:520px;width:90vw;padding:28px 32px;text-align:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
+    <div style="font-size:2rem;font-weight:700;font-family:var(--font-display);background:var(--brand-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">D<sup>3</sup></div>
+    <h3 style="margin:4px 0 6px;font-size:1.1rem;font-weight:600;font-family:var(--font-display);color:var(--text-primary);">Drought Data Dashboard</h3>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;line-height:1.5;">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:var(--accent-light);text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:var(--accent-light);text-decoration:underline;">NGP-RIDR</a></p>
+    <p style="font-size:0.82rem;color:var(--text-primary);margin-bottom:16px;line-height:1.5;">Explore real-time drought conditions across the continental United States.</p>
+    <div style="text-align:left;font-size:0.78rem;color:var(--text-secondary);line-height:1.6;">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+        <span style="color:var(--accent);font-size:1rem;flex-shrink:0;">&#9632;</span>
+        <span><strong>Map drought severity</strong> at national, state, and county scales using multiple drought indices and climate variables.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+        <span style="color:var(--accent);font-size:1rem;flex-shrink:0;">&#9632;</span>
+        <span><strong>Compare indicators</strong> across timescales and reference periods, or composite them into a single convergence-of-evidence view.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+        <span style="color:var(--accent);font-size:1rem;flex-shrink:0;">&#9632;</span>
+        <span><strong>Overlay station data</strong> including streamflow, snowpack, and weather station observations for ground-truth context.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <span style="color:var(--accent);font-size:1rem;flex-shrink:0;">&#9632;</span>
+        <span><strong>Export &amp; share</strong> &mdash; download maps and data, or click <strong>Share</strong> to save a URL that captures your exact view for bookmarking or showing colleagues.</span>
+      </div>
+    </div>
+    <button id="welcome-close-btn" style="margin-top:20px;padding:10px 32px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-md);font-size:0.85rem;font-family:var(--font-display);font-weight:600;cursor:pointer;transition:var(--transition);">Get Started</button>
+  </div>
+</div>
 <button id="sidebar-close-tab" onclick="toggleSidebar()"><span style="display:block;transform:rotate(180deg);"><span style="display:inline-block;transform:rotate(270deg);">&#9664;</span> &nbsp;Close Controls&nbsp; <span style="display:inline-block;transform:rotate(270deg);">&#9664;</span></span></button>
 </body>
 </html>
