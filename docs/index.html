@@ -82,13 +82,19 @@
         <div style="padding:2px 14px 8px;font-size:0.62rem;color:var(--text-dim);line-height:1.4;font-family:var(--font-display);">VSICURL path — paste into ArcGIS Pro, QGIS, or use with R/Python (terra, rasterio, gdal)</div>
       </div>
     </div>
-    <a href="./methods.html" target="_blank" rel="noopener" id="methods-btn" class="nav-action-item" title="View methodology documentation">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-      </svg>
-      Methods
-    </a>
+    <div id="methods-wrap" style="position:relative;">
+      <button id="methods-btn" class="nav-action-item" title="View methodology documentation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        Methods <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <div id="methods-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:240px;z-index:2000;padding:4px 0;">
+        <a href="./methods.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Gridded Drought Indices</a>
+        <a href="https://mt-climate-office.github.io/mco-GHCNd/methods.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">GHCNd Station Drought Indices</a>
+      </div>
+    </div>
     <div id="archive-wrap" style="position:relative;">
       <button id="archive-btn" class="nav-action-item" title="Browse data archives">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -5543,6 +5549,30 @@ document.addEventListener("click", function(e) {
   }
 });
 document.querySelectorAll('#github-dropdown a').forEach(function(a) {
+  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
+  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
+});
+
+// Methods dropdown toggle
+document.getElementById("methods-btn").addEventListener("click", function(e) {
+  e.stopPropagation();
+  var dd = document.getElementById("methods-dropdown");
+  if (dd.style.display === 'none') {
+    var rect = this.getBoundingClientRect();
+    dd.style.top = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.style.display = 'block';
+  } else {
+    dd.style.display = 'none';
+  }
+});
+document.addEventListener("click", function(e) {
+  var wrap = document.getElementById("methods-wrap");
+  if (!wrap || !wrap.contains(e.target)) {
+    document.getElementById("methods-dropdown").style.display = 'none';
+  }
+});
+document.querySelectorAll('#methods-dropdown a').forEach(function(a) {
   a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
   a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
 });
