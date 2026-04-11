@@ -178,7 +178,7 @@ function injectSidebar(sidebar) {
 
   // Section label
   sectionLabelEl = document.createElement('div');
-  sectionLabelEl.className = 'section-label plugin-highlight';
+  sectionLabelEl.className = 'section-label sec-collapsed plugin-highlight';
   sectionLabelEl.setAttribute('data-sec', 'sec-mt-soil');
   sectionLabelEl.style.cssText = '--i:3.5';
   sectionLabelEl.innerHTML =
@@ -188,7 +188,7 @@ function injectSidebar(sidebar) {
 
   // Section body
   sectionBodyEl = document.createElement('div');
-  sectionBodyEl.className = 'section-body';
+  sectionBodyEl.className = 'section-body sec-collapsed';
   sectionBodyEl.id = 'sec-mt-soil';
 
   // Enable checkbox
