@@ -273,7 +273,7 @@
       <div class="section-label sec-collapsed" data-sec="sec-station" style="--i:2.3">Station Data <span class="info-tip" tabindex="0" data-tip="station">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body sec-collapsed" id="sec-station">
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Meteorological Drought Metrics</div>
-        <div id="ghcn-btn-row" style="display:none;">
+        <div id="ghcn-btn-row">
           <button id="ghcn-btn" type="button">
             <span>Add GHCN Station Data</span>
           </button>
@@ -2686,7 +2686,7 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
    GHCN STATION OVERLAY
    ════════════════════════════════════════════════════════════════ */
 async function loadGhcnStations() {
-  var resp = await fetch('https://data.climate.umt.edu/share/all_stations.geojson.gz');
+  var resp = await fetch('https://mco-ghcnd.s3.us-east-2.amazonaws.com/derived/ghcnd_drought/latest/GHCNd_drought_current.geojson.gz');
   var ds = new DecompressionStream('gzip');
   var text = await new Response(resp.body.pipeThrough(ds)).text();
   var data = JSON.parse(text);
