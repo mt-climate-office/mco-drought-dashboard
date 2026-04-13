@@ -71,7 +71,7 @@
         Export <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
       <div id="export-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:160px;padding:4px 0;">
-        <button onclick="takeScreenshot(1); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Save Screenshot</button>
+        <button onclick="takeScreenshot(Math.min(Math.ceil(window.devicePixelRatio), 2)); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Save Screenshot</button>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Raster Data</div>
         <button id="download-tiff-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Download GeoTIFF</button>
@@ -6284,7 +6284,7 @@ window.addEventListener('popstate', function() {
         if (isMobile) return;
         const exportBtn = document.createElement('button');
         exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Save Screenshot';
-        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(1); });
+        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(Math.min(Math.ceil(window.devicePixelRatio), 2)); });
         dropdown.appendChild(exportBtn);
         return;
       }
