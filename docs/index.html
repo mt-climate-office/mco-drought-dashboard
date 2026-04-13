@@ -794,7 +794,7 @@ function buildScale(varKey, paletteKey, georaster, rangeOverride) {
     const absMax = Math.max(Math.abs(dMin - ctr), Math.abs(dMax - ctr));
     const domainMin = cfg.clampMin != null ? Math.max(cfg.clampMin, ctr - absMax) : ctr - absMax;
     const domainMax = ctr + absMax;
-    const cs     = chroma.scale(colors).domain([ctr - absMax, ctr, ctr + absMax]).mode("lab");
+    const cs     = chroma.scale(colors).domain([domainMin, ctr, domainMax]).mode("lab");
     const steps  = 6;
     const span   = domainMax - domainMin;
     return {
@@ -2732,17 +2732,24 @@ function restyleGhcnLayer() {
   if (propKey) {
     var cfg = VAR_CONFIG[activeVar];
     var rangeOv = getRangeOverride();
-    // For dynamic vars without manual range, compute from station data
-    if (cfg && cfg.dynamic && !rangeOv && ghcnLayer) {
-      var vals = [];
-      ghcnLayer.getSource().forEachFeature(function(f) {
-        var v = f.get(propKey);
-        if (v != null && !isNaN(v) && v > -9000) vals.push(cfg.mmToIn ? v / 25.4 : cfg.cToF ? v * 9 / 5 : v);
-      });
-      if (vals.length > 10) {
-        vals.sort(function(a, b) { return a - b; });
-        var sym = symmetrizeRange(cfg, vals[Math.floor(vals.length * 0.02)], vals[Math.floor(vals.length * 0.98)]);
-        rangeOv = sym;
+    // For dynamic vars, use the same range as the raster layer so station points
+    // and the grid always share an identical color scale.
+    // Primary: sample visible raster pixels (same source as retryAutoScale).
+    // Fallback: station data percentiles when the raster isn't ready yet.
+    if (cfg && cfg.dynamic && !rangeOv) {
+      var vis = getVisibleRange();
+      if (vis && vis.min !== vis.max) {
+        rangeOv = symmetrizeRange(cfg, vis.min, vis.max);
+      } else if (ghcnLayer) {
+        var vals = [];
+        ghcnLayer.getSource().forEachFeature(function(f) {
+          var v = f.get(propKey);
+          if (v != null && !isNaN(v) && v > -9000) vals.push(cfg.mmToIn ? v / 25.4 : cfg.cToF ? v * 9 / 5 : v);
+        });
+        if (vals.length > 10) {
+          vals.sort(function(a, b) { return a - b; });
+          rangeOv = symmetrizeRange(cfg, vals[Math.floor(vals.length * 0.02)], vals[Math.floor(vals.length * 0.98)]);
+        }
       }
     }
     var result = buildScale(activeVar, cfg ? cfg.defaultPalette : 'usdm', null, rangeOv);
@@ -3278,10 +3285,24 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
     if (ov.max != null && ov.max !== "") dMax = parseFloat(ov.max);
 
     const stops = [];
-    for (let i = 0; i < colors.length; i++) {
-      const t = dMin + (dMax - dMin) * i / (colors.length - 1);
-      stops.push(t);
-      stops.push(chroma(colors[i]).css());
+    if (cfg.dynamicType === 'diverging_centered') {
+      // Anchor the center color at cfg.center so the neutral point is consistent
+      // with the chroma scale used for GHCN points and the legend gradient.
+      const ctr = cfg.center || 0;
+      const absMax = Math.max(Math.abs(dMin - ctr), Math.abs(dMax - ctr));
+      const domainMin = cfg.clampMin != null ? Math.max(cfg.clampMin, ctr - absMax) : ctr - absMax;
+      const domainMax = ctr + absMax;
+      for (let i = 0; i < colors.length; i++) {
+        const t = i <= 5
+          ? domainMin + (ctr - domainMin) * i / 5
+          : ctr + (domainMax - ctr) * (i - 5) / 5;
+        stops.push(t, chroma(colors[i]).css());
+      }
+    } else {
+      for (let i = 0; i < colors.length; i++) {
+        const t = dMin + (dMax - dMin) * i / (colors.length - 1);
+        stops.push(t, chroma(colors[i]).css());
+      }
     }
     colorExpr = ['interpolate', ['linear'], value, ...stops];
   }
@@ -4810,87 +4831,146 @@ function drawGhcnFooterLegend(ctx, footerY, startX, sc) {
 
   var cfg = VAR_CONFIG[activeVar];
   var isDynamic = cfg && cfg.dynamic;
+  var title = 'GHCN Stations \u2014 ' + (cfg ? cfg.label : activeVar);
+  var titleFS = Math.round(13 * sc);
+  var labelFS = Math.round(11 * sc);
+  var tickMarkLen = Math.round(4 * sc);
 
-  // Build rows: for SPI/SPEI/EDDI use fixed breakpoints, for dynamic use range
-  var rows = [];
-  if (!isDynamic) {
-    // Standard drought index breakpoints with range labels
-    var breaks = [-2.0, -1.6, -1.3, -0.8, -0.5, 0.5, 0.8, 1.3, 1.6, 2.0];
+  ctx.textBaseline = 'top';
+
+  if (isDynamic) {
+    // Continuous gradient bar — matches drawFooterLegend gradient style
+    var rows = _ghcnLegendRows || [];
+    if (!rows.length) return 0;
+
+    var maxBarW = Math.round(280 * sc);
+    var barH = Math.round(14 * sc);
+    var availW = ctx.canvas.width - startX - Math.round(24 * sc);
+    var barW = Math.min(maxBarW, Math.round(availW * 0.4));
+    var barX = startX;
+    var cy = footerY + Math.round(8 * sc);
+
+    // Title centered over bar
+    ctx.fillStyle = et.legendTitle;
+    ctx.font = 'bold ' + titleFS + 'px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, barX + barW / 2, cy);
+    ctx.textAlign = 'left';
+    cy += titleFS + Math.round(4 * sc);
+
+    // Draw gradient bar
+    var colors = rows.map(function(r) { return r.color; });
+    var barR = Math.round(3 * sc);
+    ctx.save();
+    roundRect(ctx, barX, cy, barW, barH, barR);
+    ctx.clip();
+    for (var i = 0; i < barW; i++) {
+      var t = i / barW;
+      var cIdx = t * (colors.length - 1);
+      var lo = Math.floor(cIdx), hi = Math.min(lo + 1, colors.length - 1);
+      var c = chroma.mix(colors[lo], colors[hi], cIdx - lo).hex();
+      ctx.fillStyle = c;
+      ctx.fillRect(barX + i, cy, 1, barH);
+    }
+    ctx.restore();
+
+    var barBottom = cy + barH;
+
+    // 3 tick labels (min, mid, max)
+    var minLabel = rows[0].label.split('\u2013')[0].trim();
+    var maxLabel = rows[rows.length - 1].label.split('\u2013').pop().trim();
+    var midIdx = Math.floor(rows.length / 2);
+    var midLabel = rows[midIdx].label.split('\u2013')[0].trim();
+
+    ctx.fillStyle = et.legendLabel;
+    ctx.strokeStyle = et.legendLabel;
+    ctx.lineWidth = Math.round(1 * sc);
+    ctx.font = labelFS + 'px "Segoe UI", sans-serif';
+
+    var ticks = [
+      { x: barX,           label: minLabel, align: 'left'   },
+      { x: barX + barW * 0.5, label: midLabel, align: 'center' },
+      { x: barX + barW,    label: maxLabel, align: 'right'  }
+    ];
+    ticks.forEach(function(tk) {
+      ctx.beginPath();
+      ctx.moveTo(tk.x, barBottom);
+      ctx.lineTo(tk.x, barBottom + tickMarkLen);
+      ctx.stroke();
+      ctx.textAlign = tk.align;
+      ctx.fillText(tk.label, tk.x, barBottom + tickMarkLen + Math.round(2 * sc));
+    });
+    ctx.textAlign = 'left';
+
+    return barX + barW + Math.round(40 * sc);
+
+  } else {
+    // Classified circles — SPI/SPEI/EDDI fixed breakpoints
+    var rows = [];
     var rangeRows = [
-      { val: -2.5, label: '\u2264 -2.0' },
-      { val: -1.8, label: '-2.0\u2013-1.6' },
+      { val: -2.5,  label: '\u2264 -2.0' },
+      { val: -1.8,  label: '-2.0\u2013-1.6' },
       { val: -1.45, label: '-1.6\u2013-1.3' },
       { val: -1.05, label: '-1.3\u2013-0.8' },
       { val: -0.65, label: '-0.8\u2013-0.5' },
-      { val: 0, label: '-0.5\u20130.5' },
-      { val: 0.65, label: '0.5\u20130.8' },
-      { val: 1.05, label: '0.8\u20131.3' },
-      { val: 1.45, label: '1.3\u20131.6' },
-      { val: 1.8, label: '1.6\u20132.0' },
-      { val: 2.5, label: '\u2265 2.0' }
+      { val: 0,     label: '-0.5\u20130.5' },
+      { val: 0.65,  label: '0.5\u20130.8' },
+      { val: 1.05,  label: '0.8\u20131.3' },
+      { val: 1.45,  label: '1.3\u20131.6' },
+      { val: 1.8,   label: '1.6\u20132.0' },
+      { val: 2.5,   label: '\u2265 2.0' }
     ];
     rangeRows.forEach(function(r) {
       var c = _ghcnScaleFn(r.val);
       rows.push({ color: c ? c.hex() : '#888', label: r.label });
     });
-  } else {
-    // Dynamic: use the legend rows that were built alongside _ghcnScaleFn in restyleGhcnLayer
-    if (_ghcnLegendRows && _ghcnLegendRows.length) {
-      _ghcnLegendRows.forEach(function(r) {
-        rows.push({ color: r.color, label: r.label });
-      });
-    }
-  }
 
-  var title = 'GHCN Stations \u2014 ' + (cfg ? cfg.label : activeVar);
-  var titleFS = Math.round(13 * sc);
-  var labelFS = Math.round(11 * sc);
-  var circleR = Math.round(6 * sc);
-  var cellGap = Math.round(4 * sc);
+    var circleR = Math.round(6 * sc);
+    var cellGap = Math.round(4 * sc);
 
-  ctx.font = labelFS + 'px "Segoe UI", sans-serif';
-  var minCellW = circleR * 2 + Math.round(4 * sc);
-  var cellWidths = rows.map(function(row) {
-    return Math.max(minCellW, Math.round(ctx.measureText(row.label).width + 2 * sc));
-  });
-  var totalW = cellWidths.reduce(function(a, b) { return a + b; }, 0) + cellGap * (rows.length - 1);
+    ctx.font = labelFS + 'px "Segoe UI", sans-serif';
+    var minCellW = circleR * 2 + Math.round(4 * sc);
+    var cellWidths = rows.map(function(row) {
+      return Math.max(minCellW, Math.round(ctx.measureText(row.label).width + 2 * sc));
+    });
+    var totalW = cellWidths.reduce(function(a, b) { return a + b; }, 0) + cellGap * (rows.length - 1);
 
-  var cx = startX;
-  var cy = footerY + Math.round(8 * sc);
-  ctx.textBaseline = 'top';
+    var cx = startX;
+    var cy = footerY + Math.round(8 * sc);
 
-  ctx.fillStyle = et.legendTitle;
-  ctx.font = 'bold ' + titleFS + 'px "Segoe UI", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(title, startX + totalW / 2, cy);
-  ctx.textAlign = 'left';
-  cy += titleFS + Math.round(4 * sc);
-
-  var circleY = cy + circleR;
-  rows.forEach(function(row, i) {
-    var centerX = cx + cellWidths[i] / 2;
-    ctx.beginPath();
-    ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
-    ctx.fillStyle = row.color;
-    ctx.fill();
-    ctx.strokeStyle = et.circleStroke;
-    ctx.lineWidth = Math.round(0.8 * sc);
-    ctx.stroke();
-    cx += cellWidths[i] + cellGap;
-  });
-
-  ctx.fillStyle = et.legendLabel;
-  ctx.font = labelFS + 'px "Segoe UI", sans-serif';
-  var labelY = circleY + circleR + Math.round(3 * sc);
-  cx = startX;
-  rows.forEach(function(row, i) {
+    ctx.fillStyle = et.legendTitle;
+    ctx.font = 'bold ' + titleFS + 'px "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
-    cx += cellWidths[i] + cellGap;
-  });
-  ctx.textAlign = 'left';
+    ctx.fillText(title, startX + totalW / 2, cy);
+    ctx.textAlign = 'left';
+    cy += titleFS + Math.round(4 * sc);
 
-  return cx + Math.round(20 * sc);
+    var circleY = cy + circleR;
+    rows.forEach(function(row, i) {
+      var centerX = cx + cellWidths[i] / 2;
+      ctx.beginPath();
+      ctx.arc(centerX, circleY, circleR, 0, Math.PI * 2);
+      ctx.fillStyle = row.color;
+      ctx.fill();
+      ctx.strokeStyle = et.circleStroke;
+      ctx.lineWidth = Math.round(0.8 * sc);
+      ctx.stroke();
+      cx += cellWidths[i] + cellGap;
+    });
+
+    ctx.fillStyle = et.legendLabel;
+    ctx.font = labelFS + 'px "Segoe UI", sans-serif';
+    var labelY = circleY + circleR + Math.round(3 * sc);
+    cx = startX;
+    rows.forEach(function(row, i) {
+      ctx.textAlign = 'center';
+      ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+      cx += cellWidths[i] + cellGap;
+    });
+    ctx.textAlign = 'left';
+
+    return cx + Math.round(20 * sc);
+  }
 }
 
 function drawMesonetFooterLegend(ctx, footerY, startX, sc) {
