@@ -5573,131 +5573,64 @@ document.getElementById("copy-cog-url-btn").addEventListener("click", function()
   });
 });
 
-document.getElementById("screenshot-btn").addEventListener("click", function(e) {
-  e.stopPropagation();
-  const dd = document.getElementById("export-dropdown");
-  if (dd.style.display === 'none') {
-    const rect = this.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.display = 'block';
-    // Hide COG URL button for convergence/noRaster layers
-    const cogBtn = document.getElementById("copy-cog-url-btn");
-    const cogHint = cogBtn.nextElementSibling;
-    const cfg = VAR_CONFIG[activeVar];
-    const hideCog = convActive || !cfg || cfg.noRaster;
-    cogBtn.style.display = hideCog ? 'none' : 'flex';
-    if (cogHint) cogHint.style.display = hideCog ? 'none' : 'block';
-  } else {
-    dd.style.display = 'none';
-  }
-});
-document.addEventListener("click", function(e) {
-  const wrap = document.getElementById("export-wrap");
-  if (!wrap || !wrap.contains(e.target)) {
-    document.getElementById("export-dropdown").style.display = 'none';
-  }
-});
-// Hover style for export dropdown buttons
-document.querySelectorAll('#export-dropdown button').forEach(btn => {
-  btn.addEventListener('mouseenter', () => { btn.style.background = 'var(--accent-hover)'; btn.style.color = 'var(--text-primary)'; });
-  btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; btn.style.color = 'var(--text-secondary)'; });
+// ── Shared nav-dropdown management ──────────────────────────────
+const NAV_DROPDOWNS = [
+  { btnId: 'screenshot-btn', ddId: 'export-dropdown', wrapId: 'export-wrap' },
+  { btnId: 'github-btn',     ddId: 'github-dropdown',  wrapId: 'github-wrap'  },
+  { btnId: 'methods-btn',    ddId: 'methods-dropdown', wrapId: 'methods-wrap' },
+  { btnId: 'archive-btn',    ddId: 'archive-dropdown', wrapId: 'archive-wrap' },
+  { btnId: 'impact-btn',     ddId: 'impact-dropdown',  wrapId: 'impact-wrap'  },
+];
+
+function closeAllNavDropdowns(exceptId) {
+  NAV_DROPDOWNS.forEach(function(d) {
+    if (d.ddId !== exceptId) {
+      var el = document.getElementById(d.ddId);
+      if (el) el.style.display = 'none';
+    }
+  });
+}
+
+NAV_DROPDOWNS.forEach(function(d) {
+  var btn = document.getElementById(d.btnId);
+  if (!btn) return;
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = document.getElementById(d.ddId);
+    if (dd.style.display === 'none') {
+      closeAllNavDropdowns(d.ddId);
+      var rect = this.getBoundingClientRect();
+      dd.style.top  = (rect.bottom + 4) + 'px';
+      dd.style.left = rect.left + 'px';
+      dd.style.display = 'block';
+      // Export-specific: show/hide COG URL based on active layer
+      if (d.ddId === 'export-dropdown') {
+        const cogBtn  = document.getElementById("copy-cog-url-btn");
+        const cogHint = cogBtn.nextElementSibling;
+        const cfg     = VAR_CONFIG[activeVar];
+        const hideCog = convActive || !cfg || cfg.noRaster;
+        cogBtn.style.display  = hideCog ? 'none' : 'flex';
+        if (cogHint) cogHint.style.display = hideCog ? 'none' : 'block';
+      }
+    } else {
+      dd.style.display = 'none';
+    }
+  });
 });
 
-// GitHub dropdown toggle
-document.getElementById("github-btn").addEventListener("click", function(e) {
-  e.stopPropagation();
-  var dd = document.getElementById("github-dropdown");
-  if (dd.style.display === 'none') {
-    var rect = this.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.display = 'block';
-  } else {
-    dd.style.display = 'none';
-  }
-});
-document.addEventListener("click", function(e) {
-  var wrap = document.getElementById("github-wrap");
-  if (!wrap || !wrap.contains(e.target)) {
-    document.getElementById("github-dropdown").style.display = 'none';
-  }
-});
-document.querySelectorAll('#github-dropdown a').forEach(function(a) {
-  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
-  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
+// Close all nav dropdowns on outside click
+document.addEventListener('click', function(e) {
+  var insideAny = NAV_DROPDOWNS.some(function(d) {
+    var wrap = document.getElementById(d.wrapId);
+    return wrap && wrap.contains(e.target);
+  });
+  if (!insideAny) closeAllNavDropdowns();
 });
 
-// Methods dropdown toggle
-document.getElementById("methods-btn").addEventListener("click", function(e) {
-  e.stopPropagation();
-  var dd = document.getElementById("methods-dropdown");
-  if (dd.style.display === 'none') {
-    var rect = this.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.display = 'block';
-  } else {
-    dd.style.display = 'none';
-  }
-});
-document.addEventListener("click", function(e) {
-  var wrap = document.getElementById("methods-wrap");
-  if (!wrap || !wrap.contains(e.target)) {
-    document.getElementById("methods-dropdown").style.display = 'none';
-  }
-});
-document.querySelectorAll('#methods-dropdown a').forEach(function(a) {
-  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
-  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
-});
-
-// Impact report dropdown toggle
-// Data Archive dropdown toggle
-document.getElementById("archive-btn").addEventListener("click", function(e) {
-  e.stopPropagation();
-  var dd = document.getElementById("archive-dropdown");
-  if (dd.style.display === 'none') {
-    var rect = this.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.display = 'block';
-  } else {
-    dd.style.display = 'none';
-  }
-});
-document.addEventListener("click", function(e) {
-  var wrap = document.getElementById("archive-wrap");
-  if (!wrap || !wrap.contains(e.target)) {
-    document.getElementById("archive-dropdown").style.display = 'none';
-  }
-});
-document.querySelectorAll('#archive-dropdown a').forEach(function(a) {
-  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
-  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
-});
-
-document.getElementById("impact-btn").addEventListener("click", function(e) {
-  e.stopPropagation();
-  var dd = document.getElementById("impact-dropdown");
-  if (dd.style.display === 'none') {
-    var rect = this.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.display = 'block';
-  } else {
-    dd.style.display = 'none';
-  }
-});
-document.addEventListener("click", function(e) {
-  var wrap = document.getElementById("impact-wrap");
-  if (!wrap || !wrap.contains(e.target)) {
-    document.getElementById("impact-dropdown").style.display = 'none';
-  }
-});
-document.querySelectorAll('#impact-dropdown a').forEach(function(a) {
-  a.addEventListener('mouseenter', function() { a.style.background = 'var(--accent-hover)'; a.style.color = 'var(--text-primary)'; });
-  a.addEventListener('mouseleave', function() { a.style.background = 'none'; a.style.color = 'var(--text-secondary)'; });
+// Hover styles for all nav dropdown items
+document.querySelectorAll('#export-dropdown button, #github-dropdown a, #methods-dropdown a, #archive-dropdown a, #impact-dropdown a').forEach(function(el) {
+  el.addEventListener('mouseenter', function() { el.style.background = 'var(--accent-hover)'; el.style.color = 'var(--text-primary)'; });
+  el.addEventListener('mouseleave', function() { el.style.background = 'none'; el.style.color = 'var(--text-secondary)'; });
 });
 
 /* ════════════════════════════════════════════════════════════════
