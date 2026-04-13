@@ -71,10 +71,7 @@
         Export <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
       <div id="export-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:160px;padding:4px 0;">
-        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Screenshot (PNG)</div>
-        <button onclick="takeScreenshot(1); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Low (1x)</button>
-        <button onclick="takeScreenshot(2); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Medium (2x)</button>
-        <button onclick="takeScreenshot(3); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">High (3x)</button>
+        <button onclick="takeScreenshot(1); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Save Screenshot</button>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Raster Data</div>
         <button id="download-tiff-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Download GeoTIFF</button>
@@ -628,6 +625,7 @@ let ghcnLayer = null, ghcnLoaded = false;
 let ghcnActive = false;
 let ghcnStyleCache = {};
 let _ghcnScaleFn = null;
+let _ghcnLegendRows = null;
 
 // Map dashboard activeVar to GHCN GeoJSON property prefixes
 const GHCN_VAR_MAP = {
@@ -2749,8 +2747,10 @@ function restyleGhcnLayer() {
     }
     var result = buildScale(activeVar, cfg ? cfg.defaultPalette : 'usdm', null, rangeOv);
     _ghcnScaleFn = result.scaleFn;
+    _ghcnLegendRows = result.legendRows;
   } else {
     _ghcnScaleFn = null;
+    _ghcnLegendRows = null;
   }
   if (ghcnLayer) {
     ghcnLayer.setVisible(!!propKey);
@@ -4545,6 +4545,7 @@ function drawFooterLegend(ctx, footerY, sc) {
   const margin = Math.round(24 * sc);
   const titleFS = Math.round(13 * sc);
   const labelFS = Math.round(11 * sc);
+  const legendTitle = (cfg.attribution ? cfg.attribution + ' \u2014 ' : '') + cfg.label;
   const tickMarkLen = Math.round(4 * sc);
 
   ctx.textBaseline = "top";
@@ -4557,7 +4558,6 @@ function drawFooterLegend(ctx, footerY, sc) {
     const availW = ctx.canvas.width - margin * 4;
     const barW = Math.min(maxBarW, Math.round(availW * 0.4));
 
-    const shortLabel = cfg.label;
     const barX = margin;
     let cy = footerY + Math.round(8 * sc);
 
@@ -4565,7 +4565,7 @@ function drawFooterLegend(ctx, footerY, sc) {
     ctx.fillStyle = et.legendTitle;
     ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(shortLabel, barX + barW / 2, cy);
+    ctx.fillText(legendTitle, barX + barW / 2, cy);
     ctx.textAlign = "left";
     cy += titleFS + Math.round(4 * sc);
 
@@ -4621,7 +4621,6 @@ function drawFooterLegend(ctx, footerY, sc) {
     const swH = Math.round(14 * sc);
     const swatchR = Math.round(2 * sc);
     const cellGap = Math.round(6 * sc);
-    const shortLabel = cfg.label;
 
     // Measure each label to determine cell widths
     ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
@@ -4639,7 +4638,7 @@ function drawFooterLegend(ctx, footerY, sc) {
     ctx.fillStyle = et.legendTitle;
     ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(shortLabel, margin + totalW / 2, cy);
+    ctx.fillText(legendTitle, margin + totalW / 2, cy);
     ctx.textAlign = "left";
     cy += titleFS + Math.round(4 * sc);
 
@@ -4835,15 +4834,11 @@ function drawGhcnFooterLegend(ctx, footerY, startX, sc) {
       rows.push({ color: c ? c.hex() : '#888', label: r.label });
     });
   } else {
-    // Dynamic: sample the scale at evenly spaced ranges
-    var rangeOv = getRangeOverride();
-    var mn = rangeOv ? rangeOv.min : -5, mx = rangeOv ? rangeOv.max : 5;
-    var step = (mx - mn) / 9;
-    for (var di = 0; di < 9; di++) {
-      var lo = mn + step * di, hi = mn + step * (di + 1);
-      var mid = (lo + hi) / 2;
-      var dc = _ghcnScaleFn(mid);
-      rows.push({ color: dc ? dc.hex() : '#888', label: lo.toFixed(1) + '\u2013' + hi.toFixed(1) });
+    // Dynamic: use the legend rows that were built alongside _ghcnScaleFn in restyleGhcnLayer
+    if (_ghcnLegendRows && _ghcnLegendRows.length) {
+      _ghcnLegendRows.forEach(function(r) {
+        rows.push({ color: r.color, label: r.label });
+      });
     }
   }
 
@@ -6208,8 +6203,8 @@ window.addEventListener('popstate', function() {
       if (el.id === 'export-wrap') {
         if (isMobile) return;
         const exportBtn = document.createElement('button');
-        exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Export (2x)';
-        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(2); });
+        exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Save Screenshot';
+        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(1); });
         dropdown.appendChild(exportBtn);
         return;
       }
