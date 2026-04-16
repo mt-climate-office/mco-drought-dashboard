@@ -973,7 +973,7 @@ const BASEMAPS = {
 };
 
 const basemapSource = new ol.source.XYZ({ url: BASEMAPS.natgeo.url, crossOrigin: 'anonymous' });
-const basemapLayer = new ol.layer.Tile({ source: basemapSource, zIndex: 0, className: 'ol-layer basemap-grey' });
+const basemapLayer = new ol.layer.Tile({ source: basemapSource, zIndex: 0, className: 'ol-layer basemap-el' });
 
 // GeoTIFF raster layer (will be set per variable)
 let cogLayer = null;
@@ -1026,6 +1026,9 @@ map.getView().fit(
   ol.proj.transformExtent([-126, 24, -66, 50], 'EPSG:4326', 'EPSG:3857'),
   { padding: [20, 20, 20, 20] }
 );
+// Greyscale for default natgeo basemap — class lives on #map so it
+// survives source swaps; CSS targets the first .ol-layer child
+document.getElementById('map').classList.add('basemap-grey');
 
 // Geolocation control (custom button)
 (function() {
@@ -1342,13 +1345,9 @@ document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
     document.querySelectorAll("#basemap-strip .basemap-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activeBasemap = btn.dataset.basemap;
-    basemapSource.setUrl(BASEMAPS[activeBasemap].url);
-    // Toggle greyscale filter
-    document.querySelectorAll('.basemap-grey').forEach(el => el.classList.remove('basemap-grey'));
-    if (BASEMAPS[activeBasemap].grey) {
-      const el = document.querySelector('#map .ol-layer');
-      if (el) el.classList.add('basemap-grey');
-    }
+    basemapLayer.setSource(new ol.source.XYZ({ url: BASEMAPS[activeBasemap].url, crossOrigin: 'anonymous' }));
+    // Toggle greyscale filter on #map container
+    document.getElementById('map').classList.toggle('basemap-grey', !!BASEMAPS[activeBasemap].grey);
   });
 });
 
@@ -1625,27 +1624,21 @@ let countiesLayer = null;
 
 async function loadCounties() {
   const topoUrl  = "https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json";
-  const namesUrl = "https://api.census.gov/data/2019/acs/acs5?get=NAME&for=county:*";
+  const namesUrl = "data/county-names.json";
   try {
     const [topoResp, namesResp] = await Promise.all([fetch(topoUrl), fetch(namesUrl)]);
-    if (!topoResp.ok)  throw new Error(`Topo HTTP ${topoResp.status}`);
-    if (!namesResp.ok) throw new Error(`Names HTTP ${namesResp.status}`);
-
-    const topo      = await topoResp.json();
-    const namesData = await namesResp.json();
-
-    // Build FIPS → "County Name, State" lookup (skip header row)
-    const fipsToName = {};
-    for (let i = 1; i < namesData.length; i++) {
-      const [name, state, county] = namesData[i];
-      fipsToName[state + county] = name;
-    }
+    if (!topoResp.ok) throw new Error(`Topo HTTP ${topoResp.status}`);
+    const topo = await topoResp.json();
+    const fipsToName = namesResp.ok ? await namesResp.json() : {};
 
     const geojson = topojson.feature(topo, topo.objects.counties);
     const EXCLUDE_ST = new Set(["02","15","60","66","69","72","78"]);
     geojson.features = geojson.features.filter(f => !EXCLUDE_ST.has(String(f.id).slice(0, 2).padStart(2,"0")));
-    // Add name property to features for tooltip
-    geojson.features.forEach(function(f) { f.properties = f.properties || {}; f.properties.name = fipsToName[f.id] || ('FIPS ' + f.id); });
+    geojson.features.forEach(function(f) {
+      f.properties = f.properties || {};
+      var fips = String(f.id).padStart(5, '0');
+      f.properties.name = fipsToName[fips] || ('FIPS ' + f.id);
+    });
     countiesLayer = new ol.layer.Vector({
       source: new ol.source.Vector({
         features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
@@ -1716,8 +1709,10 @@ function computeZonalAverages(srcLayer, type, zIdx) {
   var { scaleFn } = buildScale(isConv ? 'spi' : activeVar, isConv ? 'usdm' : (cfg ? cfg.defaultPalette : 'usdm'), null, null);
 
   // Build a grid of raster values in geographic coordinates
-  // Use the gridMET grid (~4km) as the sampling grid
-  var gridW = 1386, gridH = 584;
+  // Subsample the gridMET grid (~4km native) by step to speed up GPU reads;
+  // step=3 → ~12km effective resolution, ~90K cells instead of 809K (≈9× faster)
+  var FULL_W = 1386, FULL_H = 584, step = 3;
+  var gridW = Math.ceil(FULL_W / step), gridH = Math.ceil(FULL_H / step);
   var gridBbox = [-124.7875, 25.0458333, -67.0375, 49.3791667];
   var gridResX = (gridBbox[2] - gridBbox[0]) / gridW;
   var gridResY = (gridBbox[3] - gridBbox[1]) / gridH;
@@ -5302,8 +5297,8 @@ async function takeScreenshot(exportScale) {
           // Draw 1:1 — canvases are already at export resolution.
           // The CSS transform (e.g. matrix(0.5,...)) is only for display scaling
           // on retina screens; we want the raw pixels for export.
-          // Apply greyscale filter if this is the basemap-grey layer
-          var isGrey = layerDiv && layerDiv.classList.contains('basemap-grey');
+          // Apply greyscale filter if this is the basemap layer and greyscale is active
+          var isGrey = layerDiv && layerDiv.classList.contains('basemap-el') && mapEl.classList.contains('basemap-grey');
           mapContext.setTransform(1, 0, 0, 1, 0, 0);
           mapContext.drawImage(canvas, 0, 0);
           // Apply greyscale manually (Safari doesn't support canvas filter)

@@ -1126,8 +1126,8 @@
       color: var(--accent-light);
     }
 
-    .basemap-grey img { filter: grayscale(1); }
-    .basemap-grey canvas { filter: grayscale(1); }
+    .basemap-grey .basemap-el img { filter: grayscale(1); }
+    .basemap-grey .basemap-el canvas { filter: grayscale(1); }
 
     /* ================================================================
        Opacity Slider
