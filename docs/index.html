@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,8 +23,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://data.climate.umt.edu">
 
-  <!-- Inline SVG favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='3' y='26' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%231a6faf'%3ED%3Ctspan baseline-shift='super' font-size='14'%3E3%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+  <!-- SVG favicon -->
+  <link rel="icon" type="image/svg+xml" href="logo/logo_unified.svg">
 
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
@@ -57,10 +57,7 @@
 <!-- Navbar -->
 <nav id="navbar">
   <button id="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
-  <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link">
-    <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO" width="36" height="36">
-  </a>
-  <div class="brand"><span class="brand-acronym">D<sup>3</sup></span><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">NGP RIDR</a></span></span></div>
+  <div class="brand"><img src="logo/logo_unified.svg" class="brand-logo" alt="D³" width="80" height="80"><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">NGP RIDR</a></span></span></div>
   <div id="nav-actions">
     <div id="export-wrap" class="nav-action-item" style="position:relative;padding:0;">
       <button id="screenshot-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Export map as PNG">
@@ -158,6 +155,9 @@
     </button>
     <div id="nav-more-dropdown"></div>
   </div>
+  <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link" title="Montana Climate Office">
+    <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO" width="36" height="36">
+  </a>
 </nav>
 
 <!-- Sidebar collapse tab -->
@@ -243,8 +243,8 @@
 
         <div style="margin-top:10px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Layer Opacity</div>
         <div id="opacity-row">
-          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.75" aria-label="Layer opacity">
-          <span id="opacity-val">0.75</span>
+          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.9" aria-label="Layer opacity">
+          <span id="opacity-val">0.9</span>
         </div>
         <div id="data-valid-date" style="margin-top:10px;padding:6px 10px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;color:var(--text-secondary);font-family:var(--font-display);">
           Data valid: <span id="data-valid-date-text" style="font-weight:600;color:var(--text-primary);">Loading...</span>
@@ -485,8 +485,8 @@
         </div>
         <div class="subsec-label" style="margin-top:10px">Theme</div>
         <div id="theme-strip">
-          <button class="basemap-btn active" data-theme="dark">Dark</button>
-          <button class="basemap-btn" data-theme="light">Light</button>
+          <button class="basemap-btn" data-theme="dark">Dark</button>
+          <button class="basemap-btn active" data-theme="light">Light</button>
           <button class="basemap-btn" data-theme="high-contrast">High Contrast</button>
         </div>
       </div>
@@ -1352,7 +1352,7 @@ document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
 });
 
 /* ── Theme toggle ─────────────────────────────────────────────── */
-let activeTheme = "dark";
+let activeTheme = "light";
 document.querySelectorAll("#theme-strip .basemap-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.classList.contains("active")) return;
@@ -4410,7 +4410,9 @@ window.toggleSidebar = toggleSidebar;
    ════════════════════════════════════════════════════════════════ */
 
 const MCO_LOGO_URL = "https://raw.githubusercontent.com/mt-climate-office/mco-drought-indicators/master/docs/misc_content/MCO_logo.png";
+const D3_LOGO_URL = "logo/logo_unified.svg";
 let _logoCache = null;
+let _d3LogoCache = null;
 
 function loadImage(src) {
   return new Promise((res, rej) => {
@@ -5257,6 +5259,7 @@ async function takeScreenshot(exportScale) {
 
   try {
     if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
+    if (!_d3LogoCache) _d3LogoCache = await loadImage(D3_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
     const SCALE    = exportScale || 2;
@@ -5343,31 +5346,15 @@ async function takeScreenshot(exportScale) {
     const bandContentH = TITLE_H - Math.round(3 * SCALE);
     const bandCenterY = bandContentH / 2;
 
-    // ── D brand mark with gradient ──
-    const brandDFS = Math.round(bandContentH * 0.7);
-    const brandSupFS = Math.round(brandDFS * 0.5);
+    // ── D³ brand mark (SVG logo) ──
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
     let bx = logoMargin;
-    ctx.font = 'bold ' + brandDFS + 'px "Segoe UI", sans-serif';
-    const dW = ctx.measureText("D").width;
-    ctx.font = 'bold ' + brandSupFS + 'px "Segoe UI", sans-serif';
-    const threeW = ctx.measureText("3").width;
-    const brandTotalW = dW + threeW + Math.round(3 * SCALE);
-    const brandGrad = ctx.createLinearGradient(bx, 0, bx + brandTotalW, brandTotalW * 0.5);
-    const gc = et.brandGrad;
-    brandGrad.addColorStop(0, gc[0]);
-    brandGrad.addColorStop(0.25, gc[1]);
-    brandGrad.addColorStop(0.5, gc[2]);
-    brandGrad.addColorStop(0.75, gc[3]);
-    brandGrad.addColorStop(1, gc[4]);
-    ctx.fillStyle = brandGrad;
-    ctx.font = 'bold ' + brandDFS + 'px "Segoe UI", sans-serif';
-    ctx.fillText("D", bx, bandCenterY);
-    bx += dW + Math.round(1 * SCALE);
-    ctx.font = 'bold ' + brandSupFS + 'px "Segoe UI", sans-serif';
-    ctx.fillText("3", bx, bandCenterY - Math.round(brandDFS * 0.28));
-    bx += threeW + Math.round(12 * SCALE);
+    const brandLogoH = Math.round(bandContentH * 0.78);
+    const brandLogoW = brandLogoH;
+    const brandLogoY = Math.round(bandCenterY - brandLogoH / 2);
+    ctx.drawImage(_d3LogoCache, bx, brandLogoY, brandLogoW, brandLogoH);
+    bx += brandLogoW + Math.round(12 * SCALE);
 
     // ── Vertical separator line ──
     const sepPad = Math.round(10 * SCALE);
@@ -5758,7 +5745,7 @@ function saveState() {
 
 function buildShareUrl() {
   const qp = new URLSearchParams();
-  if (activeTheme && activeTheme !== 'dark') qp.set('theme', activeTheme);
+  if (activeTheme && activeTheme !== 'light') qp.set('theme', activeTheme);
   if (activeBasemap && activeBasemap !== 'natgeo') qp.set('basemap', activeBasemap);
 
   let hash;
@@ -5852,8 +5839,8 @@ function loadState() {
   const lat = parts[5] ? parseFloat(parts[5]) : null;
   const lng = parts[6] ? parseFloat(parts[6]) : null;
   const params = new URLSearchParams(window.location.search);
-  const theme = params.get('theme') || 'dark';
-  if (theme !== 'dark' && !['light','high-contrast'].includes(theme)) return null;
+  const theme = params.get('theme') || 'light';
+  if (!['dark','light','high-contrast'].includes(theme)) return null;
   const basemap = params.get('basemap') || 'natgeo';
   if (!BASEMAPS[basemap]) return null;
   const mapView = (zoom !== null && lat !== null && lng !== null && !isNaN(zoom) && !isNaN(lat) && !isNaN(lng))
@@ -6052,9 +6039,10 @@ if (savedState) {
   }
 
   // Restore theme
-  if (savedState.theme && savedState.theme !== 'dark') {
+  if (savedState.theme && savedState.theme !== 'light') {
     activeTheme = savedState.theme;
-    document.documentElement.setAttribute("data-theme", activeTheme);
+    if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", activeTheme);
     document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => {
       b.classList.toggle("active", b.dataset.theme === activeTheme);
     });
@@ -6150,7 +6138,7 @@ window.addEventListener('popstate', function() {
   tsLabel.style.display = isHhp ? "none" : "";
   tsBody.style.display  = isHhp ? "none" : "";
   // Restore theme
-  activeTheme = st.theme || 'dark';
+  activeTheme = st.theme || 'light';
   if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", activeTheme);
   document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => {
@@ -6354,7 +6342,7 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
 <!-- Welcome modal (first visit only) -->
 <div id="welcome-modal-overlay" class="modal-overlay">
   <div id="welcome-modal" style="max-width:520px;width:90vw;padding:28px 32px;text-align:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
-    <div style="font-size:2rem;font-weight:700;font-family:var(--font-display);background:var(--brand-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">D<sup>3</sup></div>
+    <img src="logo/logo_unified.svg" alt="D³" style="height:64px;width:auto;display:block;margin:0 auto;">
     <h3 style="margin:4px 0 6px;font-size:1.1rem;font-weight:600;font-family:var(--font-display);color:var(--text-primary);">Drought Data Dashboard</h3>
     <p style="font-size:0.82rem;color:var(--text-primary);margin-bottom:16px;line-height:1.5;">Explore real-time drought conditions across the continental United States.</p>
     <div style="text-align:left;font-size:0.78rem;color:var(--text-secondary);line-height:1.6;">

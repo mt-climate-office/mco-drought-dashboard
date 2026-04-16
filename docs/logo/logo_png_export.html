@@ -1,0 +1,58 @@
+<style>
+body { display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px; background:#f5f5f5; font-family:sans-serif; }
+canvas { border:1px solid #ddd; background:#fff; max-width:100%; border-radius:6px; }
+button { padding:10px 24px; background:#1a2a3a; color:#fff; border:none; border-radius:6px; font-size:14px; cursor:pointer; }
+button:hover { background:#2a3a4a; }
+p { color:#666; font-size:13px; margin:0; }
+</style>
+<canvas id="c"></canvas>
+<button onclick="dl()">Download PNG</button>
+<p id="info"></p>
+<script>
+const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+  <rect width="240" height="80" fill="white"/>
+  <path fill-rule="evenodd"
+    d="M24 8 L44 8 Q62 8 62 30 Q62 52 44 52 L24 52 Z
+       M32 16 L42 16 Q53 16 53 30 Q53 44 42 44 L32 44 Z"
+    fill="#FFAA00"/>
+  <path fill-rule="evenodd"
+    d="M14 15 L34 15 Q52 15 52 37 Q52 59 34 59 L14 59 Z
+       M22 23 L32 23 Q43 23 43 37 Q43 51 32 51 L22 51 Z"
+    fill="#E60000"/>
+  <path fill-rule="evenodd"
+    d="M4 22 L24 22 Q42 22 42 44 Q42 66 24 66 L4 66 Z
+       M12 30 L22 30 Q33 30 33 44 Q33 58 22 58 L12 58 Z"
+    fill="#730000" stroke="#000000" stroke-width="1.5" stroke-linejoin="round"/>
+  <text x="64" y="20" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#000000">3</text>
+  <line x1="82" y1="14" x2="82" y2="66" stroke="#d0d0d0" stroke-width="0.5"/>
+  <text x="92" y="37" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="600" letter-spacing="2.5" fill="#1a1a1a">DROUGHT DATA</text>
+  <text x="92" y="53" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="400" letter-spacing="2.5" fill="#5a5a5a">DASHBOARD</text>
+</svg>`;
+
+const SCALE = 10;
+const W = 240, H = 80;
+const c = document.getElementById('c');
+c.width = W * SCALE;
+c.height = H * SCALE;
+c.style.width = W * 2 + 'px';
+c.style.height = H * 2 + 'px';
+const ctx = c.getContext('2d');
+ctx.scale(SCALE, SCALE);
+
+const blob = new Blob([svgStr], {type:'image/svg+xml'});
+const url = URL.createObjectURL(blob);
+const img = new Image();
+img.onload = () => {
+  ctx.drawImage(img, 0, 0, W, H);
+  URL.revokeObjectURL(url);
+  document.getElementById('info').textContent = `${c.width} × ${c.height}px (6× — print quality)`;
+};
+img.src = url;
+
+function dl() {
+  const a = document.createElement('a');
+  a.download = 'D3_logo.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
+</script>

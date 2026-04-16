@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 72">
+
+  <!-- BACK layer (D2 orange) -->
+  <path fill-rule="evenodd"
+    d="M24 8 L44 8 Q62 8 62 30 Q62 52 44 52 L24 52 Z
+       M32 16 L42 16 Q53 16 53 30 Q53 44 42 44 L32 44 Z"
+    fill="#FFAA00"/>
+
+  <!-- MIDDLE layer (D3 red) -->
+  <path fill-rule="evenodd"
+    d="M14 15 L34 15 Q52 15 52 37 Q52 59 34 59 L14 59 Z
+       M22 23 L32 23 Q43 23 43 37 Q43 51 32 51 L22 51 Z"
+    fill="#E60000"/>
+
+  <!-- FRONT layer (D4 dark maroon) — light outline for dark backgrounds -->
+  <path fill-rule="evenodd"
+    d="M4 22 L24 22 Q42 22 42 44 Q42 66 24 66 L4 66 Z
+       M12 30 L22 30 Q33 30 33 44 Q33 58 22 58 L12 58 Z"
+    fill="#730000" stroke="#F0F0F0" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Superscript 3 — light -->
+  <text x="64" y="20" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#F0F0F0">3</text>
+
+</svg>

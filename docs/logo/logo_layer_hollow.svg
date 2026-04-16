@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+
+  <!-- BACK layer (D2 orange) — hollowed out, counter reveals white -->
+  <path fill-rule="evenodd"
+    d="M24 8 L44 8 Q62 8 62 30 Q62 52 44 52 L24 52 Z
+       M32 16 L42 16 Q53 16 53 30 Q53 44 42 44 L32 44 Z"
+    fill="#FFAA00"/>
+
+  <!-- MIDDLE layer (D3 red) — hollowed out, counter reveals orange back D -->
+  <path fill-rule="evenodd"
+    d="M14 15 L34 15 Q52 15 52 37 Q52 59 34 59 L14 59 Z
+       M22 23 L32 23 Q43 23 43 37 Q43 51 32 51 L22 51 Z"
+    fill="#E60000"/>
+
+  <!-- FRONT layer (D4 dark maroon) — hollowed out, counter reveals red, black outline -->
+  <path fill-rule="evenodd"
+    d="M4 22 L24 22 Q42 22 42 44 Q42 66 24 66 L4 66 Z
+       M12 30 L22 30 Q33 30 33 44 Q33 58 22 58 L12 58 Z"
+    fill="#730000" stroke="#000000" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Superscript 3 -->
+  <text x="64" y="20" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#000000">3</text>
+
+  <!-- Rule -->
+  <line x1="82" y1="14" x2="82" y2="66" stroke="#d0d0d0" stroke-width="0.5"/>
+
+  <!-- Wordmark -->
+  <text x="92" y="37" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="600" letter-spacing="2.5" fill="#1a1a1a">DROUGHT DATA</text>
+  <text x="92" y="53" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="400" letter-spacing="2.5" fill="#5a5a5a">DASHBOARD</text>
+</svg>

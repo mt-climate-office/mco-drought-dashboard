@@ -187,14 +187,11 @@
       white-space: nowrap;
     }
 
-    #navbar .brand .brand-acronym {
-      font-size: 2.2rem;
-      line-height: var(--navbar-h);
-      letter-spacing: 0.08em;
-      background: var(--brand-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    #navbar .brand .brand-logo {
+      height: calc(var(--navbar-h) - 12px);
+      width: auto;
+      display: block;
+      flex-shrink: 0;
     }
 
     #navbar .brand .brand-sep {
@@ -237,8 +234,8 @@
     }
 
     #mco-logo {
-      height: 40px;
-      width: 40px;
+      height: 30px;
+      width: 30px;
       border-radius: 6px;
       object-fit: cover;
       transition: opacity 0.15s;
@@ -1151,7 +1148,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 4px;
-      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 75%), var(--border) var(--fill, 75%), var(--border) 100%);
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 90%), var(--border) var(--fill, 90%), var(--border) 100%);
       border-radius: 2px;
       cursor: pointer;
       outline: none;
@@ -1898,7 +1895,7 @@
       #mobile-overlay.active { display: block; }
 
       /* ── Brand: scale down to fit mobile ── */
-      #navbar .brand .brand-acronym { font-size: 1.4rem; }
+      #navbar .brand .brand-logo { height: calc(var(--navbar-h) - 20px); }
       #navbar .brand .brand-full { font-size: 0.55rem; }
       #navbar .brand .brand-sub { font-size: 0.45rem; line-height: 1.1; }
       #navbar .brand { flex: 1; min-width: 0; }

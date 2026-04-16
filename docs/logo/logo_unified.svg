@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <defs>
+    <clipPath id="box-clip">
+      <rect x="2" y="2" width="76" height="76" rx="14"/>
+    </clipPath>
+  </defs>
+
+  <!-- White rounded square container -->
+  <rect x="2" y="2" width="76" height="76" rx="14" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+
+  <g clip-path="url(#box-clip)">
+    <!-- BACK layer (D2 orange) -->
+    <path fill-rule="evenodd"
+      d="M26 11 L46 11 Q64 11 64 33 Q64 55 46 55 L26 55 Z
+         M34 19 L44 19 Q55 19 55 33 Q55 47 44 47 L34 47 Z"
+      fill="#FFAA00"/>
+
+    <!-- MIDDLE layer (D3 red) -->
+    <path fill-rule="evenodd"
+      d="M16 18 L36 18 Q54 18 54 40 Q54 62 36 62 L16 62 Z
+         M24 26 L34 26 Q45 26 45 40 Q45 54 34 54 L24 54 Z"
+      fill="#E60000"/>
+
+    <!-- FRONT layer (D4 dark maroon) -->
+    <path fill-rule="evenodd"
+      d="M6 25 L26 25 Q44 25 44 47 Q44 69 26 69 L6 69 Z
+         M14 33 L24 33 Q35 33 35 47 Q35 61 24 61 L14 61 Z"
+      fill="#730000"/>
+
+    <!-- Superscript 3 -->
+    <text x="65" y="22"
+      font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+      font-size="16"
+      font-weight="700"
+      fill="#000000">3</text>
+  </g>
+
+  <!-- Border drawn on top to stay crisp -->
+  <rect x="2" y="2" width="76" height="76" rx="14" fill="none" stroke="#000000" stroke-width="2"/>
+</svg>
