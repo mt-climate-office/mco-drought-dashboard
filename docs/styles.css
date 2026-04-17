@@ -188,7 +188,7 @@
     }
 
     #navbar .brand .brand-logo {
-      height: calc(var(--navbar-h) - 12px);
+      height: calc(var(--navbar-h) - 8px);
       width: auto;
       display: block;
       flex-shrink: 0;
