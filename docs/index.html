@@ -639,6 +639,20 @@ function ghcnPropKey(v, ts, period) {
 }
 let usdmLayer = null, usdmLoaded = false;
 let usdmOpacity = 0.55;
+const usdmStyleCache = {};
+function rebuildUsdmStyleCache() {
+  for (let dm = 0; dm <= 4; dm++) {
+    const color = chroma(USDM_DM_COLORS[dm] || '#999').alpha(usdmOpacity).css();
+    if (usdmStyleCache[dm]) {
+      usdmStyleCache[dm].getFill().setColor(color);
+    } else {
+      usdmStyleCache[dm] = new ol.style.Style({
+        fill: new ol.style.Fill({ color: color }),
+        stroke: new ol.style.Stroke({ color: '#333', width: 0.6 })
+      });
+    }
+  }
+}
 
 /* ── Hand-tuned default color arrays (11 colors each) ───────── */
 const USDM_COLORS = ["#730000","#E60000","#FFAA00","#FCD37F","#FFFF00","#FFFFFF",
@@ -1514,6 +1528,7 @@ usdmOpacitySlider.addEventListener("input", function() {
   usdmOpacity = parseFloat(this.value);
   usdmOpacityVal.textContent = usdmOpacity.toFixed(2);
   usdmOpacitySlider.style.setProperty('--fill', (usdmOpacity * 100) + '%');
+  rebuildUsdmStyleCache();
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) {
     usdmLayer.changed(); // triggers re-style with new opacity
   }
@@ -1684,8 +1699,75 @@ function clearZonalAvg(type) {
 function clearAllZonalAvg() { clearZonalAvg('county'); clearZonalAvg('state'); clearZonalAvg('tribal'); clearZonalAvg('huc'); }
 function clearCountyAverages() { clearZonalAvg('county'); }
 
-function computeZonalAverages(srcLayer, type, zIdx) {
+/* Full-raster cache for zonal aggregation. Keyed by URL so repeat calls
+   across zonal types (county/state/tribal/huc) only fetch once.
+   For convergence, compositeData lives on convCogLayer — no cache needed. */
+const _zonalRasterCache = new Map();
+async function loadZonalRaster(url, useZstd) {
+  if (_zonalRasterCache.has(url)) return _zonalRasterCache.get(url);
+  var tiff;
+  if (useZstd) {
+    var gt3 = await import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm');
+    tiff = await gt3.fromUrl(url);
+  } else {
+    tiff = await GeoTIFF.fromUrl(url);
+  }
+  var image = await tiff.getImage();
+  var rasters = await image.readRasters();
+  var info = {
+    data: rasters[0],
+    w: image.getWidth(),
+    h: image.getHeight(),
+    bbox: image.getBoundingBox()
+  };
+  _zonalRasterCache.set(url, info);
+  return info;
+}
+async function getCurrentZonalRaster() {
+  if (convActive && convCogLayer && convCogLayer._compositeData) {
+    return {
+      data: convCogLayer._compositeData,
+      w: convCogLayer._w,
+      h: convCogLayer._h,
+      bbox: convCogLayer._bbox,
+      isConv: true
+    };
+  }
+  var cfg = VAR_CONFIG[activeVar];
+  if (!cfg) return null;
+  var url, useZstd = false;
+  if (cfg.isSnodas) {
+    url = cfg.isSnodasRaw
+      ? 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif'
+      : 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+    useZstd = true;
+  } else {
+    url = BASE_URL + '/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
+  }
+  var r = await loadZonalRaster(url, useZstd);
+  return { data: r.data, w: r.w, h: r.h, bbox: r.bbox, cfg: cfg, isConv: false };
+}
+
+/* Per-type generation counter guards against stale async completions
+   when the user changes layers faster than a compute can finish.
+   _zonalInFlight drives a shared spinner. */
+const _zonalGen = { county: 0, state: 0, tribal: 0, huc: 0 };
+let _zonalInFlight = 0;
+
+async function computeZonalAverages(srcLayer, type, zIdx) {
   if (!srcLayer || !srcLayer.getSource) return;
+  var myGen = ++_zonalGen[type];
+  _zonalInFlight++;
+  showSpinner('Computing averages\u2026');
+  try {
+    return await _computeZonalAveragesInner(srcLayer, type, zIdx, myGen);
+  } finally {
+    _zonalInFlight--;
+    if (_zonalInFlight === 0) hideSpinner();
+  }
+}
+
+async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
   // Preserve active flag across recompute (clearZonalAvg resets it)
   var wasActive = (type === 'county' && countyAvgActive) || (type === 'state' && stateAvgActive) ||
                   (type === 'tribal' && tribalAvgActive) || (type === 'huc' && hucAvgActive);
@@ -1698,83 +1780,56 @@ function computeZonalAverages(srcLayer, type, zIdx) {
   }
   console.time(type + ' averages');
 
-  var cfg = VAR_CONFIG[activeVar];
-  // Minimum coverage ratio: fraction of grid cells inside zone that must have valid data
-  // SNODAS has seasonal nodata (no snow), so use a lower threshold
-  var minCoverage = (cfg && cfg.isSnodas) ? 0.25 : 0.5;
+  var raster;
+  try { raster = await getCurrentZonalRaster(); } catch (e) { console.error(e); return; }
+  if (myGen !== _zonalGen[type]) return; // stale
+  if (!raster) return;
+
+  var data = raster.data, w = raster.w, h = raster.h, bbox = raster.bbox;
+  var resX = (bbox[2] - bbox[0]) / w;
+  var resY = (bbox[3] - bbox[1]) / h;
+  var isConv = !!raster.isConv;
+  var cfg = raster.cfg || VAR_CONFIG[activeVar];
   var scale = cfg ? (cfg.rawScale || 0.01) : 0.01;
-  var isConv = convActive && convCogLayer;
+  var minCoverage = (cfg && cfg.isSnodas) ? 0.25 : 0.5;
 
   var { scaleFn } = buildScale(isConv ? 'spi' : activeVar, isConv ? 'usdm' : (cfg ? cfg.defaultPalette : 'usdm'), null, null);
 
-  // Build a grid of raster values in geographic coordinates
-  // Subsample the gridMET grid (~4km native) by step to speed up GPU reads;
-  // step=3 → ~12km effective resolution, ~90K cells instead of 809K (≈9× faster)
-  var FULL_W = 1386, FULL_H = 584, step = 3;
-  var gridW = Math.ceil(FULL_W / step), gridH = Math.ceil(FULL_H / step);
-  var gridBbox = [-124.7875, 25.0458333, -67.0375, 49.3791667];
-  var gridResX = (gridBbox[2] - gridBbox[0]) / gridW;
-  var gridResY = (gridBbox[3] - gridBbox[1]) / gridH;
-
-  // Sample the raster at each grid point using screen pixel lookup
-  // First render must be complete for getData to work
-  var rasterLayer = isConv ? convCogLayer : cogLayer;
-  if (!rasterLayer) return;
-
-  // Pre-compute scaled values at each grid cell center
-  var gridVals = new Float32Array(gridW * gridH);
-  gridVals.fill(NaN);
-  for (var gy = 0; gy < gridH; gy++) {
-    var lat = gridBbox[3] - (gy + 0.5) * gridResY;
-    for (var gx = 0; gx < gridW; gx++) {
-      var lon = gridBbox[0] + (gx + 0.5) * gridResX;
-      var coord3857 = ol.proj.fromLonLat([lon, lat]);
-      var pixel = map.getPixelFromCoordinate(coord3857);
-      if (!pixel) continue;
-      var data = rasterLayer.getData(pixel);
-      if (!data || !data.length) continue;
-      var raw = data[0];
-      if (isNaN(raw) || !isFinite(raw) || raw === -9999 || raw <= -9000) continue;
-      // Outside the COG extent, getData() returns 0 — treat as nodata for
-      // centesimal indices. SNODAS raw SWE legitimately has 0 (no snow).
-      if (raw === 0 && !isConv && cfg && !cfg.isSnodasRaw) continue;
-      var scaled;
-      if (isConv) {
-        scaled = raw;
-      } else {
-        scaled = raw * scale;
-        if (cfg && cfg.mmToIn) scaled /= 25.4;
-        if (cfg && cfg.cToF) scaled *= 9 / 5;
-      }
-      gridVals[gy * gridW + gx] = scaled;
-    }
-  }
-
-  // For each zone, find grid cells inside and compute median
   var features = srcLayer.getSource().getFeatures();
   var styledFeatures = [];
 
   features.forEach(function(feature) {
     var geom = feature.getGeometry();
     var extent = geom.getExtent(); // EPSG:3857
-    // Convert to EPSG:4326 for grid lookup
     var ext4326 = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
-    var colMin = Math.max(0, Math.floor((ext4326[0] - gridBbox[0]) / gridResX));
-    var colMax = Math.min(gridW - 1, Math.ceil((ext4326[2] - gridBbox[0]) / gridResX));
-    var rowMin = Math.max(0, Math.floor((gridBbox[3] - ext4326[3]) / gridResY));
-    var rowMax = Math.min(gridH - 1, Math.ceil((gridBbox[3] - ext4326[1]) / gridResY));
+    var colMin = Math.max(0, Math.floor((ext4326[0] - bbox[0]) / resX));
+    var colMax = Math.min(w - 1, Math.ceil((ext4326[2] - bbox[0]) / resX));
+    var rowMin = Math.max(0, Math.floor((bbox[3] - ext4326[3]) / resY));
+    var rowMax = Math.min(h - 1, Math.ceil((bbox[3] - ext4326[1]) / resY));
 
     var vals = [];
     var totalInside = 0;
     for (var row = rowMin; row <= rowMax; row++) {
-      var lat = gridBbox[3] - (row + 0.5) * gridResY;
+      var lat = bbox[3] - (row + 0.5) * resY;
       for (var col = colMin; col <= colMax; col++) {
-        var lon = gridBbox[0] + (col + 0.5) * gridResX;
+        var lon = bbox[0] + (col + 0.5) * resX;
         var coord3857 = ol.proj.fromLonLat([lon, lat]);
         if (!geom.intersectsCoordinate(coord3857)) continue;
         totalInside++;
-        var v = gridVals[row * gridW + col];
-        if (!isNaN(v)) vals.push(v);
+        var raw = data[row * w + col];
+        if (isNaN(raw) || !isFinite(raw) || raw === -9999 || raw <= -9000) continue;
+        // Outside the COG extent, getData() returns 0 — treat as nodata for
+        // centesimal indices. SNODAS raw SWE legitimately has 0 (no snow).
+        if (raw === 0 && !isConv && cfg && !cfg.isSnodasRaw) continue;
+        var scaled;
+        if (isConv) {
+          scaled = raw;
+        } else {
+          scaled = raw * scale;
+          if (cfg.mmToIn) scaled /= 25.4;
+          if (cfg.cToF) scaled *= 9 / 5;
+        }
+        vals.push(scaled);
       }
     }
 
@@ -1801,6 +1856,7 @@ function computeZonalAverages(srcLayer, type, zIdx) {
 
   console.timeEnd(type + ' averages');
 
+  if (myGen !== _zonalGen[type]) return; // stale
   if (styledFeatures.length === 0) return;
 
   var resultLayer = new ol.layer.Vector({
@@ -1814,6 +1870,16 @@ function computeZonalAverages(srcLayer, type, zIdx) {
     zIndex: zIdx
   });
 
+  // Remove any layer that slipped through between our clear and this add
+  // (e.g. an earlier async compute completing after we awaited the raster)
+  clearZonalAvg(type);
+  if (wasActive) {
+    if (type === 'county') countyAvgActive = true;
+    else if (type === 'state') stateAvgActive = true;
+    else if (type === 'tribal') tribalAvgActive = true;
+    else if (type === 'huc') hucAvgActive = true;
+  }
+
   if (type === 'county') countyAvgLayer = resultLayer;
   else if (type === 'state') stateAvgLayer = resultLayer;
   else if (type === 'tribal') tribalAvgLayer = resultLayer;
@@ -1823,9 +1889,9 @@ function computeZonalAverages(srcLayer, type, zIdx) {
   ensureLayerStack();
 }
 
-function computeCountyAverages() { computeZonalAverages(countiesLayer, 'county', 7); }
-function computeStateAverages() { computeZonalAverages(statesLayer, 'state', 9); }
-function computeTribalAverages() { if (tribalLayer) computeZonalAverages(tribalLayer, 'tribal', 8); }
+function computeCountyAverages() { return computeZonalAverages(countiesLayer, 'county', 7); }
+function computeStateAverages()  { return computeZonalAverages(statesLayer,  'state',  9); }
+function computeTribalAverages() { return tribalLayer ? computeZonalAverages(tribalLayer, 'tribal', 8) : Promise.resolve(); }
 
 let _savedOpacityBeforeZonalAvg = null;
 
@@ -1975,8 +2041,8 @@ document.getElementById('huc-level').addEventListener('change', function() {
 });
 
 function computeHucAverages() {
-  if (!hucLayer || !hucLayer.getSource) return;
-  computeZonalAverages(hucLayer, 'huc', 6);
+  if (!hucLayer || !hucLayer.getSource) return Promise.resolve();
+  return computeZonalAverages(hucLayer, 'huc', 6);
 }
 
 document.getElementById('huc-avg-chk').addEventListener('change', function() {
@@ -2938,14 +3004,8 @@ async function loadUsdmForDate(dateStr) {
 
   // Remove old layer, create new
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
-  // Pre-compute USDM styles by DM class
-  var usdmStyleCache = {};
-  for (var dm = 0; dm <= 4; dm++) {
-    usdmStyleCache[dm] = new ol.style.Style({
-      fill: new ol.style.Fill({ color: chroma(USDM_DM_COLORS[dm] || '#999').alpha(usdmOpacity).css() }),
-      stroke: new ol.style.Stroke({ color: '#333', width: 0.6 })
-    });
-  }
+  // Pre-compute USDM styles by DM class (shared cache, rebuilt on opacity change)
+  rebuildUsdmStyleCache();
   usdmLayer = new ol.layer.Vector({
     source: new ol.source.Vector({
       features: new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' })
@@ -3552,28 +3612,14 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
       }
       retryQuery(5);
     }
-    // Recompute zonal averages if active — quick retry until a test pixel has data
+    // Recompute zonal averages if active — pulls raster via geotiff.js,
+    // independent of map viewport / screen pixels. Spinner handled inside.
     if (countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive) {
-      showSpinner('Computing averages\u2026');
       popupOverlay.setPosition(undefined);
-      (function retryZonal(attempts) {
-        if (myGen !== _renderGen) { hideSpinner(); return; }
-        // Quick test: does the center of the viewport have data yet?
-        var viewCenter = ol.proj.toLonLat(map.getView().getCenter());
-        var px = map.getPixelFromCoordinate(ol.proj.fromLonLat(viewCenter));
-        var d = px && cogLayer && cogLayer.getData(px);
-        if (d && d.length && d[0] !== 0 && !isNaN(d[0])) {
-          if (countyAvgActive) computeCountyAverages();
-          if (stateAvgActive) computeStateAverages();
-          if (tribalAvgActive) computeTribalAverages();
-          if (hucAvgActive) computeHucAverages();
-          hideSpinner();
-        } else if (attempts > 0) {
-          setTimeout(function() { retryZonal(attempts - 1); }, 150);
-        } else {
-          hideSpinner();
-        }
-      })(15);
+      if (countyAvgActive) computeCountyAverages();
+      if (stateAvgActive)  computeStateAverages();
+      if (tribalAvgActive) computeTribalAverages();
+      if (hucAvgActive)    computeHucAverages();
     }
   });
 }
@@ -4245,6 +4291,7 @@ function applyConvergence() {
     convCogLayer._bbox = bbox;
     convCogLayer._w = w;
     convCogLayer._h = h;
+    convCogLayer._compositeData = compositeData;
 
     // Extract date from first non-SNODAS COG
     var firstNonSnodas = convLayers.find(function(l) { return !CONV_INDICES[l.varKey].isSnodas; });
@@ -4298,23 +4345,13 @@ function applyConvergence() {
     overlayContainer.appendChild(div);
 
     hideSpinner();
-    // Recompute zonal averages if active — retry until tile data is readable
+    // Recompute zonal averages if active — reads compositeData off convCogLayer,
+    // independent of map viewport. Spinner handled inside compute.
     if (countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive) {
-      map.once('rendercomplete', function() {
-        (function retryZonalConv(attempts) {
-          var testPixel = map.getPixelFromCoordinate(ol.proj.fromLonLat([-98, 38]));
-          var testData = convCogLayer && testPixel && convCogLayer.getData(testPixel);
-          if (testData && testData.length && !isNaN(testData[0])) {
-            if (countyAvgActive) computeCountyAverages();
-            if (stateAvgActive) computeStateAverages();
-            if (tribalAvgActive) computeTribalAverages();
-            if (hucAvgActive) computeHucAverages();
-          } else if (attempts > 0) {
-            setTimeout(function() { retryZonalConv(attempts - 1); }, 300);
-          }
-        })(15);
-      });
-      map.renderSync();
+      if (countyAvgActive) computeCountyAverages();
+      if (stateAvgActive)  computeStateAverages();
+      if (tribalAvgActive) computeTribalAverages();
+      if (hucAvgActive)    computeHucAverages();
     }
 
   }).catch(function(err) {
