@@ -191,12 +191,20 @@ function injectSidebar(sidebar) {
   sectionBodyEl.className = 'section-body sec-collapsed';
   sectionBodyEl.id = 'sec-mt-soil';
 
-  // Enable checkbox
-  const enableLabel = document.createElement('label');
-  enableLabel.className = 'custom-check';
-  enableLabel.style.marginBottom = '6px';
-  enableLabel.innerHTML = '<input type="checkbox" id="mt-soil-chk"> Soil Moisture Anomaly';
-  sectionBodyEl.appendChild(enableLabel);
+  // Add/Remove toggle button — styled to match #ghcn-btn / #usgs-btn
+  const btnRow = document.createElement('div');
+  btnRow.style.marginBottom = '6px';
+  const toggleBtn = document.createElement('button');
+  toggleBtn.id = 'mesonet-btn';
+  toggleBtn.type = 'button';
+  toggleBtn.innerHTML = '<span>Mesonet Soil Moisture</span>';
+  btnRow.appendChild(toggleBtn);
+  sectionBodyEl.appendChild(btnRow);
+
+  // Divider between the layer toggle and the plugin-management controls
+  const divider = document.createElement('hr');
+  divider.style.cssText = 'border:none;border-top:1px solid var(--border);margin:8px 0;';
+  sectionBodyEl.appendChild(divider);
 
   // Depth selector (hidden until enabled)
   const strip = document.createElement('div');
@@ -217,19 +225,21 @@ function injectSidebar(sidebar) {
   });
   sectionBodyEl.appendChild(strip);
 
-  // Wire checkbox to toggle layer and depth strip
-  const chk = enableLabel.querySelector('input');
-  chk.addEventListener('change', async () => {
+  // Wire button to toggle layer, depth strip, and styling
+  toggleBtn.addEventListener('click', async () => {
     const mesoLeg = document.getElementById('mesonet-legend');
-    if (chk.checked) {
+    const isOn = toggleBtn.classList.contains('is-on');
+    if (!isOn) {
       strip.style.display = '';
       await loadDepthLayer(_map);
+      toggleBtn.classList.add('is-on');
       if (mesoLeg && window.showLegendEl) window.showLegendEl(mesoLeg);
       else if (mesoLeg) mesoLeg.style.display = 'block';
       if (_helpers.stackRightLegends) _helpers.stackRightLegends();
     } else {
       strip.style.display = 'none';
       if (markerLayer) { _map.removeLayer(markerLayer); markerLayer = null; }
+      toggleBtn.classList.remove('is-on');
       if (mesoLeg) mesoLeg.style.display = 'none';
       if (_helpers.stackRightLegends) _helpers.stackRightLegends();
     }

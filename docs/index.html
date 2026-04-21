@@ -271,13 +271,13 @@
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Meteorological Drought Metrics</div>
         <div id="ghcn-btn-row">
           <button id="ghcn-btn" type="button">
-            <span>Add GHCN Station Data</span>
+            <span>GHCN Station Data</span>
           </button>
         </div>
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:10px;margin-bottom:4px;">Streamflow</div>
         <div id="usgs-btn-row">
           <button id="usgs-btn" type="button">
-            <span>Add Current USGS Percentiles</span>
+            <span>Current USGS Percentiles</span>
           </button>
         </div>
       </div>
@@ -329,6 +329,92 @@
           <button id="conv-clear-btn" type="button" style="padding:7px 12px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.78rem;cursor:pointer;font-family:var(--font-display);">Clear</button>
         </div>
         <div id="conv-error" style="display:none;margin-top:6px;padding:6px 8px;background:var(--error-bg);border:1px solid var(--error-border);border-radius:var(--radius-sm);color:var(--error);font-size:0.72rem;"></div>
+      </div>
+
+      <!-- Overlays — section index 2.8 (above Zoom to Location) -->
+      <div class="section-label sec-collapsed" data-sec="sec-overlays" style="--i:2.8">Overlays <span class="info-tip" tabindex="0" data-tip="overlays">&#9432;</span><span class="caret">&#9660;</span></div>
+      <div class="section-body sec-collapsed" id="sec-overlays">
+        <label class="custom-check" id="usdm-row">
+          <input type="checkbox" id="usdm-chk">
+          U.S. Drought Monitor
+        </label>
+        <!-- USDM inline controls (shown when USDM is active) -->
+        <div id="usdm-inline" style="display:none;margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);">
+          <div style="margin-bottom:8px;">
+            <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" aria-label="USDM week" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+              <datalist id="usdm-week-ticks"></datalist>
+              <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
+            </div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
+            <select id="usdm-date-select" aria-label="USDM date" style="width:100%;padding:7px 10px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="USDM opacity" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
+              <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
+            </div>
+          </div>
+          <button id="usdm-remove-btn" type="button" style="width:100%;margin-top:8px;padding:6px;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">Remove USDM Overlay</button>
+        </div>
+        <div class="ov-rule"></div>
+        <div class="ov-row" id="states-row">
+          <div class="ov-label">State</div>
+          <div class="depth-strip ov-seg" data-ov-type="state">
+            <button type="button" class="depth-btn" data-mode="off">Off</button>
+            <button type="button" class="depth-btn active" data-mode="outline">Outline</button>
+            <button type="button" class="depth-btn" data-mode="median">Median</button>
+          </div>
+          <input type="checkbox" id="states-chk" checked hidden>
+          <input type="checkbox" id="state-avg-chk" hidden>
+        </div>
+        <div class="ov-rule"></div>
+        <div class="ov-row" id="counties-row">
+          <div class="ov-label">County</div>
+          <div class="depth-strip ov-seg" data-ov-type="county">
+            <button type="button" class="depth-btn" data-mode="off">Off</button>
+            <button type="button" class="depth-btn active" data-mode="outline">Outline</button>
+            <button type="button" class="depth-btn" data-mode="median">Median</button>
+          </div>
+          <input type="checkbox" id="counties-chk" checked hidden>
+          <input type="checkbox" id="county-avg-chk" hidden>
+        </div>
+        <div class="ov-rule"></div>
+        <div class="ov-row" id="tribal-row">
+          <div class="ov-label">Tribal</div>
+          <div class="depth-strip ov-seg" data-ov-type="tribal">
+            <button type="button" class="depth-btn active" data-mode="off">Off</button>
+            <button type="button" class="depth-btn" data-mode="outline">Outline</button>
+            <button type="button" class="depth-btn" data-mode="median">Median</button>
+          </div>
+          <input type="checkbox" id="tribal-chk" hidden>
+          <input type="checkbox" id="tribal-avg-chk" hidden>
+        </div>
+        <div class="ov-rule"></div>
+        <div class="ov-row ov-row-stack" id="huc-row">
+          <div class="ov-row-line">
+            <div class="ov-label">HUC</div>
+            <select id="huc-level" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;font-family:var(--font-display);">
+              <option value="2" selected>HUC2 (Region)</option>
+              <option value="4">HUC4 (Subregion)</option>
+              <option value="6">HUC6 (Basin)</option>
+              <option value="8">HUC8 (Subbasin)</option>
+            </select>
+          </div>
+          <div class="depth-strip ov-seg" data-ov-type="huc">
+            <button type="button" class="depth-btn active" data-mode="off">Off</button>
+            <button type="button" class="depth-btn" data-mode="outline">Outline</button>
+            <button type="button" class="depth-btn" data-mode="median">Median</button>
+          </div>
+          <input type="checkbox" id="huc-chk" hidden>
+          <input type="checkbox" id="huc-avg-chk" hidden>
+        </div>
       </div>
 
       <!-- Zoom to Location — section index 3 -->
@@ -389,88 +475,6 @@
           <optgroup label="Tribal Nations" id="tribal-zoom-group"></optgroup>
         </select>
       </div>
-
-      <!-- Overlays — section index 4 -->
-      <div class="section-label sec-collapsed" data-sec="sec-overlays" style="--i:4">Overlays <span class="info-tip" tabindex="0" data-tip="overlays">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body sec-collapsed" id="sec-overlays">
-        <label class="custom-check" id="states-row">
-          <input type="checkbox" id="states-chk" checked>
-          State boundaries
-        </label>
-        <label class="custom-check" id="state-avg-row" style="margin-left:18px;font-size:0.75rem;">
-          <input type="checkbox" id="state-avg-chk">
-          State averages (median)
-        </label>
-        <div class="ov-rule"></div>
-        <label class="custom-check" id="counties-row">
-          <input type="checkbox" id="counties-chk" checked>
-          County boundaries
-        </label>
-        <label class="custom-check" id="county-avg-row" style="margin-left:18px;font-size:0.75rem;">
-          <input type="checkbox" id="county-avg-chk">
-          County averages (median)
-        </label>
-        <div class="ov-rule"></div>
-        <label class="custom-check" id="tribal-row">
-          <input type="checkbox" id="tribal-chk">
-          Tribal Nations
-        </label>
-        <label class="custom-check" id="tribal-avg-row" style="margin-left:18px;font-size:0.75rem;">
-          <input type="checkbox" id="tribal-avg-chk">
-          Tribal averages (median)
-        </label>
-        <div class="ov-rule"></div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <label class="custom-check" style="flex-shrink:0;">
-            <input type="checkbox" id="huc-chk">
-            HUC Boundaries
-          </label>
-          <select id="huc-level" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;font-family:var(--font-display);">
-            <option value="2" selected>HUC2 (Region)</option>
-            <option value="4">HUC4 (Subregion)</option>
-            <option value="6">HUC6 (Basin)</option>
-            <option value="8">HUC8 (Subbasin)</option>
-          </select>
-        </div>
-        <label class="custom-check" id="huc-avg-row" style="margin-left:18px;font-size:0.75rem;">
-          <input type="checkbox" id="huc-avg-chk">
-          HUC averages (median)
-        </label>
-        <div class="ov-rule"></div>
-        <label class="custom-check" id="usdm-row">
-          <input type="checkbox" id="usdm-chk">
-          U.S. Drought Monitor
-        </label>
-      </div>
-
-      <!-- U.S. Drought Monitor — section index 5 (conditional) -->
-      <div class="section-label" data-sec="sec-usdm" style="--i:5;display:none;">U.S. Drought Monitor <span class="info-tip" tabindex="0" data-tip="usdm">&#9432;</span><span class="caret">&#9660;</span></div>
-      <div class="section-body" id="sec-usdm" style="display:none;">
-        <div style="margin-bottom:8px;">
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Recent weeks</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-week-slider" list="usdm-week-ticks" type="range" min="0" max="11" step="1" value="11" aria-label="USDM week" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,100%),var(--border) var(--fill,100%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
-            <datalist id="usdm-week-ticks"></datalist>
-            <span id="usdm-week-label" style="font-size:0.78rem;color:var(--text-body);min-width:80px;text-align:right;font-family:var(--font-mono);">Latest</span>
-          </div>
-        </div>
-        <div style="margin-bottom:8px;">
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">All dates</div>
-          <select id="usdm-date-select" aria-label="USDM date" style="width:100%;padding:7px 10px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;">
-            <option value="">Loading…</option>
-          </select>
-        </div>
-        <div>
-          <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;">Opacity</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input id="usdm-opacity-slider" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="USDM opacity" style="flex:1;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,55%),var(--border) var(--fill,55%),var(--border) 100%);border-radius:2px;cursor:pointer;outline:none;">
-            <span id="usdm-opacity-val" style="font-size:0.78rem;color:var(--text-body);min-width:36px;text-align:right;font-family:var(--font-mono);">0.55</span>
-          </div>
-        </div>
-        <button id="usdm-remove-btn" type="button" style="width:100%;margin-top:8px;padding:6px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;font-family:var(--font-display);">Remove USDM Overlay</button>
-      </div>
-
-
 
       <!-- Basemap & Theme — section index 8 (collapsed by default) -->
       <div class="section-label sec-collapsed" data-sec="sec-basemap" style="--i:8">Basemap & Theme <span class="info-tip" tabindex="0" data-tip="basemap">&#9432;</span><span class="caret">&#9660;</span></div>
@@ -1273,7 +1277,7 @@ async function handleStatePlugin(newCode) {
   }
   if (newCode && STATE_PLUGINS[newCode] && _activePluginCode !== newCode) {
     try {
-      const mod = await import(STATE_PLUGINS[newCode]);
+      const mod = await import(STATE_PLUGINS[newCode] + '?v=' + Date.now());
       _activePlugin = mod;
       _activePluginCode = newCode;
       mod.activate(map, document.querySelector('.sidebar-inner'), { showSpinner, hideSpinner, ensureLayerStack, stackRightLegends, removePlugin: function() {
@@ -1456,6 +1460,7 @@ document.getElementById("var-select").addEventListener("change", function() {
     if (hhpCountiesRestore && countiesLayer && map.getLayers().getArray().includes(countiesLayer)) {
       countiesLayer.setVisible(false);
       countiesChk.checked = false;
+      if (typeof syncOverlayUI === 'function') syncOverlayUI('county');
     }
     (async () => {
       if (!hhpLoaded) {
@@ -1628,6 +1633,7 @@ document.getElementById("states-chk").addEventListener("change", function() {
     document.getElementById('state-avg-chk').checked = false;
     clearZonalAvg('state');
     _restoreRasterOpacity();
+    if (typeof syncOverlayUI === 'function') syncOverlayUI('state');
   }
 });
 
@@ -1679,6 +1685,7 @@ document.getElementById("counties-chk").addEventListener("change", function() {
   if (!this.checked) {
     document.getElementById('county-avg-chk').checked = false;
     clearCountyAverages();
+    if (typeof syncOverlayUI === 'function') syncOverlayUI('county');
   }
 });
 
@@ -2032,6 +2039,10 @@ document.getElementById('huc-chk').addEventListener('change', function() {
     if (countiesLayer) countiesLayer.setVisible(true);
     document.getElementById('counties-chk').checked = true;
   }
+  if (typeof syncOverlayUI === 'function') {
+    syncOverlayUI('huc');
+    syncOverlayUI('county');
+  }
 });
 
 document.getElementById('huc-level').addEventListener('change', function() {
@@ -2060,6 +2071,55 @@ document.getElementById('huc-avg-chk').addEventListener('change', function() {
     hucAvgActive = false;
     _restoreRasterOpacity();
   }
+});
+
+/* ── Overlay segmented controls (Off / Outline / Median) ───────── */
+const OV_CHECKBOXES = {
+  state:  { boundary: 'states-chk',   avg: 'state-avg-chk'  },
+  county: { boundary: 'counties-chk', avg: 'county-avg-chk' },
+  tribal: { boundary: 'tribal-chk',   avg: 'tribal-avg-chk' },
+  huc:    { boundary: 'huc-chk',      avg: 'huc-avg-chk'    }
+};
+function _fireChange(id) {
+  const el = document.getElementById(id);
+  if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function setOverlayMode(type, mode) {
+  const ids = OV_CHECKBOXES[type];
+  if (!ids) return;
+  const bChk = document.getElementById(ids.boundary);
+  const aChk = document.getElementById(ids.avg);
+  const wantBoundary = (mode === 'outline' || mode === 'median');
+  const wantAvg = (mode === 'median');
+  // Boundary: median requires boundary visible, so toggle avg first if turning off
+  if (aChk.checked !== wantAvg && !wantAvg) { aChk.checked = false; _fireChange(ids.avg); }
+  if (bChk.checked !== wantBoundary) { bChk.checked = wantBoundary; _fireChange(ids.boundary); }
+  if (aChk.checked !== wantAvg && wantAvg)  { aChk.checked = true;  _fireChange(ids.avg); }
+  syncOverlayUI(type);
+}
+function syncOverlayUI(type) {
+  const ids = OV_CHECKBOXES[type];
+  if (!ids) return;
+  const b = document.getElementById(ids.boundary).checked;
+  const a = document.getElementById(ids.avg).checked;
+  const mode = a ? 'median' : (b ? 'outline' : 'off');
+  const strip = document.querySelector('.ov-seg[data-ov-type="' + type + '"]');
+  if (!strip) return;
+  strip.querySelectorAll('.depth-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+}
+document.querySelectorAll('.ov-seg').forEach(strip => {
+  const type = strip.dataset.ovType;
+  strip.querySelectorAll('.depth-btn').forEach(btn => {
+    btn.addEventListener('click', () => setOverlayMode(type, btn.dataset.mode));
+  });
+});
+// Sync UI whenever the underlying checkboxes change (covers programmatic toggles
+// from other handlers — e.g. HUC turning counties off)
+Object.entries(OV_CHECKBOXES).forEach(([type, ids]) => {
+  document.getElementById(ids.boundary).addEventListener('change', () => syncOverlayUI(type));
+  document.getElementById(ids.avg).addEventListener('change', () => syncOverlayUI(type));
 });
 
 
@@ -2721,7 +2781,6 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
 
   if (isOn) {
     map.removeLayer(usgsStreamLayer);
-    this.querySelector("span").textContent = "Add Current USGS Percentiles";
     this.classList.remove("is-on");
     const sfOn = document.getElementById("var-select").value === "hhp";
     if (!sfOn) document.getElementById("sf-legend").style.display = "none";
@@ -2734,7 +2793,6 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
     try { await loadUsgsStreamflow(); } finally { hideSpinner(); }
   }
   map.addLayer(usgsStreamLayer);
-  this.querySelector("span").textContent = "Remove Current USGS Percentiles";
   this.classList.add("is-on");
   showLegendEl(document.getElementById("sf-legend"));
   stackRightLegends();
@@ -2831,7 +2889,6 @@ document.getElementById("ghcn-btn").addEventListener("click", async function() {
   if (isOn) {
     map.removeLayer(ghcnLayer);
     ghcnActive = false;
-    this.querySelector("span").textContent = "Add GHCN Station Data";
     this.classList.remove("is-on");
     return;
   }
@@ -2842,7 +2899,6 @@ document.getElementById("ghcn-btn").addEventListener("click", async function() {
   ghcnActive = true;
   restyleGhcnLayer();
   map.addLayer(ghcnLayer);
-  this.querySelector("span").textContent = "Remove GHCN Station Data";
   this.classList.add("is-on");
   ensureLayerStack();
 });
@@ -3097,18 +3153,15 @@ function stackRightLegends() {
 }
 
 document.getElementById("usdm-chk").addEventListener("change", async function () {
-  const usdmSection = document.getElementById("sec-usdm");
-  const usdmLabel = document.querySelector(".section-label[data-sec='sec-usdm']");
+  const usdmInline = document.getElementById("usdm-inline");
   if (!this.checked) {
     if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) map.removeLayer(usdmLayer);
     document.getElementById("usdm-legend").style.display = "none";
-    usdmSection.style.display = "none";
-    usdmLabel.style.display = "none";
+    usdmInline.style.display = "none";
     stackRightLegends();
     return;
   }
-  usdmLabel.style.display = "";
-  usdmSection.style.display = "";
+  usdmInline.style.display = "";
   if (!usdmLoaded) {
     showSpinner();
     try { await loadUsdm(); } finally { hideSpinner(); }
@@ -5547,6 +5600,14 @@ async function takeScreenshot(exportScale) {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
     }
+
+    // Thin black border around the full export
+    const borderW = Math.max(1, Math.round(1.5 * SCALE));
+    ctx.save();
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = borderW;
+    ctx.strokeRect(borderW / 2, borderW / 2, out.width - borderW, out.height - borderW);
+    ctx.restore();
 
     // Download
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();

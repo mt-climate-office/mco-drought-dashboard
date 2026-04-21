@@ -1261,6 +1261,28 @@
       background: var(--text-dim);
       margin: 6px 0;
     }
+    .ov-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ov-row-stack {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+    .ov-row-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ov-label {
+      flex: 0 0 60px;
+      font-size: 0.78rem;
+      color: var(--text-body);
+      font-family: var(--font-display);
+    }
+    .ov-seg { flex: 1; }
 
     /* ================================================================
        Collapse Button
@@ -1555,9 +1577,11 @@
     }
 
     /* ================================================================
-       USGS Button
+       Station "Add X" buttons (USGS, GHCN, Mesonet)
        ================================================================ */
-    #usgs-btn {
+    #usgs-btn,
+    #ghcn-btn,
+    #mesonet-btn {
       background: var(--bg-elevated);
       color: var(--text-body);
       border: 1px solid var(--border);
@@ -1572,31 +1596,19 @@
       gap: 6px;
     }
 
-    #usgs-btn:hover {
+    #usgs-btn:hover,
+    #ghcn-btn:hover,
+    #mesonet-btn:hover {
       background: var(--overlay-hover-md);
     }
 
-    #usgs-btn.is-on, #ghcn-btn.is-on {
+    #usgs-btn.is-on,
+    #ghcn-btn.is-on,
+    #mesonet-btn.is-on {
       background: var(--accent-active);
       color: var(--accent-light);
       border-color: var(--accent-active-border);
     }
-
-    #ghcn-btn {
-      background: var(--bg-elevated);
-      color: var(--text-body);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 7px 10px;
-      font-size: 0.78rem;
-      font-family: var(--font-display);
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    #ghcn-btn:hover { background: var(--overlay-hover-md); }
 
     /* ================================================================
        Flow Panel
@@ -1890,6 +1902,8 @@
       .ts-btn,
       .basemap-btn,
       #usgs-btn,
+      #ghcn-btn,
+      #mesonet-btn,
       .cs-trigger { min-height: 44px; }
 
       #mobile-overlay.active { display: block; }
