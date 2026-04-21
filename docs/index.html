@@ -3415,12 +3415,15 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
   }
 
   // GeoTIFF source auto-generates an alpha band (band 2) from nodata.
-  // Alpha = 0 for nodata pixels AND pixels outside the COG extent.
-  // Multiply the color's alpha by the normalized alpha band to mask both cases.
-  const alpha = ['/', ['band', 2], 255]; // 0 or 1
+  // When bilinear interpolation is on, both bands are interpolated — so at
+  // edges where valid data meets nodata, the data band produces garbage values
+  // (e.g. (100 + -9999) / 2 = -4950, rendering as extreme drought) while the
+  // alpha band interpolates to ~0.5. Require alpha near 1 to mask out any
+  // pixel whose sample stencil overlaps nodata.
+  const alpha = ['/', ['band', 2], 255];
   return [
     'case',
-    ['==', alpha, 0], transparent,
+    ['<', alpha, 0.99], transparent,
     colorExpr
   ];
 }
