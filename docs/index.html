@@ -397,9 +397,9 @@
           <input type="checkbox" id="tribal-avg-chk" hidden>
         </div>
         <div class="ov-rule"></div>
-        <div class="ov-row ov-row-stack" id="huc-row">
-          <div class="ov-row-line">
-            <div class="ov-label">HUC</div>
+        <div class="ov-row ov-row-stack" id="huc-row" style="gap:10px;">
+          <div class="ov-row-line" style="gap:12px;">
+            <div class="ov-label">Watershed</div>
             <select id="huc-level" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.75rem;font-family:var(--font-display);">
               <option value="2" selected>HUC2 (Region)</option>
               <option value="4">HUC4 (Subregion)</option>
@@ -1853,7 +1853,7 @@ async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
 
     var styledFeat = new ol.Feature(geom.clone());
     styledFeat.set('_median', median);
-    styledFeat.set('_name', feature.get('name'));
+    styledFeat.set('_name', feature.get('name') || feature.get('_name'));
     styledFeat.set('_color', hex);
     styledFeat.set('_count', vals.length);
     styledFeat.set('_total', totalInside);
