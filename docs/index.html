@@ -57,7 +57,7 @@
 <!-- Navbar -->
 <nav id="navbar">
   <button id="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
-  <div class="brand"><img src="logo/logo_unified.svg" class="brand-logo" alt="D³" width="80" height="80"><span class="brand-sep"></span><span class="brand-text"><span class="brand-full">Drought Data Dashboard</span><span class="brand-sub">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">NGP RIDR</a></span></span></div>
+  <div class="brand"><img src="logo/logo_full_v2.svg" class="brand-logo" alt="D³ — Drought Data Dashboard"></div>
   <div id="nav-actions">
     <div id="export-wrap" class="nav-action-item" style="position:relative;padding:0;">
       <button id="screenshot-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Export map as PNG">
@@ -67,8 +67,10 @@
         </svg>
         Export <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
-      <div id="export-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:160px;padding:4px 0;">
-        <button onclick="takeScreenshot(Math.min(Math.ceil(window.devicePixelRatio), 2)); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Save Screenshot</button>
+      <div id="export-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:200px;padding:4px 0;">
+        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Screenshot</div>
+        <button onclick="takeScreenshot(2); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">High-Res (2×) <span style="margin-left:auto;font-size:0.62rem;color:var(--text-dim);">presentations</span></button>
+        <button onclick="takeScreenshot(1); document.getElementById('export-dropdown').style.display='none';" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Standard (1×) <span style="margin-left:auto;font-size:0.62rem;color:var(--text-dim);">web &amp; email</span></button>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Raster Data</div>
         <button id="download-tiff-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);">Download GeoTIFF</button>
@@ -137,6 +139,12 @@
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
       </svg>
       Tips
+    </button>
+    <button id="partners-btn" class="nav-action-item" title="Partners & acknowledgments" onclick="document.getElementById('partners-modal-overlay').classList.add('active')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Partners
     </button>
     <button id="share-btn" class="nav-action-item" title="Copy shareable link to clipboard">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -311,15 +319,19 @@
           <option value="ytd">All indices — Year to Date</option>
         </select>
         <button id="conv-all-btn" type="button" style="width:100%;margin-top:4px;padding:8px 10px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;cursor:pointer;font-family:var(--font-display);">Add all drought indices (all timescales)</button>
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
-          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Period</div>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-period" value="rolling-30" checked> Rolling 30-Year</label>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-period" value="full"> Full Period</label>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
+          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;flex:0 0 56px;line-height:1.15;">Ref Period</div>
+          <div class="depth-strip conv-seg" data-conv-group="period" style="flex:1;">
+            <button type="button" class="depth-btn active" data-value="rolling-30">Rolling 30-Year</button>
+            <button type="button" class="depth-btn" data-value="full">Full Period</button>
+          </div>
         </div>
-        <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Method</div>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="median" checked> Median</label>
-          <label class="custom-check" style="font-size:0.75rem;"><input type="radio" name="conv-method" value="mean"> Mean</label>
+        <div style="margin-top:6px;display:flex;gap:10px;align-items:center;">
+          <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;flex:0 0 56px;line-height:1.15;">Method</div>
+          <div class="depth-strip conv-seg" data-conv-group="method" style="flex:1;">
+            <button type="button" class="depth-btn active" data-value="median">Median</button>
+            <button type="button" class="depth-btn" data-value="mean">Mean</button>
+          </div>
         </div>
         <label class="custom-check" style="margin-top:6px;font-size:0.75rem;">
           <input type="checkbox" id="conv-weights-chk"> Custom weights
@@ -3545,6 +3557,7 @@ function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
           zIndex: 1,
           extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857')
         });
+        cogLayer.set('_exportStyle', { color: colorExpr });
 
         map.addLayer(cogLayer);
         if (countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive) {
@@ -3614,6 +3627,7 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
     opacity: (_anyZonal || _hideDynamic) ? 0 : parseFloat(opacitySlider.value),
     zIndex: 1
   });
+  cogLayer.set('_exportStyle', { color: colorExpr });
 
   map.addLayer(cogLayer);
   // Force opacity 0 if zonal averages are active (prevents flash)
@@ -3639,6 +3653,7 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
           document.getElementById("range-max").placeholder = sym.max.toFixed(2);
           const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
           cogLayer.setStyle({ color: colorExpr });
+          cogLayer.set('_exportStyle', { color: colorExpr });
           cogLayer.setOpacity(parseFloat(opacitySlider.value));
           const result = buildScale(varKey, paletteKey, null, sym);
           buildLegend(varKey, ts, period, result.legendRows);
@@ -4020,18 +4035,27 @@ function getConvLayerSummary() {
 }
 
 function getConvPeriod() {
-  var checked = document.querySelector('input[name="conv-period"]:checked');
-  return checked ? checked.value : 'rolling-30';
+  var btn = document.querySelector('.conv-seg[data-conv-group="period"] .depth-btn.active');
+  return btn ? btn.dataset.value : 'rolling-30';
 }
 
 function getConvMethod() {
-  const checked = document.querySelector('input[name="conv-method"]:checked');
-  return checked ? checked.value : 'median';
+  var btn = document.querySelector('.conv-seg[data-conv-group="method"] .depth-btn.active');
+  return btn ? btn.dataset.value : 'median';
 }
 
-document.querySelectorAll('input[name="conv-method"]').forEach(function(radio) {
-  radio.addEventListener('change', function() {
-    if (convActive && convLayers.length >= 1) applyConvergence();
+document.querySelectorAll('.conv-seg').forEach(function(strip) {
+  strip.querySelectorAll('.depth-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (btn.classList.contains('active')) return;
+      strip.querySelectorAll('.depth-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      // Only the method change re-applies convergence; period requires explicit recompute
+      // (preserves the original radio-based behavior).
+      if (strip.dataset.convGroup === 'method' && convActive && convLayers.length >= 1) {
+        applyConvergence();
+      }
+    });
   });
 });
 
@@ -4341,6 +4365,8 @@ function applyConvergence() {
       extent: ol.proj.transformExtent(bbox, 'EPSG:4326', 'EPSG:3857'),
       _isImageLayer: true
     });
+    convCogLayer.set('_exportStyle', { color: convColorExpr });
+    convCogLayer.set('_isImageLayer', true);
     if (_anyZonalConv) convCogLayer.setOpacity(0);
 
     convCogLayer._rasters = rasters;
@@ -4501,10 +4527,12 @@ window.toggleSidebar = toggleSidebar;
    SCREENSHOT / EXPORT
    ════════════════════════════════════════════════════════════════ */
 
-const MCO_LOGO_URL = "https://raw.githubusercontent.com/mt-climate-office/mco-drought-indicators/master/docs/misc_content/MCO_logo.png";
+const MCO_LOGO_URL = "logo/MCO_logo_icon_only.png";
 const D3_LOGO_URL = "logo/logo_unified.svg";
+const NIDIS_LOGO_URL = "logo/nidis_logo.svg"; // SVG rasterizes cleanly at any export scale
 let _logoCache = null;
 let _d3LogoCache = null;
+let _nidisLogoCache = null;
 
 function loadImage(src) {
   return new Promise((res, rej) => {
@@ -5344,79 +5372,196 @@ async function downloadGeoTIFF() {
   }
 }
 
+/**
+ * Clone a live layer for use in a temporary off-screen export map.
+ * Shares the underlying source (OL sources are map-agnostic). Preserves
+ * visual attributes so the temp render matches the live view.
+ * Returns null for unknown layer types (silently skipped).
+ */
+function cloneLayerForExport(L) {
+  const base = {
+    source: L.getSource(),
+    opacity: L.getOpacity(),
+    zIndex: L.getZIndex(),
+    visible: L.getVisible()
+  };
+  if (L.getClassName) {
+    const cn = L.getClassName();
+    if (cn) base.className = cn;
+  }
+  if (L.getMinZoom && typeof L.getMinZoom === 'function') base.minZoom = L.getMinZoom();
+  if (L.getMaxZoom && typeof L.getMaxZoom === 'function') base.maxZoom = L.getMaxZoom();
+  if (L.getExtent) {
+    const ext = L.getExtent();
+    if (ext) base.extent = ext;
+  }
+
+  let clone = null;
+  if (L instanceof ol.layer.WebGLTile) {
+    const style = L.get('_exportStyle');
+    // If style wasn't cached at construction there's nothing we can render.
+    if (!style) return null;
+    clone = new ol.layer.WebGLTile({ ...base, style });
+  } else if (L instanceof ol.layer.Vector) {
+    clone = new ol.layer.Vector({
+      ...base,
+      style: L.getStyle(),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
+      declutter: L.getDeclutter ? L.getDeclutter() : undefined
+    });
+  } else if (L instanceof ol.layer.Tile) {
+    clone = new ol.layer.Tile(base);
+  } else if (ol.layer.Image && L instanceof ol.layer.Image) {
+    clone = new ol.layer.Image(base);
+  } else {
+    return null;
+  }
+  // Preserve custom flags the app reads elsewhere
+  if (L.get('_isImageLayer')) clone.set('_isImageLayer', true);
+  return clone;
+}
+
+/**
+ * Composite all .ol-layer canvases under containerEl into a single canvas.
+ * Factored out of takeScreenshot so it can run against either the live map
+ * element or an off-screen export map's container.
+ */
+function buildMapCanvas(containerEl, applyGreyscale, fallbackW, fallbackH) {
+  const mapCanvas = document.createElement('canvas');
+  const layerCanvases = containerEl.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
+  let maxW = 0, maxH = 0;
+  layerCanvases.forEach(function(c) {
+    if (c.width > maxW) maxW = c.width;
+    if (c.height > maxH) maxH = c.height;
+  });
+  mapCanvas.width = maxW || fallbackW;
+  mapCanvas.height = maxH || fallbackH;
+  const mapContext = mapCanvas.getContext('2d');
+
+  layerCanvases.forEach(function(canvas) {
+    if (canvas.width <= 0) return;
+    const layerDiv = canvas.closest('.ol-layer');
+    const opacity = layerDiv ? (layerDiv.style.opacity || '1') : '1';
+    mapContext.globalAlpha = Number(opacity) || 1;
+    const isBasemap = layerDiv && layerDiv.classList.contains('basemap-el');
+    mapContext.setTransform(1, 0, 0, 1, 0, 0);
+    mapContext.drawImage(canvas, 0, 0);
+    // Apply greyscale manually for NatGeo basemap (Safari doesn't support canvas filter)
+    if (isBasemap && applyGreyscale) {
+      const greyData = mapContext.getImageData(0, 0, mapCanvas.width, mapCanvas.height);
+      const px = greyData.data;
+      for (let gi = 0; gi < px.length; gi += 4) {
+        const grey = px[gi] * 0.299 + px[gi+1] * 0.587 + px[gi+2] * 0.114;
+        px[gi] = px[gi+1] = px[gi+2] = grey;
+      }
+      mapContext.putImageData(greyData, 0, 0);
+    }
+  });
+  mapContext.globalAlpha = 1;
+  mapContext.setTransform(1, 0, 0, 1, 0, 0);
+  return mapCanvas;
+}
+
 async function takeScreenshot(exportScale) {
   const btn = document.getElementById("screenshot-btn");
   btn.disabled = true;
   btn.querySelector("svg").style.animation = "spin 0.8s linear infinite";
 
   try {
-    if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
     if (!_d3LogoCache) _d3LogoCache = await loadImage(D3_LOGO_URL);
+    if (!_logoCache) _logoCache = await loadImage(MCO_LOGO_URL);
 
     const mapEl    = document.getElementById("map");
     const SCALE    = exportScale || 2;
     const size     = map.getSize();
     const mapW_px  = size[0] * SCALE;
     const mapH_px  = size[1] * SCALE;
+    const greyscale = mapEl.classList.contains('basemap-grey');
 
-    /* ── 0. Force OpenLayers to render at export scale ── */
-    // Temporarily override devicePixelRatio to get higher resolution tiles
-    const origDPR = window.devicePixelRatio;
-    Object.defineProperty(window, 'devicePixelRatio', { value: SCALE, configurable: true });
-    map.updateSize();
+    // Need an off-screen temp map when SCALE exceeds the display's native DPR.
+    // On a retina Mac (DPR=2), SCALE=2 is already achievable on the live map —
+    // skip the temp-map dance. On an external non-retina display (DPR=1),
+    // the live map renders at 1× and a stretched 2× export is blurry.
+    const displayDPR = window.devicePixelRatio || 1;
+    const useTempMap = SCALE > displayDPR + 0.001;
 
-    /* ── 1. Capture the OL map canvas via rendercomplete ── */
-    const mapCapture = await new Promise(function(resolve) {
-      map.once('rendercomplete', function() {
-        const mapCanvas = document.createElement('canvas');
-        const viewportEl = mapEl.querySelector('.ol-viewport');
-        // Find all layer canvases and composite them
-        const layerCanvases = mapEl.querySelectorAll('.ol-layer canvas, canvas.ol-layer');
-        // Use the first canvas dimensions as reference
-        let maxW = 0, maxH = 0;
-        layerCanvases.forEach(function(c) {
-          if (c.width > maxW) maxW = c.width;
-          if (c.height > maxH) maxH = c.height;
+    /* ── 1. Capture the map canvas ── */
+    let mapCapture;
+    let tempDiv = null, tempMap = null;
+    try {
+      if (useTempMap) {
+        try {
+          // Build an off-screen ol.Map with pixelRatio:SCALE. OL honors
+          // pixelRatio at construction, so this renders tiles at higher zoom
+          // without mutating the live map's state (which OL 10 does NOT
+          // cleanly recover from when mutated post-construction).
+          tempDiv = document.createElement('div');
+          tempDiv.style.cssText =
+            'position:absolute;left:-99999px;top:0;width:' + size[0] + 'px;height:' + size[1] + 'px;';
+          document.body.appendChild(tempDiv);
+
+          const liveView = map.getView();
+          const clonedView = new ol.View({
+            projection: liveView.getProjection(),
+            center: liveView.getCenter(),
+            resolution: liveView.getResolution(),
+            rotation: liveView.getRotation(),
+            minZoom: liveView.getMinZoom(),
+            maxZoom: liveView.getMaxZoom()
+          });
+
+          const clonedLayers = map.getLayers().getArray()
+            .map(cloneLayerForExport)
+            .filter(Boolean);
+
+          tempMap = new ol.Map({
+            target: tempDiv,
+            pixelRatio: SCALE,
+            controls: [],
+            interactions: [],
+            overlays: [],
+            layers: clonedLayers,
+            view: clonedView
+          });
+          tempMap.setSize(size);
+
+          mapCapture = await Promise.race([
+            new Promise(function(resolve) {
+              tempMap.once('rendercomplete', function() {
+                resolve(buildMapCanvas(tempDiv, greyscale, mapW_px, mapH_px));
+              });
+              tempMap.renderSync();
+            }),
+            new Promise(function(_, reject) {
+              setTimeout(function() { reject(new Error('temp-map rendercomplete timeout')); }, 15000);
+            })
+          ]);
+        } catch (err) {
+          console.warn('High-res export via temp map failed, falling back to live map:', err);
+          mapCapture = await new Promise(function(resolve) {
+            map.once('rendercomplete', function() {
+              resolve(buildMapCanvas(mapEl, greyscale, mapW_px, mapH_px));
+            });
+            map.renderSync();
+          });
+        }
+      } else {
+        mapCapture = await new Promise(function(resolve) {
+          map.once('rendercomplete', function() {
+            resolve(buildMapCanvas(mapEl, greyscale, mapW_px, mapH_px));
+          });
+          map.renderSync();
         });
-        mapCanvas.width = maxW || size[0] * SCALE;
-        mapCanvas.height = maxH || size[1] * SCALE;
-        var mapContext = mapCanvas.getContext('2d');
-
-        layerCanvases.forEach(function(canvas) {
-          if (canvas.width <= 0) return;
-          // Get opacity from the layer wrapper
-          var layerDiv = canvas.closest('.ol-layer');
-          var opacity = layerDiv ? (layerDiv.style.opacity || '1') : '1';
-          mapContext.globalAlpha = Number(opacity) || 1;
-
-          // Draw 1:1 — canvases are already at export resolution.
-          // The CSS transform (e.g. matrix(0.5,...)) is only for display scaling
-          // on retina screens; we want the raw pixels for export.
-          // Apply greyscale filter if this is the basemap layer and greyscale is active
-          var isGrey = layerDiv && layerDiv.classList.contains('basemap-el') && mapEl.classList.contains('basemap-grey');
-          mapContext.setTransform(1, 0, 0, 1, 0, 0);
-          mapContext.drawImage(canvas, 0, 0);
-          // Apply greyscale manually (Safari doesn't support canvas filter)
-          if (isGrey) {
-            var greyData = mapContext.getImageData(0, 0, mapCanvas.width, mapCanvas.height);
-            var px = greyData.data;
-            for (var gi = 0; gi < px.length; gi += 4) {
-              var grey = px[gi] * 0.299 + px[gi+1] * 0.587 + px[gi+2] * 0.114;
-              px[gi] = px[gi+1] = px[gi+2] = grey;
-            }
-            mapContext.putImageData(greyData, 0, 0);
-          }
-        });
-        mapContext.globalAlpha = 1;
-        mapContext.setTransform(1, 0, 0, 1, 0, 0);
-        resolve(mapCanvas);
-      });
-      map.renderSync();
-    });
-
-    // Restore original devicePixelRatio
-    Object.defineProperty(window, 'devicePixelRatio', { value: origDPR, configurable: true });
-    map.updateSize();
+      }
+    } finally {
+      // Always tear down the temp map so it doesn't leak WebGL contexts
+      if (tempMap) {
+        try { tempMap.setTarget(null); } catch (_) {}
+        try { if (tempMap.dispose) tempMap.dispose(); } catch (_) {}
+      }
+      if (tempDiv && tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
+    }
 
     /* ── 2. Build output canvas with title band + footer ──────── */
     const TITLE_H  = Math.round(110 * SCALE);
@@ -5506,7 +5651,7 @@ async function takeScreenshot(exportScale) {
     ctx.font = srcFS + 'px "Segoe UI", sans-serif';
     ctx.fillText("\u2014 Drought Data Dashboard", sx, srcY);
 
-    // ── MCO Logo (right side) ──
+    // ── MCO badge (right side) + URL / generated-date text beneath ──
     const rightMargin = mapW_px - logoMargin;
     const logoH = Math.round(42 * SCALE);
     const logoW = Math.round(_logoCache.width * logoH / _logoCache.height);
@@ -5536,13 +5681,14 @@ async function takeScreenshot(exportScale) {
     const generatedDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const infoFS = Math.round(9 * SCALE);
     const infoY = logoY + logoH + logoPad * 2 + Math.round(6 * SCALE);
-    ctx.textAlign = "center";
+    // Right-align so longer dates (e.g. "September") don't overflow the canvas edge
+    ctx.textAlign = "right";
     ctx.textBaseline = "top";
     ctx.fillStyle = et.subtitle;
     ctx.font = infoFS + 'px "Segoe UI", sans-serif';
-    ctx.fillText("d3drought.org", logoCenterX, infoY);
+    ctx.fillText("d3drought.org", rightMargin, infoY);
     ctx.fillStyle = et.dim;
-    ctx.fillText('Generated: ' + generatedDate, logoCenterX, infoY + infoFS + Math.round(2 * SCALE));
+    ctx.fillText('Generated: ' + generatedDate, rightMargin, infoY + infoFS + Math.round(2 * SCALE));
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
 
@@ -5612,10 +5758,12 @@ async function takeScreenshot(exportScale) {
     ctx.strokeRect(borderW / 2, borderW / 2, out.width - borderW, out.height - borderW);
     ctx.restore();
 
-    // Download
+    // Download — include the data date so repeat exports of different dates
+    // don't collide (which makes the OS append a timestamp disambiguator)
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const dateTag = (activeDate || '').replace(/[^0-9-]/g, '') || 'current';
     const a = document.createElement("a");
-    a.download = `D3_${safeName}_${activeTS}_${activePeriod}.png`;
+    a.download = `D3_${safeName}_${activeTS}_${activePeriod}_${dateTag}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
 
@@ -5905,6 +6053,58 @@ setupModal("share-modal-overlay", "share-close-btn");
 setupModal("tips-modal-overlay", "tips-close-btn");
 setupModal("feedback-modal-overlay", "feedback-close-btn");
 setupModal("welcome-modal-overlay", "welcome-close-btn");
+setupModal("partners-modal-overlay", "partners-close-btn");
+
+/* Partners & Acknowledgments — edit this list to add/remove partners.
+   Each entry becomes one row in the Partners modal. Tiers are rendered
+   as section headings in the order declared. */
+const PARTNERS = [
+  { tier: 'Institutional Partners', entries: [
+    { name: 'Montana Climate Office', short: 'MCO', href: 'https://climate.umt.edu/', img: 'https://climate.umt.edu/assets/images/MCO_logo_icon_only.png', note: 'University of Montana — primary developer and operational home.' },
+    { name: 'Montana DNRC', short: 'DNRC', href: 'https://dnrc.mt.gov/', img: 'logo/dnrc_logo.webp', note: 'Montana Department of Natural Resources and Conservation.' },
+    { name: 'NGP RIDR', short: 'NGP', href: 'https://ngp-ridr.org/', img: 'logo/RIDR%20Logo.jpg', note: 'Northern Great Plains Regional Incubator for Drought Resiliency.' },
+    { name: 'NIDIS', short: 'NID', href: 'https://www.drought.gov/', img: 'logo/nidis_logo.svg', note: 'National Integrated Drought Information System — NOAA.' },
+  ]},
+  { tier: 'Local Data Providers', entries: [
+    { name: 'Montana Mesonet', short: 'MMN', href: 'https://climate.umt.edu/mesonet/', img: 'logo/mt_mesonet_logo.jpg', note: 'MCO — soil moisture and micrometeorology across Montana.' },
+  ]},
+  { tier: 'National Data Providers', entries: [
+    { name: 'gridMET', short: 'gM', href: 'https://www.climatologylab.org/gridmet.html', note: 'Abatzoglou 2013 — daily ~4 km gridded meteorology.' },
+    { name: 'NOHRSC SNODAS', short: 'SNO', href: 'https://www.nohrsc.noaa.gov/nsa/', note: 'NOAA National Weather Service — daily snow water equivalent.' },
+    { name: 'NOAA GHCNd', short: 'GHC', href: 'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily', note: 'Global Historical Climatology Network Daily — in-situ station data.' },
+    { name: 'USGS NWIS', short: 'USG', href: 'https://waterdata.usgs.gov/nwis', note: 'U.S. Geological Survey — streamflow percentiles.' },
+    { name: 'U.S. Drought Monitor', short: 'DM', href: 'https://droughtmonitor.unl.edu/', note: 'NDMC / USDA / NOAA — weekly drought classifications.' },
+    { name: 'BIA AIAN', short: 'BIA', href: 'https://biamaps.geoplatform.gov/', note: 'Bureau of Indian Affairs — tribal land boundaries.' },
+    { name: 'USGS WBD', short: 'WBD', href: 'https://www.usgs.gov/national-hydrography/watershed-boundary-dataset', note: 'Watershed Boundary Dataset (HUC).' },
+  ]},
+];
+(function renderPartners() {
+  const container = document.getElementById('partners-body');
+  if (!container) return;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const badgeHtml = (p) => p.img
+    ? '<div class="partner-badge"><img src="' + esc(p.img) + '" alt="' + esc(p.name) + '"></div>'
+    : '<div class="partner-badge partner-badge-placeholder">' + esc(p.short || p.name.slice(0, 3).toUpperCase()) + '</div>';
+  container.innerHTML = PARTNERS.map(group => (
+    '<div class="partners-tier">' +
+      '<h4>' + esc(group.tier) + '</h4>' +
+      '<ul>' +
+        group.entries.map(p => (
+          '<li>' +
+            '<a href="' + esc(p.href) + '" target="_blank" rel="noopener" class="partner-row">' +
+              badgeHtml(p) +
+              '<div class="partner-info">' +
+                '<strong>' + esc(p.name) + '</strong>' +
+                '<span>' + esc(p.note) + '</span>' +
+              '</div>' +
+              '<svg class="partner-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l10-10M7 7h10v10"/></svg>' +
+            '</a>' +
+          '</li>'
+        )).join('') +
+      '</ul>' +
+    '</div>'
+  )).join('');
+})();
 
 // Show welcome modal on first visit (not via share URL)
 (function() {
@@ -6181,10 +6381,16 @@ if (activeVar === 'hhp') {
   // Restore convergence state from URL — defer until map is ready
   convLayers = savedState.convLayers;
   convRenderList();
-  var methodRadio = document.querySelector('input[name="conv-method"][value="' + savedState.convMethod + '"]');
-  if (methodRadio) methodRadio.checked = true;
-  var periodRadio = document.querySelector('input[name="conv-period"][value="' + savedState.convPeriod + '"]');
-  if (periodRadio) periodRadio.checked = true;
+  var methodBtn = document.querySelector('.conv-seg[data-conv-group="method"] .depth-btn[data-value="' + savedState.convMethod + '"]');
+  if (methodBtn) {
+    methodBtn.parentElement.querySelectorAll('.depth-btn').forEach(function(b) { b.classList.remove('active'); });
+    methodBtn.classList.add('active');
+  }
+  var periodBtn = document.querySelector('.conv-seg[data-conv-group="period"] .depth-btn[data-value="' + savedState.convPeriod + '"]');
+  if (periodBtn) {
+    periodBtn.parentElement.querySelectorAll('.depth-btn').forEach(function(b) { b.classList.remove('active'); });
+    periodBtn.classList.add('active');
+  }
   if (savedState.convShowWeights) {
     document.getElementById('conv-weights-chk').checked = true;
     document.querySelectorAll('.conv-wt-col').forEach(function(el) { el.style.display = ''; });
@@ -6270,26 +6476,49 @@ window.addEventListener('popstate', function() {
     if (isMobile) {
       overflowed.push(...items);
     } else {
-      // Check which items overflow the container
-      const containerRight = actions.getBoundingClientRect().right;
-      items.forEach(el => {
-        if (el.getBoundingClientRect().right > containerRight + 1) {
-          overflowed.push(el);
+      // Two triggers for overflow:
+      //  (a) an item's right edge exceeds the nav-actions container (right-clipping)
+      //  (b) an item's left edge encroaches on the brand subtitle ("A service of …")
+      //      — stop letting buttons nudge into the attribution text.
+      const brandAnchor = document.querySelector('.brand-sub') || document.querySelector('.brand-logo');
+      const BRAND_GAP = 24; // px of breathing room between brand and first nav item
+
+      function needsOverflow() {
+        const containerRight = actions.getBoundingClientRect().right;
+        const brandRight = brandAnchor ? brandAnchor.getBoundingClientRect().right : 0;
+        return items.some(el => {
+          if (el.style.display === 'none') return false;
+          const r = el.getBoundingClientRect();
+          if (r.right > containerRight + 1) return true;
+          if (brandAnchor && r.left < brandRight + BRAND_GAP) return true;
+          return false;
+        });
+      }
+
+      function hideRightmost() {
+        for (let i = items.length - 1; i >= 0; i--) {
+          if (items[i].style.display !== 'none') {
+            items[i].style.display = 'none';
+            overflowed.push(items[i]);
+            return true;
+          }
         }
-      });
+        return false;
+      }
 
-      if (overflowed.length === 0) return;
-
-      // Show More button, hide overflowed items
+      // Reserve the More button's space up-front so encroachment measurements
+      // reflect the final layout. If we end up not needing it, hide it at the end.
       moreWrap.style.display = 'block';
 
-      // Recheck after More button takes space
-      const containerRight2 = actions.getBoundingClientRect().right;
-      items.forEach(el => {
-        if (el.getBoundingClientRect().right > containerRight2 + 1) {
-          if (!overflowed.includes(el)) overflowed.push(el);
-        }
-      });
+      let safety = items.length + 2;
+      while (needsOverflow() && safety-- > 0) {
+        if (!hideRightmost()) break;
+      }
+
+      if (overflowed.length === 0) {
+        moreWrap.style.display = 'none';
+        return;
+      }
     }
 
     overflowed.forEach(el => {
@@ -6300,7 +6529,7 @@ window.addEventListener('popstate', function() {
         if (isMobile) return;
         const exportBtn = document.createElement('button');
         exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Save Screenshot';
-        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(Math.min(Math.ceil(window.devicePixelRatio), 2)); });
+        exportBtn.addEventListener('click', () => { dropdown.classList.remove('open'); takeScreenshot(2); });
         dropdown.appendChild(exportBtn);
         return;
       }
@@ -6437,13 +6666,24 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
   </div>
 </div>
 
+<div id="partners-modal-overlay" class="modal-overlay">
+  <div id="partners-modal">
+    <div class="partners-hero">
+      <img src="logo/logo_full_v2.svg" alt="D³ — Drought Data Dashboard" class="partners-hero-logo">
+      <h3>Partners &amp; Acknowledgments</h3>
+      <p class="partners-lead">D³ is a collaboration across academic, state, and federal drought monitoring programs. Interested in partnering? <a href="mailto:state.climatologist@umontana.edu?subject=D%C2%B3%20Partnership%20Inquiry">Reach out here</a>.</p>
+    </div>
+    <div id="partners-body"></div>
+    <button id="partners-close-btn">Close</button>
+  </div>
+</div>
+
 <div id="info-tip-portal"></div>
 
 <!-- Welcome modal (first visit only) -->
 <div id="welcome-modal-overlay" class="modal-overlay">
   <div id="welcome-modal" style="max-width:520px;width:90vw;padding:28px 32px;text-align:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
-    <img src="logo/logo_unified.svg" alt="D³" style="height:64px;width:auto;display:block;margin:0 auto;">
-    <h3 style="margin:4px 0 6px;font-size:1.1rem;font-weight:600;font-family:var(--font-display);color:var(--text-primary);">Drought Data Dashboard</h3>
+    <img src="logo/logo_full_v2.svg" alt="D³ — Drought Data Dashboard" style="height:72px;width:auto;display:block;margin:0 auto 10px;">
     <p style="font-size:0.82rem;color:var(--text-primary);margin-bottom:16px;line-height:1.5;">Explore real-time drought conditions across the continental United States.</p>
     <div style="text-align:left;font-size:0.78rem;color:var(--text-secondary);line-height:1.6;">
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
@@ -6463,8 +6703,10 @@ window._debug = { get cogLayer() { return cogLayer; }, get map() { return map; }
         <span><strong>Export &amp; share</strong> &mdash; download maps and data, or click <strong>Share</strong> to save a URL that captures your exact view for bookmarking or showing colleagues.</span>
       </div>
     </div>
-    <button id="welcome-close-btn" style="margin-top:20px;padding:10px 32px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-md);font-size:0.85rem;font-family:var(--font-display);font-weight:600;cursor:pointer;transition:var(--transition);">Get Started</button>
-    <p style="font-size:0.68rem;color:var(--text-dim);margin-top:12px;margin-bottom:0;line-height:1.4;">A service of the <a href="https://climate.umt.edu/" target="_blank" rel="noopener" style="color:var(--accent-light);text-decoration:underline;">Montana Climate Office</a> &amp; the <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" style="color:var(--accent-light);text-decoration:underline;">NGP RIDR</a></p>
+    <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;">
+      <button id="welcome-partners-btn" type="button" onclick="document.getElementById('welcome-modal-overlay').classList.remove('active');document.getElementById('partners-modal-overlay').classList.add('active');" style="padding:10px 20px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;font-family:var(--font-display);font-weight:600;cursor:pointer;transition:var(--transition);">See Partners</button>
+      <button id="welcome-close-btn" style="padding:10px 32px;background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--radius-md);font-size:0.85rem;font-family:var(--font-display);font-weight:600;cursor:pointer;transition:var(--transition);">Get Started</button>
+    </div>
   </div>
 </div>
 <button id="sidebar-close-tab" onclick="toggleSidebar()"><span style="display:block;transform:rotate(180deg);"><span style="display:inline-block;transform:rotate(270deg);">&#9664;</span> &nbsp;Close Controls&nbsp; <span style="display:inline-block;transform:rotate(270deg);">&#9664;</span></span></button>
