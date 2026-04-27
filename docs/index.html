@@ -516,7 +516,10 @@
   </div><!-- #sidebar -->
 
   <!-- Map -->
-  <div id="map"></div>
+  <div id="map">
+    <!-- On-map data attribution (sits to the right of the OL scale bar) -->
+    <div id="map-attribution"></div>
+  </div>
 
   <!-- Map skeleton (removed on first layer load) -->
   <div id="map-skeleton"></div>
@@ -1049,6 +1052,12 @@ const map = new ol.Map({
     new ol.control.ScaleLine({ units: 'imperial' })
   ])
 });
+
+// Keep the on-map attribution badge in sync with whichever layers are active
+map.getLayers().on('add', function() { updateMapAttribution(); });
+map.getLayers().on('remove', function() { updateMapAttribution(); });
+// Initial paint after DOM is fully set up
+window.addEventListener('load', function() { updateMapAttribution(); });
 
 // Fit to CONUS
 map.getView().fit(
@@ -4583,25 +4592,56 @@ const EXPORT_THEMES = {
 };
 function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.dark; }
 
-/* ── Export attribution builder ────────────────────────────────── */
-function getExportAttribution() {
+/* ── Attribution builders ──────────────────────────────────────── */
+function _collectActiveDataSources() {
   const sources = new Set();
-  // Active data layer
   if (convActive && convLayers.length >= 1) {
     sources.add("gridMET");
   } else {
     const cfg = VAR_CONFIG[activeVar];
     if (cfg && cfg.attribution) sources.add(cfg.attribution);
   }
-  // USGS streamflow overlay
   if (usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer)) sources.add("USGS");
   if (ghcnLayer && map.getLayers().getArray().includes(ghcnLayer)) sources.add("GHCN/NOAA");
-  // Montana Mesonet overlay
   const mesoLeg = document.getElementById("mesonet-legend");
   if (mesoLeg && mesoLeg.style.display !== "none") sources.add("Montana Mesonet");
-  // USDM overlay
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) sources.add("USDM/NDMC");
-  return sources.size ? "Data: " + [...sources].join(", ") : "";
+  return [...sources];
+}
+function getExportAttribution() {
+  const sources = _collectActiveDataSources();
+  return sources.length ? "Data: " + sources.join(", ") : "";
+}
+// Map each data-source label (as emitted by _collectActiveDataSources) to the
+// canonical homepage we'd want to link out to. Mirrors the partner hrefs used
+// in the Partners modal so the attribution and the modal point to the same URLs.
+const ATTRIB_LINKS = {
+  'gridMET':         'https://www.climatologylab.org/gridmet.html',
+  'GHCN/NOAA':       'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
+  'USGS':            'https://waterdata.usgs.gov/nwis',
+  'USDM/NDMC':       'https://droughtmonitor.unl.edu/',
+  'SNODAS/MCO':      'https://www.nohrsc.noaa.gov/nsa/',
+  'Montana Mesonet': 'https://climate.umt.edu/mesonet/',
+  'HHP':             'https://climate.umt.edu/'
+};
+function _escAttr(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function updateMapAttribution() {
+  const el = document.getElementById('map-attribution');
+  if (!el) return;
+  const sources = _collectActiveDataSources();
+  if (sources.length === 0) {
+    el.classList.remove('active');
+    el.innerHTML = '';
+    return;
+  }
+  const items = sources.map(s => {
+    const href = ATTRIB_LINKS[s];
+    return href
+      ? '<a href="' + _escAttr(href) + '" target="_blank" rel="noopener">' + _escAttr(s) + '</a>'
+      : _escAttr(s);
+  });
+  el.innerHTML = 'Data: ' + items.join(' • ');
+  el.classList.add('active');
 }
 
 /* (parseTileCoords, deriveGeoMapping, renderRasterDirect removed —
