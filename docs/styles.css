@@ -1582,8 +1582,8 @@
       color: var(--text-secondary);
       border: 1px solid var(--border-glass);
       border-radius: var(--radius-sm);
-      padding: 2px 8px;
-      font-size: 0.66rem;
+      padding: 4px 10px;
+      font-size: 0.78rem;
       font-family: var(--font-display);
       letter-spacing: 0.02em;
       box-shadow: var(--shadow);
