@@ -737,8 +737,8 @@ const VAR_CONFIG = {
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
   'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
-  'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS/MCO", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
-  'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS/MCO", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
+  'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
+  'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
 };
 
@@ -4620,7 +4620,7 @@ const ATTRIB_LINKS = {
   'GHCN/NOAA':       'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
   'USGS':            'https://waterdata.usgs.gov/nwis',
   'USDM/NDMC':       'https://droughtmonitor.unl.edu/',
-  'SNODAS/MCO':      'https://www.nohrsc.noaa.gov/nsa/',
+  'SNODAS':          'https://www.nohrsc.noaa.gov/nsa/',
   'Montana Mesonet': 'https://climate.umt.edu/mesonet/',
   'HHP':             'https://climate.umt.edu/'
 };
@@ -5657,9 +5657,15 @@ async function takeScreenshot(exportScale) {
       cfg = VAR_CONFIG[activeVar];
       periodLabel = getPeriodLabel(activePeriod);
       dateTxt = formatDate(activeDate);
-      var tsLabel = TS_FULL[activeTS] || activeTS;
-      titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + tsLabel;
-      titleLine2 = 'Ref. Period: ' + periodLabel + '  |  Data Valid: ' + dateTxt;
+      // SNODAS has no timescale or reference period \u2014 strip both from the title
+      if (cfg && cfg.isSnodas) {
+        titleLine1 = getFullVarName(activeVar);
+        titleLine2 = 'Data Valid: ' + dateTxt;
+      } else {
+        var tsLabel = TS_FULL[activeTS] || activeTS;
+        titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + tsLabel;
+        titleLine2 = 'Ref. Period: ' + periodLabel + '  |  Data Valid: ' + dateTxt;
+      }
     }
 
     const textX = bx;
@@ -5799,11 +5805,14 @@ async function takeScreenshot(exportScale) {
     ctx.restore();
 
     // Download — include the data date so repeat exports of different dates
-    // don't collide (which makes the OS append a timestamp disambiguator)
+    // don't collide (which makes the OS append a timestamp disambiguator).
+    // SNODAS has no timescale / reference period so we omit those slots.
     const safeName = cfg.label.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     const dateTag = (activeDate || '').replace(/[^0-9-]/g, '') || 'current';
     const a = document.createElement("a");
-    a.download = `D3_${safeName}_${activeTS}_${activePeriod}_${dateTag}.png`;
+    a.download = (cfg && cfg.isSnodas)
+      ? `D3_${safeName}_${dateTag}.png`
+      : `D3_${safeName}_${activeTS}_${activePeriod}_${dateTag}.png`;
     a.href = out.toDataURL("image/png");
     a.click();
 
