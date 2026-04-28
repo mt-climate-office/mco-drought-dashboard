@@ -577,9 +577,26 @@ CLIM_PERIODS="full"</code></pre>
       calendar day-of-year, and a probability distribution (or empirical CDF) is fitted to
       the subsample of values that fall within the selected climatological reference period.
       The current (most recent) observation is then transformed to a standardized anomaly or
-      probability using that fitted distribution. Index values are positive for above-average
-      conditions and negative (or high) for drought conditions, following established
-      conventions for each index.
+      probability using that fitted distribution.
+    </p>
+    <p style="font-size:0.95em;color:var(--text-muted);">
+      <em>Note on aggregation:</em> For fixed-length windows, the choice of rolling sum vs.
+      rolling mean is invariant under the subsequent standardization &mdash; the two differ by
+      a constant scale factor (1/<em>W</em>) that cancels in the fitted CDF, so the
+      resulting standardized indices are identical regardless of which is used. The
+      operational pipeline uses rolling sums for SPI, SPEI, and EDDI (yielding outputs in
+      physically interpretable accumulated units) and rolling means for SVPDI (so VPD is
+      reported in its native units).
+    </p>
+    <p>
+      <strong>Sign conventions.</strong> Two distinct sign conventions are used across the
+      indices on this page, reflecting the underlying variable. <em>Hydroclimatic standardized
+      indices</em> (SPI, SPEI) follow the precipitation-anomaly convention: <em>negative</em>
+      values indicate drought, <em>positive</em> values indicate wet anomalies. <em>Atmospheric-demand
+      indices</em> (EDDI, SVPDI) follow the demand-anomaly convention: <em>positive</em> values
+      indicate drier-than-normal atmospheric conditions, <em>negative</em> values indicate
+      below-normal demand. The Tmax percentile is not a centered <em>z</em>-score but a
+      probability metric where higher values indicate unusually warm conditions.
     </p>
 
     <!-- 4.1 SPI ──────────────────────────────────────────────────────── -->
@@ -663,7 +680,8 @@ CLIM_PERIODS="full"</code></pre>
       </ol>
 
       <div class="eq">
-        SPI = &Phi;<sup>&minus;1</sup>[ F<sub>&Gamma;(&alpha;,&beta;)</sub>( X<sub>W</sub> ) ]
+        SPI = &Phi;<sup>&minus;1</sup>[ H( X<sub>W</sub> ) ]
+        &nbsp;&nbsp;<span style="color:var(--text-muted);font-size:0.9em;">(exact zeros take <em>p</em>&nbsp;=&nbsp;<em>p&#x0304;</em><sub>0</sub>)</span>
       </div>
 
       <h4>Interpretation</h4>
@@ -770,7 +788,14 @@ CLIM_PERIODS="full"</code></pre>
       </p>
 
       <h4>Aggregation</h4>
-      <p>Rolling window means over the same timescales as SPI.</p>
+      <p>
+        Rolling window <em>sums</em> of the daily water balance over the same timescales as SPI;
+        equivalently, the rolling sum of precipitation minus the rolling sum of PET, both
+        accumulated over the same window. Units are millimeters of accumulated moisture surplus
+        (positive) or deficit (negative). The GLO distribution is then fitted to this aggregated
+        quantity for each calendar day-of-year within the climatological reference period, and
+        the current observation is transformed via the same fitted distribution.
+      </p>
 
       <h4>Statistical Method</h4>
       <p>
@@ -858,7 +883,8 @@ CLIM_PERIODS="full"</code></pre>
       </ol>
 
       <div class="eq">
-        EDDI = &Phi;<sup>&minus;1</sup>[ p<sub>Tukey</sub>( E<sub>0,W</sub> ) ]
+        EDDI = &minus;&Phi;<sup>&minus;1</sup>[ p<sub>Tukey</sub>( E<sub>0,W</sub> ) ]
+        &nbsp;&nbsp;<span style="color:var(--text-muted);font-size:0.9em;">(rank&nbsp;1&nbsp;=&nbsp;highest&nbsp;E<sub>0</sub>; the leading minus enforces positive&nbsp;EDDI for drought)</span>
       </div>
 
       <h4>Interpretation</h4>
@@ -934,8 +960,10 @@ CLIM_PERIODS="full"</code></pre>
       <p>
         Positive SVPDI indicates above-normal VPD (heightened atmospheric demand and
         potential vegetation stress). Negative SVPDI indicates below-normal VPD (reduced
-        atmospheric demand). The sign convention matches that of SPI/SPEI, where positive
-        values represent drier conditions.
+        atmospheric demand). SVPDI follows the atmospheric-demand sign convention shared
+        with EDDI — <em>positive values indicate drier-than-normal atmospheric conditions</em>
+        — which is the opposite of the SPI/SPEI hydroclimatic convention, where negative
+        values indicate drought.
       </p>
     </section>
 
@@ -1145,7 +1173,7 @@ CLIM_PERIODS="full"</code></pre>
             <td>EDDI</td>
             <td>15d, 30d, 45d, 60d, 90d, 120d, 180d, 365d, 730d, WY, YTD</td>
             <td>Dimensionless <em>z</em>-score</td>
-            <td>Nonparametric (Gringorten)</td>
+            <td>Nonparametric (Tukey plotting position)</td>
           </tr>
           <tr>
             <td>SVPDI</td>
@@ -1324,7 +1352,7 @@ docker compose run --rm mco-drought bash docker/run_test.sh</code></pre>
         dashboard, and derived drought indicators.
       </li>
       <li>
-        <a href="https://ngp-ridr.org/" target="_blank" rel="noopener"><strong>Northern Great Plains Regional Integrated Drought Risk Reduction Project (NGP&nbsp;RIDR)</strong></a>
+        <a href="https://ngp-ridr.org/" target="_blank" rel="noopener"><strong>Northern Great Plains Regional Incubator for Drought Resiliency (NGP&nbsp;RIDR)</strong></a>
         &mdash; Regional partnership advancing drought early warning and decision-support across
         Montana, North Dakota, South Dakota, and Wyoming.
       </li>
