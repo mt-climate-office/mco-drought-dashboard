@@ -28,8 +28,9 @@ const TS_FULL = {
 };
 
 const PERIODS = [
-  { key:'rolling-30', label:'Rolling 30-yr Baseline' },
-  { key:'full',       label:'Full Period of Record' }
+  { key:'rolling-30',      label:'Rolling 30-yr Baseline' },
+  { key:'fixed-1991-2020', label:'WMO 1991–2020 Climate Normal' },
+  { key:'full',            label:'Full Period of Record' }
 ];
 
 const GRIDMET_DIR = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest';

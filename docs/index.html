@@ -271,6 +271,7 @@
       <div class="section-body sec-collapsed" id="sec-period">
         <div id="period-strip">
           <button class="period-btn active" data-period="rolling-30" id="period-btn-rolling" aria-label="Rolling 30-year reference period"></button>
+          <button class="period-btn" data-period="fixed-1991-2020" id="period-btn-fixed" aria-label="WMO 1991–2020 climate normal"></button>
           <button class="period-btn" data-period="full" id="period-btn-full" aria-label="Full period of record"></button>
         </div>
       </div>
@@ -324,7 +325,8 @@
         <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
           <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;flex:0 0 56px;line-height:1.15;">Ref Period</div>
           <div class="depth-strip conv-seg" data-conv-group="period" style="flex:1;">
-            <button type="button" class="depth-btn active" data-value="rolling-30">Rolling 30-Year</button>
+            <button type="button" class="depth-btn active" data-value="rolling-30">Rolling 30-Yr</button>
+            <button type="button" class="depth-btn" data-value="fixed-1991-2020">1991&ndash;2020</button>
             <button type="button" class="depth-btn" data-value="full">Full Period</button>
           </div>
         </div>
@@ -1190,11 +1192,21 @@ const _currentYear = new Date().getFullYear();
 const _rolling30Start = _currentYear - 29;
 function getPeriodLabel(period) {
   if (!period) return '';
-  if (period === "rolling-30") return `Rolling 30-Year (${_rolling30Start}\u2013${_currentYear})`;
+  if (period === "rolling-30")      return `Rolling 30-Year (${_rolling30Start}\u2013${_currentYear})`;
+  if (period === "fixed-1991-2020") return `1991\u20132020 Climate Normal`;
   return `Full Period (1979\u2013${_currentYear})`;
 }
-document.getElementById("period-btn-rolling").textContent = getPeriodLabel("rolling-30");
-document.getElementById("period-btn-full").textContent = getPeriodLabel("full");
+function getPeriodShortLabel(period) {
+  if (period === "rolling-30")      return `Rolling 30-Yr<br><span style="font-size:0.66rem;opacity:0.78">${_rolling30Start}\u2013${_currentYear}</span>`;
+  if (period === "fixed-1991-2020") return `Climate Normal<br><span style="font-size:0.66rem;opacity:0.78">1991\u20132020</span>`;
+  return `Full Period<br><span style="font-size:0.66rem;opacity:0.78">1979\u2013${_currentYear}</span>`;
+}
+document.getElementById("period-btn-rolling").innerHTML = getPeriodShortLabel("rolling-30");
+document.getElementById("period-btn-fixed").innerHTML   = getPeriodShortLabel("fixed-1991-2020");
+document.getElementById("period-btn-full").innerHTML    = getPeriodShortLabel("full");
+document.getElementById("period-btn-rolling").title = getPeriodLabel("rolling-30");
+document.getElementById("period-btn-fixed").title   = getPeriodLabel("fixed-1991-2020") + ` (1991\u20132020)`;
+document.getElementById("period-btn-full").title    = getPeriodLabel("full");
 
 document.querySelectorAll(".period-btn[data-period]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -1573,9 +1585,10 @@ function updateVarInfo(varKey) {
   if (convActive && convLayers.length >= 1) {
     var method = getConvMethod();
     var period = getConvPeriod();
-    var convPeriodText = period === "rolling-30"
-      ? `a rolling 30-year baseline (${_rolling30Start}\u2013${_currentYear})`
-      : `the full historical record (1979\u2013${_currentYear})`;
+    var convPeriodText;
+    if (period === "rolling-30")           convPeriodText = `a rolling 30-year baseline (${_rolling30Start}\u2013${_currentYear})`;
+    else if (period === "fixed-1991-2020") convPeriodText = `the WMO 1991\u20132020 climate normal`;
+    else                                   convPeriodText = `the full historical record (1979\u2013${_currentYear})`;
 
     var html = '<p><b>Convergence of Evidence</b> combines multiple standardized drought indices into a single composite map. ';
     html += 'By examining where multiple independent metrics agree, areas of high confidence in drought classification can be identified.</p>';
@@ -1608,6 +1621,8 @@ function updateVarInfo(varKey) {
   var periodText;
   if (activePeriod === "rolling-30")
     periodText = `Anomalies are calculated relative to a rolling 30-year baseline (${_rolling30Start}\u2013${_currentYear}), which tracks the contemporary climate.`;
+  else if (activePeriod === "fixed-1991-2020")
+    periodText = `Anomalies are calculated relative to the WMO 1991\u20132020 climate normal \u2014 the standard fixed reference used internationally for climate monitoring.`;
   else
     periodText = `Anomalies are calculated relative to the full historical record (1979\u2013${_currentYear}), providing a long-term perspective.`;
 
@@ -2667,7 +2682,7 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
   const tipContent = {
     'data-layer': 'Select a drought metric or climate variable to display on the map. Each layer represents a different way of characterizing drought or climate conditions. Descriptions for each variable appear below the dropdown when selected.',
     'timescale': 'The time window over which the selected variable is calculated. Shorter timescales (15&ndash;30 days) capture recent conditions, while longer timescales (90&ndash;365 days) reveal persistent trends. Water Year (WY) runs October 1 through September 30; Year to Date (YTD) runs January 1 through today.',
-    'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing a longer historical baseline but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. Both may be valid based on your use case.',
+    'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>1991&ndash;2020 Climate Normal</strong> uses the WMO standard fixed reference period. It is the official baseline for international climate monitoring and is well-suited for cross-comparison with NOAA, NCEI, WMO, and other published climatologies that share the same window.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing the largest possible sample size but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. All three are valid depending on your use case.',
     'zoom': 'Quickly zoom the map to a specific state or back to the full CONUS view. Select a state from the dropdown to center and zoom to its bounds.',
     'station': 'Load station observations onto the map. <strong>USGS</strong> shows streamflow percentiles at gaging sites. <strong>GHCN</strong> shows drought index values (SPI, SPEI, EDDI) and precipitation statistics at ~5,000 weather stations, colored to match the active map layer.',
     'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
@@ -6245,7 +6260,7 @@ function loadState() {
 
   if (!VAR_CONFIG[v]) return null;
   if (ts && !TIMESCALES.includes(ts)) return null;
-  if (period && !['rolling-30','full'].includes(period)) return null;
+  if (period && !['rolling-30','fixed-1991-2020','full'].includes(period)) return null;
   if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
   return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView };
 }

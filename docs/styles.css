@@ -1187,12 +1187,14 @@
 
     .period-btn {
       flex: 1;
+      min-width: 0;
       background: transparent;
       color: var(--text-body);
       border: none;
       border-right: 1px solid var(--border);
-      padding: 7px 8px;
-      font-size: 0.78rem;
+      padding: 6px 4px;
+      font-size: 0.74rem;
+      line-height: 1.18;
       font-family: var(--font-display);
       cursor: pointer;
       text-align: center;
