@@ -660,6 +660,33 @@ function ghcnPropKey(v, ts, period) {
   if (!prefix) return null;
   return prefix + ts + '_' + period;
 }
+
+// ── Sliced-layout configuration (lazy per-slice GHCN loading) ──
+// Flip GHCN_USE_SLICED_LAYOUT to false to fully revert to the bundled fetch path.
+// On manifest fetch failure, the loader auto-falls back to the bundled file too.
+const GHCN_USE_SLICED_LAYOUT = true;
+const GHCN_BASE_URL          = 'https://mco-ghcnd.s3.us-east-2.amazonaws.com/derived/ghcnd_drought/latest/';
+const GHCN_BUNDLED_URL       = GHCN_BASE_URL + 'GHCNd_drought_current.geojson.gz';
+const GHCN_MANIFEST_URL      = GHCN_BASE_URL + 'manifest.json.gz';
+const GHCN_BASE_FEATURES_URL = GHCN_BASE_URL + 'stations_base.geojson.gz';
+let _ghcnSliceMode    = false;        // true once sliced layout is live for this session
+let _ghcnManifest     = null;
+let _ghcnSliceIndex   = null;         // Map<'var|ts|period', path>
+let _ghcnSliceCache   = new Map();    // Map<'var|ts|period', Map<id, number|null>>
+let _ghcnSliceInflight = new Map();   // de-dupe concurrent fetches
+
+// Build the manifest's slice key for a given (activeVar, ts, period). The slice's
+// var segment is the storage prefix without the trailing underscore — i.e. 'spi',
+// 'precip_mm', 'precip_pon', etc. — derived directly from GHCN_VAR_MAP so changes
+// to the variable list stay in one place.
+function ghcnSliceVarKey(v) {
+  var prefix = GHCN_VAR_MAP[v];
+  return prefix ? prefix.slice(0, -1) : null;
+}
+function ghcnSliceLookupKey(v, ts, period) {
+  var sv = ghcnSliceVarKey(v);
+  return sv ? (sv + '|' + ts + '|' + period) : null;
+}
 let usdmLayer = null, usdmLoaded = false;
 let usdmOpacity = 0.55;
 const usdmStyleCache = {};
@@ -2184,9 +2211,9 @@ map.on('pointermove', function(e) {
       tooltipText = feature.get('_tooltip') || '';
     } else if (layer === ghcnLayer) {
       var gName = feature.get('_ghcnName') || 'GHCN Station';
-      var gPropKey = ghcnPropKey(activeVar, activeTS, activePeriod);
-      if (gPropKey) {
-        var gVal = feature.get(gPropKey);
+      var gHasMap = !!ghcnPropKey(activeVar, activeTS, activePeriod);
+      if (gHasMap) {
+        var gVal = getGhcnSliceValue(feature, activeVar, activeTS, activePeriod);
         var gCfg = VAR_CONFIG[activeVar];
         if (gVal != null && !isNaN(gVal)) {
           var gDisp = gVal;
@@ -2574,15 +2601,15 @@ map.on("click", function(e) {
 
   // GHCN station click popup
   if (ghcnHit) {
-    var gPK = ghcnPropKey(activeVar, activeTS, activePeriod);
+    var gHasMap = !!ghcnPropKey(activeVar, activeTS, activePeriod);
     var gName = ghcnHit.get('_ghcnName') || 'GHCN Station';
     var gState = ghcnHit.get('_ghcnState');
     var gElev = ghcnHit.get('_ghcnElev');
     var gDate = ghcnHit.get('_ghcnDate');
     var gCfg = VAR_CONFIG[activeVar];
     var gValHtml = 'N/A', gHex = '#888';
-    if (gPK) {
-      var gRaw = ghcnHit.get(gPK);
+    if (gHasMap) {
+      var gRaw = getGhcnSliceValue(ghcnHit, activeVar, activeTS, activePeriod);
       if (gRaw != null && !isNaN(gRaw)) {
         var gV = gRaw;
         if (gCfg && gCfg.mmToIn) gV = gRaw / 25.4;
@@ -2593,7 +2620,7 @@ map.on("click", function(e) {
         gHex = gColor ? gColor.hex() : '#888';
       }
     }
-    var gId = ghcnHit.get('id') || '';
+    var gId = ghcnHit.get('_ghcnId') || ghcnHit.get('id') || '';
     var popupContent = popupEl.querySelector('.ol-popup-content');
     popupContent.innerHTML = '<div style="text-align:center;min-width:160px">' +
       '<div style="font-weight:600;margin-bottom:2px">' + gName + '</div>' +
@@ -2839,8 +2866,128 @@ document.getElementById("usgs-btn").addEventListener("click", async function () 
 /* ════════════════════════════════════════════════════════════════
    GHCN STATION OVERLAY
    ════════════════════════════════════════════════════════════════ */
+function ensureGhcnSlice(v, ts, period) {
+  if (!_ghcnSliceMode || !_ghcnSliceIndex) return Promise.resolve(null);
+  var key = ghcnSliceLookupKey(v, ts, period);
+  if (!key) return Promise.resolve(null);
+  if (_ghcnSliceCache.has(key)) return Promise.resolve(_ghcnSliceCache.get(key));
+  if (_ghcnSliceInflight.has(key)) return _ghcnSliceInflight.get(key);
+
+  var path = _ghcnSliceIndex.get(key);
+  if (!path) {
+    // Not in manifest = combination doesn't exist in the pipeline. Cache the negative.
+    _ghcnSliceCache.set(key, null);
+    return Promise.resolve(null);
+  }
+  var url = /^https?:/.test(path) ? path : (GHCN_BASE_URL + path);
+
+  var p = fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('slice ' + key + ' HTTP ' + r.status);
+    return r.json();
+  }).then(function(json) {
+    var values = (json && json.values) || {};
+    var m = new Map();
+    for (var id in values) m.set(id, values[id]);
+    _ghcnSliceCache.set(key, m);
+    _ghcnSliceInflight.delete(key);
+    return m;
+  }).catch(function(e) {
+    _ghcnSliceInflight.delete(key);
+    console.warn('[GHCN] slice fetch failed', key, e);
+    throw e;
+  });
+  _ghcnSliceInflight.set(key, p);
+  return p;
+}
+
+function getGhcnSliceValue(feature, v, ts, period) {
+  if (_ghcnSliceMode) {
+    var key = ghcnSliceLookupKey(v, ts, period);
+    if (!key) return null;
+    var slice = _ghcnSliceCache.get(key);
+    if (!slice) return null; // not loaded yet OR confirmed-missing combination
+    var id = feature.get('_ghcnId') || feature.get('id');
+    return slice.has(id) ? slice.get(id) : null;
+  }
+  var pk = ghcnPropKey(v, ts, period);
+  return pk ? feature.get(pk) : null;
+}
+
+function ghcnFeatureStyle(feature) {
+  var val = getGhcnSliceValue(feature, activeVar, activeTS, activePeriod);
+  if (val == null || isNaN(val)) return null;
+  var cfg = VAR_CONFIG[activeVar];
+  var displayVal = val;
+  if (cfg && cfg.mmToIn) displayVal = val / 25.4;
+  if (cfg && cfg.cToF) displayVal = val * 9 / 5;
+  var qKey = Math.round(displayVal * 100);
+  if (ghcnStyleCache[qKey]) return ghcnStyleCache[qKey];
+  var color = _ghcnScaleFn ? _ghcnScaleFn(displayVal) : null;
+  var hex = color ? color.hex() : '#888';
+  ghcnStyleCache[qKey] = new ol.style.Style({
+    image: new ol.style.Circle({ radius: 4, fill: new ol.style.Fill({ color: hex }), stroke: new ol.style.Stroke({ color: '#000', width: 0.7 }) })
+  });
+  return ghcnStyleCache[qKey];
+}
+
 async function loadGhcnStations() {
-  var resp = await fetch('https://mco-ghcnd.s3.us-east-2.amazonaws.com/derived/ghcnd_drought/latest/GHCNd_drought_current.geojson.gz');
+  if (GHCN_USE_SLICED_LAYOUT) {
+    try {
+      await loadGhcnStationsSliced();
+      return;
+    } catch (e) {
+      console.warn('[GHCN] Sliced layout unavailable, falling back to bundled fetch:', e);
+      _ghcnSliceMode  = false;
+      _ghcnManifest   = null;
+      _ghcnSliceIndex = null;
+    }
+  }
+  await loadGhcnStationsBundled();
+}
+
+async function loadGhcnStationsSliced() {
+  // 1. Manifest. Browser auto-decodes (Content-Encoding: gzip), JSON content type → .json() works.
+  var mResp = await fetch(GHCN_MANIFEST_URL);
+  if (!mResp.ok) throw new Error('manifest HTTP ' + mResp.status);
+  var manifest = await mResp.json();
+  _ghcnManifest = manifest;
+  _ghcnSliceIndex = new Map();
+  (manifest.slices || []).forEach(function(s) {
+    _ghcnSliceIndex.set(s.var + '|' + s.ts + '|' + s.period, s.path);
+  });
+
+  // 2. Stations base — geometry + identity + last-obs date only, no drought values.
+  var bResp = await fetch(GHCN_BASE_FEATURES_URL);
+  if (!bResp.ok) throw new Error('stations_base HTTP ' + bResp.status);
+  var bData = await bResp.json();
+  bData.features.forEach(function(f) {
+    var p = f.properties || {};
+    f.properties._ghcnId    = p.id || '';
+    f.properties._ghcnName  = p.name || p.id || 'GHCN Station';
+    f.properties._ghcnState = p.state || '';
+    f.properties._ghcnElev  = p.elev;
+    f.properties._ghcnDate  = p.data_date || '';
+  });
+
+  var features = new ol.format.GeoJSON().readFeatures(bData, { featureProjection: 'EPSG:3857' });
+  ghcnLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features: features }),
+    style: ghcnFeatureStyle,
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
+    zIndex: 13
+  });
+  _ghcnSliceMode = true;
+  ghcnLoaded = true;
+
+  // Kick off the active slice fetch so first render isn't blank.
+  ensureGhcnSlice(activeVar, activeTS, activePeriod).then(function() {
+    if (ghcnLayer) ghcnLayer.changed();
+  }).catch(function() {});
+}
+
+async function loadGhcnStationsBundled() {
+  var resp = await fetch(GHCN_BUNDLED_URL);
   var ds = new DecompressionStream('gzip');
   var text = await new Response(resp.body.pipeThrough(ds)).text();
   var data = JSON.parse(text);
@@ -2857,35 +3004,30 @@ async function loadGhcnStations() {
 
   ghcnLayer = new ol.layer.Vector({
     source: new ol.source.Vector({ features: features }),
-    style: function(feature) {
-      var propKey = ghcnPropKey(activeVar, activeTS, activePeriod);
-      if (!propKey) return null;
-      var val = feature.get(propKey);
-      if (val == null || isNaN(val)) return null;
-      var cfg = VAR_CONFIG[activeVar];
-      var displayVal = val;
-      if (cfg && cfg.mmToIn) displayVal = val / 25.4;
-      if (cfg && cfg.cToF) displayVal = val * 9 / 5;
-      var qKey = Math.round(displayVal * 100);
-      if (ghcnStyleCache[qKey]) return ghcnStyleCache[qKey];
-      var color = _ghcnScaleFn ? _ghcnScaleFn(displayVal) : null;
-      var hex = color ? color.hex() : '#888';
-      ghcnStyleCache[qKey] = new ol.style.Style({
-        image: new ol.style.Circle({ radius: 4, fill: new ol.style.Fill({ color: hex }), stroke: new ol.style.Stroke({ color: '#000', width: 0.7 }) })
-      });
-      return ghcnStyleCache[qKey];
-    },
+    style: ghcnFeatureStyle,
     updateWhileAnimating: true,
     updateWhileInteracting: true,
     zIndex: 13
   });
+  _ghcnSliceMode = false;
   ghcnLoaded = true;
 }
 
 function restyleGhcnLayer() {
   ghcnStyleCache = {};
-  var propKey = ghcnPropKey(activeVar, activeTS, activePeriod);
-  if (propKey) {
+  var hasMapping = !!ghcnPropKey(activeVar, activeTS, activePeriod);
+  if (hasMapping) {
+    // In sliced mode, kick off a fetch for the active slice if not already cached;
+    // restyle re-runs once the slice arrives so colors and the dynamic-var fallback
+    // range pick up real values.
+    if (_ghcnSliceMode) {
+      var sliceKey = ghcnSliceLookupKey(activeVar, activeTS, activePeriod);
+      if (sliceKey && !_ghcnSliceCache.has(sliceKey)) {
+        ensureGhcnSlice(activeVar, activeTS, activePeriod).then(function() {
+          restyleGhcnLayer();
+        }).catch(function() {});
+      }
+    }
     var cfg = VAR_CONFIG[activeVar];
     var rangeOv = getRangeOverride();
     // For dynamic vars, use the same range as the raster layer so station points
@@ -2899,7 +3041,7 @@ function restyleGhcnLayer() {
       } else if (ghcnLayer) {
         var vals = [];
         ghcnLayer.getSource().forEachFeature(function(f) {
-          var v = f.get(propKey);
+          var v = getGhcnSliceValue(f, activeVar, activeTS, activePeriod);
           if (v != null && !isNaN(v) && v > -9000) vals.push(cfg.mmToIn ? v / 25.4 : cfg.cToF ? v * 9 / 5 : v);
         });
         if (vals.length > 10) {
@@ -2916,7 +3058,7 @@ function restyleGhcnLayer() {
     _ghcnLegendRows = null;
   }
   if (ghcnLayer) {
-    ghcnLayer.setVisible(!!propKey);
+    ghcnLayer.setVisible(hasMapping);
     ghcnLayer.changed();
   }
 }
