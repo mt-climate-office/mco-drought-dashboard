@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=vhi">
 </head>
 <body>
 
@@ -212,6 +212,9 @@
           <optgroup label="── Streamflow ──">
             <option value="hhp">HHP Streamflow Basins</option>
           </optgroup>
+          <optgroup label="── Vegetation ──">
+            <option value="vhi">VHI — Vegetation Health Index (NOAA STAR)</option>
+          </optgroup>
         </select>
 
         <!-- Custom dropdown (populated by JS) -->
@@ -239,6 +242,16 @@
             </div>
             <button id="range-reset">Auto</button>
           </div>
+        </div>
+
+        <!-- VHI week selector (shown only when VHI is the active variable) -->
+        <div id="vhi-controls" style="display:none;margin-top:8px;">
+          <div class="subsec-label">Composite Week</div>
+          <div style="display:flex;gap:6px;">
+            <select id="vhi-year" class="range-input" aria-label="VHI year" style="flex:1;"></select>
+            <select id="vhi-week" class="range-input" aria-label="VHI ISO week" style="flex:1.2;"></select>
+          </div>
+          <div id="vhi-week-label" style="margin-top:4px;font-size:0.7rem;color:var(--text-secondary);font-family:var(--font-mono);"></div>
         </div>
 
         <label class="custom-check" id="query-row" style="margin-top:8px;">
@@ -578,6 +591,24 @@
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#730000"></span>D4 — Exceptional Drought</div>
 </div>
 
+<!-- VHI legend (NOAA STAR / NESDIS palette) -->
+<div id="vhi-legend" style="display:none">
+  <div class="sf-leg-title">Vegetation Health Index</div>
+  <div class="sf-leg-period">VIIRS-NOAA20 · 500&nbsp;m</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FF0080"></span>0–6 · Severe stress</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#C80000"></span>6–12</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FF3300"></span>12–24</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FF9900"></span>24–36</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#FFE600"></span>36–48</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#CCFF66"></span>48–60</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#33CC33"></span>60–72</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#009999"></span>72–84</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#0066CC"></span>84–96</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#003399"></span>96–100 · Healthy</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#C0C0C0"></span>Snow/ice</div>
+  <div class="sf-leg-row"><span class="sf-swatch" style="background:#E8E8E8;border:1px solid #ccc"></span>Desert / missing</div>
+</div>
+
 <!-- HHP basin flow panel -->
 <div id="flow-panel">
   <div id="flow-panel-header">
@@ -771,6 +802,7 @@ const VAR_CONFIG = {
   'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
   'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
+  vhi:          { label: "VHI",                             prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, tileLayer: true, attribution: "NOAA STAR / NESDIS", description: "Vegetation Health Index (VHI) from NOAA NESDIS / STAR — a satellite-derived weekly composite combining the Vegetation Condition Index (VCI) and Temperature Condition Index (TCI) from VIIRS-NOAA20 (J01) at 500 m. Low values (red/pink) indicate stressed vegetation; high values (blue) indicate healthy vegetation. Imagery is provided as map tiles directly from NESDIS — per-pixel values, zonal averages, and custom color ranges are not available." },
 };
 
 /* ── Screenshot helpers: full names & timescale labels ──────── */
@@ -1161,7 +1193,7 @@ function showLegendEl(el) {
   togBtn.addEventListener('click', function() {
     legendsVisible = !legendsVisible;
     legendsHidden = !legendsVisible;
-    var els = document.querySelectorAll('.map-legend, #sf-legend, #usdm-legend, #mesonet-legend');
+    var els = document.querySelectorAll('.map-legend, #sf-legend, #usdm-legend, #mesonet-legend, #vhi-legend');
     els.forEach(function(el) {
       if (legendsVisible) {
         if (el._wasVisible) el.style.display = el._savedDisplay || 'block';
@@ -1468,6 +1500,15 @@ document.getElementById("var-select").addEventListener("change", function() {
     stackRightLegends();
   }
 
+  // If switching away from VHI, remove the tile layer + week selector + legend.
+  // Restore interpolate-row here too: the SNODAS branch returns early without
+  // restoring it (line ~1544), so we'd leak the hidden state on VHI→SNODAS.
+  if (vhiTileLayer && map.getLayers().getArray().includes(vhiTileLayer)) {
+    hideVhi();
+    document.getElementById("interpolate-row").style.display = "";
+    stackRightLegends();
+  }
+
   activeVar = this.value;
   saveState();
 
@@ -1535,6 +1576,26 @@ document.getElementById("var-select").addEventListener("change", function() {
       showLegendEl(document.getElementById("sf-legend"));
       stackRightLegends();
     })();
+    if (ghcnActive) restyleGhcnLayer();
+    return;
+  }
+
+  if (activeVar === "vhi") {
+    // Hide all selectors that don't apply to NESDIS tile imagery
+    tsLabel.style.display = "none";
+    tsBody.style.display  = "none";
+    prLabel.style.display = "none";
+    prBody.style.display  = "none";
+    document.getElementById("range-section").style.display = "none";
+    document.getElementById("interpolate-row").style.display = "none";
+    // Drop any active raster + its legend
+    if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
+    if (legendEl) { legendEl.remove(); legendEl = null; }
+    popupOverlay.setPosition(undefined);
+    queryLastLatLng = null;
+    showVhi();
+    document.getElementById('map-skeleton')?.remove();
+    if (ghcnActive) restyleGhcnLayer();
     return;
   }
 
@@ -1580,6 +1641,8 @@ opacitySlider.addEventListener("input", function() {
     if (!zonalActive) convCogLayer.setOpacity(v);
   } else if (activeVar === "hhp" && hhpLayer) {
     hhpLayer.changed();
+  } else if (activeVar === "vhi" && vhiTileLayer) {
+    vhiTileLayer.setOpacity(v);
   } else if (cogLayer) {
     if (!zonalActive) cogLayer.setOpacity(v);
   }
@@ -1806,7 +1869,7 @@ async function getCurrentZonalRaster() {
     };
   }
   var cfg = VAR_CONFIG[activeVar];
-  if (!cfg) return null;
+  if (!cfg || cfg.noRaster) return null;
   var url, useZstd = false;
   if (cfg.isSnodas) {
     url = cfg.isSnodasRaw
@@ -2800,6 +2863,186 @@ async function loadHhpStreamflow() {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   VHI VEGETATION HEALTH INDEX OVERLAY (NOAA STAR / NESDIS)
+   View-only XYZ tile layer — no per-pixel queries, no zonal stats.
+   Weekly composite indexed by ISO year + week (e.g. 2026017 = 2026 W17).
+   ════════════════════════════════════════════════════════════════ */
+const VHI_TILE_BASE = 'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/image_mapTile.php';
+const VHI_PRODUCT   = 'j01_500m_VHI';
+const VHI_MIN_YEAR  = 2018;
+let vhiTileLayer = null;
+let vhiYear = null;
+let vhiWeek = null;
+let _vhiLatestPub = null;   // {year, week} — most recent probed-available week from NESDIS
+
+function isoWeekFromDate(d) {
+  const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = u.getUTCDay() || 7;
+  u.setUTCDate(u.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(u.getUTCFullYear(), 0, 1));
+  return {
+    year: u.getUTCFullYear(),
+    week: Math.ceil((((u - yearStart) / 86400000) + 1) / 7)
+  };
+}
+
+function isoWeekDateRange(year, week) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1) + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  return { start: monday.toISOString().slice(0, 10), end: sunday.toISOString().slice(0, 10) };
+}
+
+function vhiTileUrl(year, week) {
+  return VHI_TILE_BASE + '?type=/' + VHI_PRODUCT + '/' + year + String(week).padStart(3, '0') +
+    '&Z={z}&X={x}&Y={y}';
+}
+
+function buildVhiTileLayer() {
+  return new ol.layer.Tile({
+    source: new ol.source.XYZ({
+      url: vhiTileUrl(vhiYear, vhiWeek),
+      attributions: '<a href="https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browse.php" target="_blank" rel="noopener">NOAA STAR / NESDIS Vegetation Health Products</a>',
+      crossOrigin: 'anonymous'
+    }),
+    opacity: parseFloat(document.getElementById('opacity-slider').value || '0.9'),
+    zIndex: 1
+  });
+}
+
+function refreshVhiTileLayer() {
+  if (!vhiTileLayer) return;
+  vhiTileLayer.getSource().setUrl(vhiTileUrl(vhiYear, vhiWeek));
+}
+
+// Probe the most recent N weeks in parallel via HEAD; return the most recent
+// (year, week) that returns a valid tile. NESDIS lags real-time by more than
+// a week, so the literal "current ISO week" usually 404s.
+async function findLatestVhiWeek(maxLookbackWeeks) {
+  const now = isoWeekFromDate(new Date());
+  const probes = [];
+  for (let i = 1; i <= maxLookbackWeeks; i++) {
+    let y = now.year, w = now.week - i;
+    while (w < 1) { y--; w += 52; }
+    const url = VHI_TILE_BASE + '?type=/' + VHI_PRODUCT + '/' +
+      y + String(w).padStart(3, '0') + '&Z=4&X=3&Y=5';
+    probes.push({ y, w, url });
+  }
+  const results = await Promise.all(probes.map(p =>
+    fetch(p.url, { method: 'HEAD' }).then(r => r.ok ? p : null).catch(() => null)
+  ));
+  const hit = results.find(r => r); // probes are ordered most-recent-first
+  if (hit) return { year: hit.y, week: hit.w };
+  // Fallback: assume a 2-week NESDIS publishing lag.
+  let y = now.year, w = now.week - 2;
+  if (w < 1) { y--; w += 52; }
+  return { year: y, week: w };
+}
+
+// Rebuild the week dropdown for a given year. The current year is capped at
+// the latest probed-available week so users can't pick a future/unpublished one;
+// other years show weeks 1–52. Returns the (possibly clamped) selected week.
+function rebuildVhiWeekOptions(forYear, preferredWeek) {
+  const wSel = document.getElementById('vhi-week');
+  if (!wSel) return preferredWeek || 1;
+  const maxWeek = (_vhiLatestPub && forYear === _vhiLatestPub.year) ? _vhiLatestPub.week : 52;
+  const want = preferredWeek || parseInt(wSel.value, 10) || 1;
+  const target = Math.min(Math.max(want, 1), maxWeek);
+  wSel.innerHTML = '';
+  for (let w = 1; w <= maxWeek; w++) {
+    const opt = document.createElement('option');
+    opt.value = String(w); opt.textContent = 'Week ' + String(w).padStart(2, '0');
+    wSel.appendChild(opt);
+  }
+  wSel.value = String(target);
+  return target;
+}
+
+async function populateVhiSelectors() {
+  const ySel = document.getElementById('vhi-year');
+  const wSel = document.getElementById('vhi-week');
+  if (!ySel || !wSel) return;
+  if (!ySel.options.length) {
+    const now = isoWeekFromDate(new Date());
+    for (let y = now.year; y >= VHI_MIN_YEAR; y--) {
+      const opt = document.createElement('option');
+      opt.value = String(y); opt.textContent = String(y);
+      ySel.appendChild(opt);
+    }
+    // Probe NESDIS for the most recent published week (~1 round-trip).
+    const latest = await findLatestVhiWeek(8);
+    _vhiLatestPub = latest;
+    vhiYear = latest.year;
+    ySel.value = String(vhiYear);
+    vhiWeek = rebuildVhiWeekOptions(vhiYear, latest.week);
+    ySel.addEventListener('change', function() {
+      vhiYear = parseInt(this.value, 10);
+      vhiWeek = rebuildVhiWeekOptions(vhiYear, vhiWeek);
+      updateVhiWeekLabel();
+      applyVhiActiveDate();
+      refreshVhiTileLayer();
+    });
+    wSel.addEventListener('change', function() {
+      vhiWeek = parseInt(this.value, 10);
+      updateVhiWeekLabel();
+      applyVhiActiveDate();
+      refreshVhiTileLayer();
+    });
+  }
+  updateVhiWeekLabel();
+}
+
+function updateVhiWeekLabel() {
+  const lbl = document.getElementById('vhi-week-label');
+  if (!lbl || !vhiYear || !vhiWeek) return;
+  const range = isoWeekDateRange(vhiYear, vhiWeek);
+  lbl.textContent = range.start + ' → ' + range.end;
+}
+
+// Mirror VHI's selected week into the sidebar "Data valid" badge using the
+// Sunday-of-week (end of the composite period) as the canonical date.
+function applyVhiActiveDate() {
+  if (!vhiYear || !vhiWeek) return;
+  activeDate = isoWeekDateRange(vhiYear, vhiWeek).end;
+  updateDateDisplay();
+}
+
+async function showVhi() {
+  document.getElementById('vhi-controls').style.display = '';
+  showLegendEl(document.getElementById('vhi-legend'));
+  showSpinner('Loading VHI…');
+  try {
+    await populateVhiSelectors(); // first call probes NESDIS for the latest published week
+  } finally {
+    hideSpinner();
+  }
+  applyVhiActiveDate();
+  if (!vhiTileLayer) {
+    vhiTileLayer = buildVhiTileLayer();
+  } else {
+    refreshVhiTileLayer();
+  }
+  if (!map.getLayers().getArray().includes(vhiTileLayer)) {
+    map.addLayer(vhiTileLayer);
+  }
+  ensureLayerStack();
+  stackRightLegends();
+}
+
+function hideVhi() {
+  if (vhiTileLayer && map.getLayers().getArray().includes(vhiTileLayer)) {
+    map.removeLayer(vhiTileLayer);
+  }
+  const c = document.getElementById('vhi-controls');
+  if (c) c.style.display = 'none';
+  const lg = document.getElementById('vhi-legend');
+  if (lg) lg.style.display = 'none';
+}
+
+/* ════════════════════════════════════════════════════════════════
    USGS STREAMFLOW OVERLAY
    ════════════════════════════════════════════════════════════════ */
 async function loadUsgsStreamflow() {
@@ -3317,8 +3560,14 @@ function stackRightLegends() {
   const sf = document.getElementById("sf-legend");
   const usdm = document.getElementById("usdm-legend");
   const meso = document.getElementById("mesonet-legend");
+  const vhi = document.getElementById("vhi-legend");
   let bottom = isMobileView() ? 10 : 30;
-  // Stack from bottom up: streamflow, mesonet, usdm
+  // Stack from bottom up: VHI / streamflow (mutually exclusive variables),
+  // then mesonet, then USDM.
+  if (_isLegendActive(vhi)) {
+    vhi.style.bottom = bottom + "px";
+    bottom += (vhi.offsetHeight || 280) + 8;
+  }
   if (_isLegendActive(sf)) {
     sf.style.bottom = bottom + "px";
     bottom += (sf.offsetHeight || 180) + 8;
@@ -4775,13 +5024,14 @@ function getExportAttribution() {
 // canonical homepage we'd want to link out to. Mirrors the partner hrefs used
 // in the Partners modal so the attribution and the modal point to the same URLs.
 const ATTRIB_LINKS = {
-  'gridMET':         'https://www.climatologylab.org/gridmet.html',
-  'GHCN/NOAA':       'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
-  'USGS':            'https://waterdata.usgs.gov/nwis',
-  'USDM/NDMC':       'https://droughtmonitor.unl.edu/',
-  'SNODAS':          'https://www.nohrsc.noaa.gov/nsa/',
-  'Montana Mesonet': 'https://climate.umt.edu/mesonet/',
-  'HHP':             'https://climate.umt.edu/'
+  'gridMET':            'https://www.climatologylab.org/gridmet.html',
+  'GHCN/NOAA':          'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
+  'USGS':               'https://waterdata.usgs.gov/nwis',
+  'USDM/NDMC':          'https://droughtmonitor.unl.edu/',
+  'SNODAS':             'https://www.nohrsc.noaa.gov/nsa/',
+  'Montana Mesonet':    'https://climate.umt.edu/mesonet/',
+  'HHP':                'https://climate.umt.edu/',
+  'NOAA STAR / NESDIS': 'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_browse.php'
 };
 function _escAttr(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function updateMapAttribution() {
@@ -5287,6 +5537,83 @@ function drawGhcnFooterLegend(ctx, footerY, startX, sc) {
 
     return cx + Math.round(20 * sc);
   }
+}
+
+function drawVhiFooterLegend(ctx, footerY, startX, sc) {
+  const et = getExportTheme();
+  const vhiLeg = document.getElementById("vhi-legend");
+  if (!vhiLeg || vhiLeg.style.display === "none") return 0;
+
+  const rows = [
+    { color: "#FF0080", label: "0–6" },
+    { color: "#C80000", label: "6–12" },
+    { color: "#FF3300", label: "12–24" },
+    { color: "#FF9900", label: "24–36" },
+    { color: "#FFE600", label: "36–48" },
+    { color: "#CCFF66", label: "48–60" },
+    { color: "#33CC33", label: "60–72" },
+    { color: "#009999", label: "72–84" },
+    { color: "#0066CC", label: "84–96" },
+    { color: "#003399", label: "96–100" },
+    { color: "#C0C0C0", label: "Snow/ice" },
+    { color: "#E8E8E8", label: "Desert / missing", outline: true }
+  ];
+
+  const title = "Vegetation Health Index";
+  const titleFS = Math.round(13 * sc);
+  const labelFS = Math.round(11 * sc);
+  const swatchSize = Math.round(14 * sc);
+  const cellGap = Math.round(4 * sc);
+
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const minCellW = swatchSize + Math.round(4 * sc);
+  const cellWidths = rows.map(row => {
+    const lw = ctx.measureText(row.label).width;
+    return Math.max(minCellW, Math.round(lw + 4 * sc));
+  });
+  const totalW = cellWidths.reduce((a, b) => a + b, 0) + cellGap * (rows.length - 1);
+
+  let cx = startX;
+  let cy = footerY + Math.round(8 * sc);
+
+  ctx.textBaseline = "top";
+
+  // Title centered over swatches
+  ctx.fillStyle = et.legendTitle;
+  ctx.font = `bold ${titleFS}px 'Segoe UI', sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(title, startX + totalW / 2, cy);
+  ctx.textAlign = "left";
+  cy += titleFS + Math.round(4 * sc);
+
+  // Draw rounded squares in a row (matches the on-tile pixel feel)
+  const swR = Math.round(2 * sc);
+  rows.forEach((row, i) => {
+    const sx = cx + (cellWidths[i] - swatchSize) / 2;
+    roundRect(ctx, sx, cy, swatchSize, swatchSize, swR);
+    ctx.fillStyle = row.color;
+    ctx.fill();
+    if (row.outline) {
+      ctx.strokeStyle = et.circleStroke;
+      ctx.lineWidth = Math.round(0.8 * sc);
+      ctx.stroke();
+    }
+    cx += cellWidths[i] + cellGap;
+  });
+
+  // Labels below swatches
+  ctx.fillStyle = et.legendLabel;
+  ctx.font = `${labelFS}px 'Segoe UI', sans-serif`;
+  const labelY = cy + swatchSize + Math.round(3 * sc);
+  cx = startX;
+  rows.forEach((row, i) => {
+    ctx.textAlign = "center";
+    ctx.fillText(row.label, cx + cellWidths[i] / 2, labelY);
+    cx += cellWidths[i] + cellGap;
+  });
+  ctx.textAlign = "left";
+
+  return cx + Math.round(20 * sc);
 }
 
 function drawMesonetFooterLegend(ctx, footerY, startX, sc) {
@@ -5820,6 +6147,16 @@ async function takeScreenshot(exportScale) {
       if (cfg && cfg.isSnodas) {
         titleLine1 = getFullVarName(activeVar);
         titleLine2 = 'Data Valid: ' + dateTxt;
+      } else if (cfg && cfg.tileLayer) {
+        // External tile layers (e.g. VHI) have no timescale or reference period;
+        // surface the relevant temporal scope instead (composite week for VHI).
+        titleLine1 = getFullVarName(activeVar);
+        if (activeVar === 'vhi' && vhiYear && vhiWeek) {
+          var rng = isoWeekDateRange(vhiYear, vhiWeek);
+          titleLine2 = 'Composite Week: ' + rng.start + ' \u2192 ' + rng.end;
+        } else {
+          titleLine2 = '';
+        }
       } else {
         var tsLabel = TS_FULL[activeTS] || activeTS;
         titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + tsLabel;
@@ -5919,6 +6256,9 @@ async function takeScreenshot(exportScale) {
     let legendRightX = Math.round(24 * SCALE);
     if (convActive && convLayers.length >= 1) {
       const rx = drawConvergenceFooterLegend(ctx, footerContentY, SCALE);
+      if (rx) legendRightX = rx;
+    } else if (cfg.tileLayer && activeVar === 'vhi') {
+      const rx = drawVhiFooterLegend(ctx, footerContentY, Math.round(24 * SCALE), SCALE);
       if (rx) legendRightX = rx;
     } else if (!cfg.noRaster) {
       const rx = drawFooterLegend(ctx, footerContentY, SCALE);

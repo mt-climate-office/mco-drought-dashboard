@@ -1779,6 +1779,22 @@
       border: 1px solid var(--border-glass);
     }
 
+    #vhi-legend {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      z-index: 900;
+      background: var(--glass);
+      backdrop-filter: blur(var(--glass-blur));
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 12px;
+      min-width: 170px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-glass);
+    }
+
     /* ================================================================
        Station "Add X" buttons (USGS, GHCN, Mesonet)
        ================================================================ */
@@ -2137,10 +2153,11 @@
       .legend-gradient,
       .legend-gradient-labels { height: 140px; }
 
-      /* ── Right legends (streamflow, USDM, mesonet) ── */
+      /* ── Right legends (streamflow, USDM, mesonet, VHI) ── */
       #sf-legend,
       #usdm-legend,
-      #mesonet-legend {
+      #mesonet-legend,
+      #vhi-legend {
         right: 6px;
         padding: 6px 10px;
         font-size: 10px;
