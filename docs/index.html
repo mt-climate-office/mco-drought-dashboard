@@ -50,14 +50,22 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=vhi">
+  <link rel="stylesheet" href="styles.css?v=beta-tip3">
 </head>
 <body>
 
 <!-- Navbar -->
 <nav id="navbar">
   <button id="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
-  <div class="brand"><img src="logo/logo_full_v2.svg" class="brand-logo" alt="D³ — Drought Data Dashboard"></div>
+  <div class="brand">
+    <img src="logo/logo_full_v2.svg" class="brand-logo" alt="D³ — Drought Data Dashboard">
+    <span class="beta-pill" tabindex="0" aria-describedby="beta-tip">BETA
+      <span class="beta-tip" id="beta-tip" role="tooltip">
+        This dashboard is still under active development.<br><br>
+        Please use the <strong>Feedback</strong> button to report bugs, problems, or errors.
+      </span>
+    </span>
+  </div>
   <div id="nav-actions">
     <div id="export-wrap" class="nav-action-item" style="position:relative;padding:0;">
       <button id="screenshot-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Export map as PNG">

@@ -180,7 +180,7 @@
       font-family: var(--font-display);
       font-weight: 700;
       flex: 1;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -224,6 +224,79 @@
       letter-spacing: 0.04em;
       font-style: italic;
       line-height: 1.2;
+    }
+
+    #navbar .brand .beta-pill {
+      position: relative;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      font-family: var(--font-display);
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 999px;
+      cursor: help;
+      line-height: 1;
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    #navbar .brand .beta-pill .beta-tip {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 280px;
+      max-width: 92vw;
+      padding: 10px 12px;
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: normal;
+      line-height: 1.45;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 120ms ease, transform 120ms ease, visibility 120ms;
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    #navbar .brand .beta-pill .beta-tip strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    #navbar .brand .beta-pill .beta-tip::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 14px;
+      width: 8px;
+      height: 8px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+      transform: rotate(45deg);
+    }
+
+    #navbar .brand .beta-pill:hover .beta-tip,
+    #navbar .brand .beta-pill:focus-visible .beta-tip,
+    #navbar .brand .beta-pill:focus .beta-tip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
 
     #mco-logo-link {
@@ -2129,6 +2202,7 @@
 
       /* ── Brand: scale down to fit mobile ── */
       #navbar .brand .brand-logo { height: calc(var(--navbar-h) - 20px); }
+      #navbar .brand .beta-pill { font-size: 0.5rem; padding: 1px 5px; letter-spacing: 0.06em; }
       #navbar .brand .brand-full { font-size: 0.55rem; }
       #navbar .brand .brand-sub { font-size: 0.45rem; line-height: 1.1; }
       #navbar .brand { flex: 1; min-width: 0; }
