@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=dark-cards">
+  <link rel="stylesheet" href="styles.css?v=overlay-zlift2">
 </head>
 <body>
 
@@ -521,15 +521,24 @@
          visible at all viewport heights. Three institutional partners
          (MCO already appears in the navbar via the wordmark). -->
     <div id="sidebar-partners" aria-label="Partners">
-      <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" title="NGP RIDR">
-        <img src="logo/RIDR Logo.jpg" alt="NGP RIDR">
-      </a>
-      <a href="https://www.drought.gov/" target="_blank" rel="noopener" title="NIDIS">
-        <img src="logo/nidis_logo.svg" alt="NIDIS">
-      </a>
-      <a href="https://drought.mt.gov/" target="_blank" rel="noopener" title="Montana DNRC — Drought">
-        <img src="logo/dnrc_logo.webp" alt="Montana DNRC">
-      </a>
+      <div class="sidebar-partners-label">Institutional Partners</div>
+      <div class="sidebar-partners-row">
+        <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" title="NGP RIDR">
+          <img src="logo/RIDR Logo.jpg" alt="NGP RIDR">
+        </a>
+        <a href="https://www.drought.gov/" target="_blank" rel="noopener" title="NIDIS">
+          <img src="logo/nidis_logo.svg" alt="NIDIS">
+        </a>
+        <a href="https://drought.mt.gov/" target="_blank" rel="noopener" title="Montana DNRC — Drought">
+          <img src="logo/dnrc_logo.webp" alt="Montana DNRC">
+        </a>
+      </div>
+      <!-- Regional partners — populated by renderRegionalPartners() based on
+           activeZoomState. Hidden when no regional partners apply. -->
+      <div id="sidebar-partners-regional" style="display:none">
+        <div class="sidebar-partners-label">Regional Partners</div>
+        <div class="sidebar-partners-row" id="sidebar-partners-regional-row"></div>
+      </div>
     </div>
   </div><!-- #sidebar -->
 
@@ -543,6 +552,50 @@
   <div id="map-skeleton"></div>
 
 </div><!-- #shell -->
+
+<!-- Floating overlay-toggles panel — at body level so it's outside any
+     stacking contexts (#shell is `position: fixed` and creates one), letting
+     a high z-index reliably place it above the bottom-right legend stack. -->
+<div id="overlay-panel" role="dialog" aria-label="Map overlays" hidden>
+  <div class="overlay-panel-header">
+    <span>Map Overlays</span>
+    <button type="button" class="overlay-panel-close" aria-label="Close overlays panel">&times;</button>
+  </div>
+  <div class="overlay-panel-body">
+    <button type="button" class="ov-row-btn" data-ov="usdm">
+      <span class="ov-name">U.S. Drought Monitor</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <button type="button" class="ov-row-btn" data-ov="ghcn">
+      <span class="ov-name">GHCN Stations</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <button type="button" class="ov-row-btn" data-ov="usgs">
+      <span class="ov-name">USGS Streamflow</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <div class="overlay-panel-divider"></div>
+    <button type="button" class="ov-row-btn" data-ov="state">
+      <span class="ov-name">State Boundaries</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <button type="button" class="ov-row-btn" data-ov="county">
+      <span class="ov-name">County Boundaries</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <button type="button" class="ov-row-btn" data-ov="tribal">
+      <span class="ov-name">Tribal Boundaries</span>
+      <span class="ov-pill">Off</span>
+    </button>
+    <button type="button" class="ov-row-btn" data-ov="huc">
+      <span class="ov-name">Watersheds (HUC)</span>
+      <span class="ov-pill">Off</span>
+    </button>
+  </div>
+  <div class="overlay-panel-footer">
+    <a href="#" id="overlay-panel-advanced">Advanced overlay controls &rarr;</a>
+  </div>
+</div>
 
 <!-- Spinner -->
 <div id="spinner"><div class="spin-ring"></div><div class="spin-label">Loading data…</div></div>
@@ -1328,6 +1381,7 @@ map.on('moveend', function() {
         stateLabel.textContent = opt ? opt.textContent : matchedState;
         autoEnableLayerForZoom(matchedState);
         handleStatePlugin(matchedState);
+        renderRegionalPartners();
         saveState();
         if (isMobileView() && !sidebarOpen) toggleSidebar();
         // Show notification toast next to the plugin section
@@ -1381,6 +1435,7 @@ async function handleStatePlugin(newCode) {
         activeZoomState = '';
         stateLabel.textContent = 'CONUS (default)';
         handleStatePlugin('');
+        renderRegionalPartners();
         saveState();
       }});
     } catch (e) { console.error('Plugin ' + newCode + ' failed:', e); }
@@ -1446,6 +1501,7 @@ stateSelect.addEventListener("change", function() {
   zoomToState(activeZoomState);
   autoEnableLayerForZoom(activeZoomState);
   handleStatePlugin(activeZoomState);
+  renderRegionalPartners();
   // Reset value so re-selecting the same state triggers change again
   setTimeout(() => { this.value = ''; }, 100);
 });
@@ -3602,6 +3658,121 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
   showLegendEl(document.getElementById("usdm-legend"));
   stackRightLegends();
 });
+
+/* ════════════════════════════════════════════════════════════════
+   MAP-LEVEL OVERLAY PANEL
+   A small floating panel on the map exposing the most-used overlay
+   toggles (USDM, GHCN, USGS, boundaries) without making the user
+   open the sidebar's Overlays section. All toggles forward to the
+   existing handlers — this is just a more discoverable surface.
+   ════════════════════════════════════════════════════════════════ */
+(function initOverlayPanel() {
+  const panel = document.getElementById('overlay-panel');
+  if (!panel) return;
+
+  // OL control button — sits below the legend-toggle eye in the top-right.
+  const layersIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.title = 'Map overlays';
+  btn.innerHTML = layersIcon;
+  const container = document.createElement('div');
+  container.className = 'ol-control ol-unselectable overlay-panel-control';
+  container.appendChild(btn);
+  map.addControl(new ol.control.Control({ element: container }));
+
+  function openPanel() { panel.hidden = false; refreshOverlayPanelState(); }
+  function closePanel() { panel.hidden = true; }
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    panel.hidden ? openPanel() : closePanel();
+  });
+
+  panel.querySelector('.overlay-panel-close').addEventListener('click', closePanel);
+
+  document.addEventListener('click', function(e) {
+    if (panel.hidden) return;
+    if (panel.contains(e.target) || container.contains(e.target)) return;
+    closePanel();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !panel.hidden) closePanel();
+  });
+
+  panel.querySelectorAll('.ov-row-btn').forEach(function(row) {
+    row.addEventListener('click', function() { handleOverlayPanelToggle(this.dataset.ov); });
+  });
+
+  // Advanced link: expand the Overlays sidebar section and scroll to it.
+  const adv = document.getElementById('overlay-panel-advanced');
+  if (adv) {
+    adv.addEventListener('click', function(e) {
+      e.preventDefault();
+      closePanel();
+      const lbl = document.querySelector('.section-label[data-sec="sec-overlays"]');
+      const body = document.getElementById('sec-overlays');
+      if (lbl && lbl.classList.contains('sec-collapsed')) {
+        lbl.classList.remove('sec-collapsed');
+        if (body) body.classList.remove('sec-collapsed');
+      }
+      if (body) body.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Keep the panel synced when overlays are toggled elsewhere (sidebar,
+  // map clicks, programmatic). Listen on the map's layer collection +
+  // the underlying checkboxes that drive boundary modes.
+  map.getLayers().on('add', refreshOverlayPanelState);
+  map.getLayers().on('remove', refreshOverlayPanelState);
+  ['usdm-chk', 'states-chk', 'state-avg-chk', 'counties-chk', 'county-avg-chk',
+   'tribal-chk', 'tribal-avg-chk', 'huc-chk', 'huc-avg-chk'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', refreshOverlayPanelState);
+  });
+
+  refreshOverlayPanelState();
+})();
+
+function handleOverlayPanelToggle(ov) {
+  if (ov === 'usdm') {
+    const chk = document.getElementById('usdm-chk');
+    chk.checked = !chk.checked;
+    chk.dispatchEvent(new Event('change'));
+  } else if (ov === 'ghcn') {
+    document.getElementById('ghcn-btn').click();
+  } else if (ov === 'usgs') {
+    document.getElementById('usgs-btn').click();
+  } else if (['state', 'county', 'tribal', 'huc'].includes(ov)) {
+    const ids = OV_CHECKBOXES && OV_CHECKBOXES[ov];
+    if (!ids) return;
+    const isOn = document.getElementById(ids.boundary).checked;
+    setOverlayMode(ov, isOn ? 'off' : 'outline');
+  }
+  refreshOverlayPanelState();
+}
+
+function refreshOverlayPanelState() {
+  const panel = document.getElementById('overlay-panel');
+  if (!panel) return;
+  panel.querySelectorAll('.ov-row-btn').forEach(function(row) {
+    const ov = row.dataset.ov;
+    let on = false;
+    if (ov === 'usdm') {
+      on = document.getElementById('usdm-chk').checked;
+    } else if (ov === 'ghcn') {
+      on = !!(typeof ghcnLayer !== 'undefined' && ghcnLayer && map.getLayers().getArray().includes(ghcnLayer));
+    } else if (ov === 'usgs') {
+      on = !!(typeof usgsStreamLayer !== 'undefined' && usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer));
+    } else if (['state', 'county', 'tribal', 'huc'].includes(ov)) {
+      const ids = OV_CHECKBOXES && OV_CHECKBOXES[ov];
+      on = !!(ids && document.getElementById(ids.boundary).checked);
+    }
+    row.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const pill = row.querySelector('.ov-pill');
+    if (pill) pill.textContent = on ? 'On' : 'Off';
+  });
+}
 
 document.getElementById("usdm-remove-btn").addEventListener("click", function() {
   var chk = document.getElementById("usdm-chk");
@@ -6624,6 +6795,30 @@ setupModal("feedback-modal-overlay", "feedback-close-btn");
 setupModal("welcome-modal-overlay", "welcome-close-btn");
 setupModal("partners-modal-overlay", "partners-close-btn");
 
+/* Regional partners — keyed by activeZoomState code. Add an entry here to
+   surface a partner logo in the sidebar's "Regional Partners" sub-row when
+   the user zooms into that state (or tribal area, e.g. "LAR:..." codes). */
+const STATE_PARTNERS = {
+  MT: [
+    { name: 'Montana Mesonet', href: 'https://climate.umt.edu/mesonet/', img: 'logo/mt_mesonet_logo.jpg' }
+  ]
+};
+
+function renderRegionalPartners() {
+  const wrap = document.getElementById('sidebar-partners-regional');
+  const row  = document.getElementById('sidebar-partners-regional-row');
+  if (!wrap || !row) return;
+  const list = STATE_PARTNERS[activeZoomState];
+  if (!list || !list.length) { wrap.style.display = 'none'; row.innerHTML = ''; return; }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  row.innerHTML = list.map(p =>
+    '<a href="' + esc(p.href) + '" target="_blank" rel="noopener" title="' + esc(p.name) + '">' +
+    '<img src="' + esc(p.img) + '" alt="' + esc(p.name) + '">' +
+    '</a>'
+  ).join('');
+  wrap.style.display = '';
+}
+
 /* Partners & Acknowledgments — edit this list to add/remove partners.
    Each entry becomes one row in the Partners modal. Tiers are rendered
    as section headings in the order declared. */
@@ -6929,6 +7124,7 @@ if (savedState) {
 
 updateRangeSection(activeVar, null);
 updateVarInfo(activeVar);
+renderRegionalPartners();
 
 // Set initial opacity slider fill
 opacitySlider.style.setProperty('--fill', (parseFloat(opacitySlider.value) * 100) + '%');
@@ -7002,6 +7198,7 @@ window.addEventListener('popstate', function() {
     autoEnableLayerForZoom(activeZoomState);
     handleStatePlugin(activeZoomState);
   }
+  renderRegionalPartners();
   // Show/hide period section based on variable
   const prLabel = document.querySelector(".section-label[data-sec='sec-period']");
   const prBody = document.getElementById("sec-period");
