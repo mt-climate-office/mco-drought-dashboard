@@ -192,6 +192,19 @@
       width: auto;
       display: block;
       flex-shrink: 0;
+      box-sizing: border-box;
+      border-radius: 6px;
+      transition: background 150ms ease, padding 150ms ease;
+    }
+    /* On non-light themes, both navbar logos lose their dark text against the
+       dark background. Wrap them in a white rounded "card" so the marks read
+       cleanly without needing dark-variant SVGs. Default theme is "dark" with
+       NO `data-theme` attribute, so this rule applies to anything except the
+       explicit "light" theme. */
+    html:not([data-theme="light"]) #navbar .brand .brand-logo {
+      background: #ffffff;
+      padding: 3px 6px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     #navbar .brand .brand-sep {
@@ -231,6 +244,7 @@
       flex-shrink: 0;
       display: inline-flex;
       align-items: center;
+      margin-left: 0;
       padding: 2px 7px;
       font-family: var(--font-display);
       font-size: 0.58rem;
@@ -307,11 +321,17 @@
     }
 
     #mco-logo {
-      height: 30px;
-      width: 30px;
+      height: calc(var(--navbar-h) - 18px);
+      width: auto;
+      display: block;
+      box-sizing: border-box;
       border-radius: 6px;
-      object-fit: cover;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, background 150ms ease, padding 150ms ease;
+    }
+    html:not([data-theme="light"]) #mco-logo {
+      background: #ffffff;
+      padding: 3px 6px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     #mco-logo:hover { opacity: 0.8; }
@@ -893,8 +913,7 @@
       min-width: var(--sidebar-w);
       background: var(--bg-surface);
       color: var(--text-primary);
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 0;
@@ -919,7 +938,8 @@
       min-width: 0;
     }
 
-    #sidebar.collapsed .sidebar-inner {
+    #sidebar.collapsed .sidebar-inner,
+    #sidebar.collapsed #sidebar-partners {
       opacity: 0;
       pointer-events: none;
     }
@@ -928,6 +948,53 @@
       padding: 16px 16px 28px;
       transition: opacity 0.2s ease;
       min-width: var(--sidebar-w);
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* Partners strip — pinned to the bottom of the sidebar via the parent's
+       flex layout. Sections above scroll within .sidebar-inner; this strip
+       stays visible at all viewport heights. */
+    #sidebar-partners {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 8px;
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      min-width: var(--sidebar-w);
+    }
+    #sidebar-partners a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 84px;
+      padding: 4px;
+      border-radius: 6px;
+      box-sizing: border-box;
+      transition: opacity 150ms ease, transform 150ms ease, background 150ms ease;
+    }
+    #sidebar-partners a:hover { opacity: 0.85; transform: translateY(-1px); }
+    #sidebar-partners img {
+      max-height: 44px;
+      max-width: 100%;
+      height: auto;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+    /* On dark / high-contrast themes wrap the partner marks in a white rounded
+       card with a thin border so logos with dark text or transparent
+       backgrounds remain legible against the dark sidebar. */
+    html:not([data-theme="light"]) #sidebar-partners a {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     /* ================================================================
@@ -2206,7 +2273,7 @@
       #navbar .brand .brand-full { font-size: 0.55rem; }
       #navbar .brand .brand-sub { font-size: 0.45rem; line-height: 1.1; }
       #navbar .brand { flex: 1; min-width: 0; }
-      #mco-logo { height: 28px; width: 28px; }
+      #mco-logo { height: calc(var(--navbar-h) - 22px); width: auto; }
       #navbar { padding: 0 8px; gap: 4px; overflow: visible; }
       #navbar .brand .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

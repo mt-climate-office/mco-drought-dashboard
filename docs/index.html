@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=beta-tip3">
+  <link rel="stylesheet" href="styles.css?v=dark-cards">
 </head>
 <body>
 
@@ -88,54 +88,43 @@
         <div style="padding:2px 14px 8px;font-size:0.62rem;color:var(--text-dim);line-height:1.4;font-family:var(--font-display);">VSICURL path — paste into ArcGIS Pro or QGIS.<br>Use with R / Python (terra, rasterio, gdal).</div>
       </div>
     </div>
-    <div id="methods-wrap" style="position:relative;">
-      <button id="methods-btn" class="nav-action-item" title="View methodology documentation">
+    <div id="resources-wrap" class="nav-action-item" style="position:relative;padding:0;">
+      <button id="resources-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Documentation, data archive, source code, tips, partners">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
         </svg>
-        Methods <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        Resources <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
-      <div id="methods-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:240px;z-index:2000;padding:4px 0;">
+      <div id="resources-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;min-width:240px;padding:4px 0;">
+        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Methods</div>
         <a href="./methods.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Gridded Drought Indices</a>
         <a href="https://mt-climate-office.github.io/mco-GHCNd/methods.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">GHCNd Station Drought Indices</a>
-      </div>
-    </div>
-    <div id="archive-wrap" style="position:relative;">
-      <button id="archive-btn" class="nav-action-item" title="Browse data archives">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-        Data Archive <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-      </button>
-      <div id="archive-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:220px;z-index:2000;padding:4px 0;">
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Data Archive</div>
         <a href="https://data2.climate.umt.edu/gridmet/derived/conus_drought/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Drought Indices (gridMET)</a>
         <a href="https://data2.climate.umt.edu/snodas/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Snowpack (SNODAS)</a>
-      </div>
-    </div>
-    <div id="github-wrap" style="position:relative;">
-      <button id="github-btn" class="nav-action-item" title="View source on GitHub">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-        </svg>
-        GitHub <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-      </button>
-      <div id="github-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:200px;z-index:2000;padding:4px 0;">
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Source Code</div>
         <a href="https://github.com/mt-climate-office/mco-drought-dashboard" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Dashboard (Front End)</a>
         <a href="https://github.com/mt-climate-office/mco-drought-conus" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Data Pipeline (Back End)</a>
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Help</div>
+        <button id="resources-tips-link" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);text-align:left;" onclick="document.getElementById('resources-dropdown').style.display='none';document.getElementById('tips-modal-overlay').classList.add('active');">Tips &amp; Shortcuts</button>
+        <button id="resources-partners-link" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);text-align:left;" onclick="document.getElementById('resources-dropdown').style.display='none';document.getElementById('partners-modal-overlay').classList.add('active');">Partners &amp; Acknowledgments</button>
       </div>
     </div>
-    <div id="impact-wrap" style="position:relative;">
-      <button id="impact-btn" class="nav-action-item" title="Submit a drought impact report">
+    <div id="report-wrap" class="nav-action-item" style="position:relative;padding:0;">
+      <button id="report-btn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:none;border:none;color:inherit;font-size:inherit;font-family:inherit;cursor:pointer;white-space:nowrap;" title="Report a drought impact">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
         Report Impact <svg width="8" height="5" viewBox="0 0 8 5" style="margin-left:2px;opacity:0.6"><path d="M0 0l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
-      <div id="impact-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:240px;z-index:2000;padding:4px 0;">
-        <div style="padding:10px 14px 6px;font-size:0.72rem;color:var(--text-muted);line-height:1.4;">Submit a drought impact report<br>through the <strong style="color:var(--text-secondary);">National Drought Mitigation Center (NDMC)</strong><br>Condition Monitoring Observer Reports</div>
-        <a href="https://survey123.arcgis.com/share/850f937a1956425dab70cf3a79c64e8b" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">CMOR Survey (ArcGIS)</a>
-        <a href="https://droughtimpacts.unl.edu/tools/conditionmonitoringobservations.aspx" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">CMOR Tool (NDMC)</a>
+      <div id="report-dropdown" style="display:none;position:fixed;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:2000;width:200px;max-width:calc(100vw - 16px);padding:4px 0;">
+        <div style="padding:6px 14px 4px;font-size:0.62rem;color:var(--text-dim);line-height:1.4;font-family:var(--font-display);">Submit a drought impact report<br>via the <strong style="color:var(--text-secondary);">NDMC CMOR</strong> program.</div>
+        <a href="https://survey123.arcgis.com/share/850f937a1956425dab70cf3a79c64e8b" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;transition:var(--transition);">CMOR Survey (ArcGIS)</a>
+        <a href="https://droughtimpacts.unl.edu/tools/conditionmonitoringobservations.aspx" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;transition:var(--transition);">CMOR Tool (NDMC)</a>
       </div>
     </div>
     <button id="feedback-btn" class="nav-action-item" title="Submit feedback or report a bug" onclick="document.getElementById('feedback-modal-overlay').classList.add('active')">
@@ -143,18 +132,6 @@
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
       Feedback
-    </button>
-    <button id="tips-btn" class="nav-action-item" title="Tips & shortcuts" onclick="document.getElementById('tips-modal-overlay').classList.add('active')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-      </svg>
-      Tips
-    </button>
-    <button id="partners-btn" class="nav-action-item" title="Partners & acknowledgments" onclick="document.getElementById('partners-modal-overlay').classList.add('active')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-      Partners
     </button>
     <button id="share-btn" class="nav-action-item" title="Copy shareable link to clipboard">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -174,7 +151,7 @@
     <div id="nav-more-dropdown"></div>
   </div>
   <a href="https://climate.umt.edu/" target="_blank" rel="noopener" id="mco-logo-link" title="Montana Climate Office">
-    <img src="https://climate.umt.edu/assets/images/MCO_logo_icon_only.png" id="mco-logo" alt="MCO" width="36" height="36">
+    <img src="logo/MCO_logo.svg" id="mco-logo" alt="Montana Climate Office">
   </a>
 </nav>
 
@@ -538,6 +515,22 @@
       </div>
 
     </div><!-- .sidebar-inner -->
+
+    <!-- Partners strip — pinned to the bottom of the sidebar's flex layout.
+         The sections above scroll within .sidebar-inner; this strip stays
+         visible at all viewport heights. Three institutional partners
+         (MCO already appears in the navbar via the wordmark). -->
+    <div id="sidebar-partners" aria-label="Partners">
+      <a href="https://ngp-ridr.org/" target="_blank" rel="noopener" title="NGP RIDR">
+        <img src="logo/RIDR Logo.jpg" alt="NGP RIDR">
+      </a>
+      <a href="https://www.drought.gov/" target="_blank" rel="noopener" title="NIDIS">
+        <img src="logo/nidis_logo.svg" alt="NIDIS">
+      </a>
+      <a href="https://drought.mt.gov/" target="_blank" rel="noopener" title="Montana DNRC — Drought">
+        <img src="logo/dnrc_logo.webp" alt="Montana DNRC">
+      </a>
+    </div>
   </div><!-- #sidebar -->
 
   <!-- Map -->
@@ -4952,7 +4945,7 @@ window.toggleSidebar = toggleSidebar;
    SCREENSHOT / EXPORT
    ════════════════════════════════════════════════════════════════ */
 
-const MCO_LOGO_URL = "logo/MCO_logo_icon_only.png";
+const MCO_LOGO_URL = "logo/MCO_logo.svg";
 const D3_LOGO_URL = "logo/logo_unified.svg";
 const NIDIS_LOGO_URL = "logo/nidis_logo.svg"; // SVG rasterizes cleanly at any export scale
 let _logoCache = null;
@@ -6376,11 +6369,9 @@ document.getElementById('download-lyrx-pack-btn').addEventListener('click', func
 
 // ── Shared nav-dropdown management ──────────────────────────────
 const NAV_DROPDOWNS = [
-  { btnId: 'screenshot-btn', ddId: 'export-dropdown', wrapId: 'export-wrap' },
-  { btnId: 'github-btn',     ddId: 'github-dropdown',  wrapId: 'github-wrap'  },
-  { btnId: 'methods-btn',    ddId: 'methods-dropdown', wrapId: 'methods-wrap' },
-  { btnId: 'archive-btn',    ddId: 'archive-dropdown', wrapId: 'archive-wrap' },
-  { btnId: 'impact-btn',     ddId: 'impact-dropdown',  wrapId: 'impact-wrap'  },
+  { btnId: 'screenshot-btn', ddId: 'export-dropdown',    wrapId: 'export-wrap'    },
+  { btnId: 'resources-btn',  ddId: 'resources-dropdown', wrapId: 'resources-wrap' },
+  { btnId: 'report-btn',     ddId: 'report-dropdown',    wrapId: 'report-wrap'    },
 ];
 
 function closeAllNavDropdowns(exceptId) {
@@ -6413,6 +6404,13 @@ NAV_DROPDOWNS.forEach(function(d) {
         cogBtn.style.display  = hideCog ? 'none' : 'flex';
         if (cogHint) cogHint.style.display = hideCog ? 'none' : 'block';
       }
+      // Clamp to viewport: if dropdown overflows the right edge, shift left.
+      var ddRect = dd.getBoundingClientRect();
+      var rightPad = 8;
+      if (ddRect.right > window.innerWidth - rightPad) {
+        var shifted = Math.max(rightPad, rect.left - (ddRect.right - (window.innerWidth - rightPad)));
+        dd.style.left = shifted + 'px';
+      }
     } else {
       dd.style.display = 'none';
     }
@@ -6429,7 +6427,7 @@ document.addEventListener('click', function(e) {
 });
 
 // Hover styles for all nav dropdown items
-document.querySelectorAll('#export-dropdown button, #github-dropdown a, #methods-dropdown a, #archive-dropdown a, #impact-dropdown a').forEach(function(el) {
+document.querySelectorAll('#export-dropdown button, #resources-dropdown a, #resources-dropdown button, #report-dropdown a, #report-dropdown button').forEach(function(el) {
   el.addEventListener('mouseenter', function() { el.style.background = 'var(--accent-hover)'; el.style.color = 'var(--text-primary)'; });
   el.addEventListener('mouseleave', function() { el.style.background = 'none'; el.style.color = 'var(--text-secondary)'; });
 });
@@ -6632,7 +6630,7 @@ setupModal("partners-modal-overlay", "partners-close-btn");
 const PARTNERS = [
   { tier: 'Institutional Partners', entries: [
     { name: 'Montana Climate Office', short: 'MCO', href: 'https://climate.umt.edu/', img: 'https://climate.umt.edu/assets/images/MCO_logo_icon_only.png', note: 'University of Montana — primary developer and operational home.' },
-    { name: 'Montana DNRC', short: 'DNRC', href: 'https://dnrc.mt.gov/', img: 'logo/dnrc_logo.webp', note: 'Montana Department of Natural Resources and Conservation.' },
+    { name: 'Montana DNRC', short: 'DNRC', href: 'https://drought.mt.gov/', img: 'logo/dnrc_logo.webp', note: 'Montana Department of Natural Resources and Conservation — state drought program.' },
     { name: 'NIDIS', short: 'NID', href: 'https://www.drought.gov/', img: 'logo/nidis_logo.svg', note: 'National Integrated Drought Information System — NOAA.' },
   ]},
   { tier: 'Local and Regional Partners', entries: [
@@ -7105,23 +7103,34 @@ window.addEventListener('popstate', function() {
         return;
       }
 
-      // For wraps with sub-dropdowns (archive, github, impact): flatten inner links
-      const parentWrap = el.parentElement;
-      const innerDropdown = parentWrap && parentWrap.id !== 'nav-actions' && parentWrap.querySelector('[id$="-dropdown"]');
+      // For wraps with sub-dropdowns (resources, report): flatten inner items
+      const innerDropdown = el.querySelector('[id$="-dropdown"]');
       if (innerDropdown) {
-        // Add a section header from the button text
+        // Add a section header from the trigger button text
+        const triggerBtn = el.querySelector('button');
         const header = document.createElement('div');
-        header.textContent = el.textContent.replace(/[▾▸]/g, '').trim();
+        header.textContent = (triggerBtn ? triggerBtn.textContent : el.textContent).replace(/[▾▸]/g, '').trim();
         header.style.cssText = 'padding:6px 16px 2px;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);';
         dropdown.appendChild(header);
-        innerDropdown.querySelectorAll('a').forEach(link => {
-          const a = document.createElement('a');
-          a.href = link.href;
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.textContent = link.textContent.trim();
-          a.addEventListener('click', () => dropdown.classList.remove('open'));
-          dropdown.appendChild(a);
+        // Iterate links and modal-opener buttons in document order so subsections
+        // (Methods / Data Archive / Help, etc.) read top-to-bottom as authored.
+        innerDropdown.querySelectorAll('a, button[onclick]').forEach(item => {
+          if (item.tagName === 'A') {
+            const a = document.createElement('a');
+            a.href = item.href;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = item.textContent.trim();
+            a.addEventListener('click', () => dropdown.classList.remove('open'));
+            dropdown.appendChild(a);
+          } else {
+            // Button that opens a modal — preserve inline onclick via cloneNode
+            const clone = item.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.style.cssText = '';
+            clone.addEventListener('click', () => dropdown.classList.remove('open'));
+            dropdown.appendChild(clone);
+          }
         });
         return;
       }
