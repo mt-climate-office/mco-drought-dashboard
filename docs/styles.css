@@ -945,7 +945,13 @@
     }
 
     .sidebar-inner {
-      padding: 16px 16px 28px;
+      /* Generous bottom padding gives the scroll container extra "runway"
+         below the last section so any section — including ones near the
+         bottom of the list, like Overlays — can be scrolled near the top
+         of the visible area without being clamped by the end of content.
+         Sized so the Watershed (HUC) sub-row at the bottom of the Overlays
+         section sits comfortably above the partners footer when scrolled. */
+      padding: 16px 16px 160px;
       transition: opacity 0.2s ease;
       min-width: var(--sidebar-w);
       flex: 1 1 auto;

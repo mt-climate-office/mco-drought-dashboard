@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=overlay-zlift2">
+  <link rel="stylesheet" href="styles.css?v=scroll-runway2">
 </head>
 <body>
 
@@ -564,14 +564,6 @@
   <div class="overlay-panel-body">
     <button type="button" class="ov-row-btn" data-ov="usdm">
       <span class="ov-name">U.S. Drought Monitor</span>
-      <span class="ov-pill">Off</span>
-    </button>
-    <button type="button" class="ov-row-btn" data-ov="ghcn">
-      <span class="ov-name">GHCN Stations</span>
-      <span class="ov-pill">Off</span>
-    </button>
-    <button type="button" class="ov-row-btn" data-ov="usgs">
-      <span class="ov-name">USGS Streamflow</span>
       <span class="ov-pill">Off</span>
     </button>
     <div class="overlay-panel-divider"></div>
@@ -3712,11 +3704,23 @@ document.getElementById("usdm-chk").addEventListener("change", async function ()
       closePanel();
       const lbl = document.querySelector('.section-label[data-sec="sec-overlays"]');
       const body = document.getElementById('sec-overlays');
+      const inner = document.querySelector('.sidebar-inner');
+      const partners = document.getElementById('sidebar-partners');
       if (lbl && lbl.classList.contains('sec-collapsed')) {
         lbl.classList.remove('sec-collapsed');
         if (body) body.classList.remove('sec-collapsed');
       }
-      if (body) body.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!inner || !lbl) return;
+      // Wait one frame so the expand layout settles, then scroll within
+      // .sidebar-inner explicitly. The bottom padding on .sidebar-inner
+      // (sized to clear the institutional-partners footer below) provides
+      // enough scroll-room that the Overlays section — which sits near the
+      // bottom of the section list — can land near the top of the visible
+      // scroll area instead of being clamped by the end of the content.
+      requestAnimationFrame(() => {
+        const target = Math.max(0, lbl.offsetTop - 8);
+        inner.scrollTo({ top: target, behavior: 'smooth' });
+      });
     });
   }
 
@@ -3739,10 +3743,6 @@ function handleOverlayPanelToggle(ov) {
     const chk = document.getElementById('usdm-chk');
     chk.checked = !chk.checked;
     chk.dispatchEvent(new Event('change'));
-  } else if (ov === 'ghcn') {
-    document.getElementById('ghcn-btn').click();
-  } else if (ov === 'usgs') {
-    document.getElementById('usgs-btn').click();
   } else if (['state', 'county', 'tribal', 'huc'].includes(ov)) {
     const ids = OV_CHECKBOXES && OV_CHECKBOXES[ov];
     if (!ids) return;
@@ -3760,10 +3760,6 @@ function refreshOverlayPanelState() {
     let on = false;
     if (ov === 'usdm') {
       on = document.getElementById('usdm-chk').checked;
-    } else if (ov === 'ghcn') {
-      on = !!(typeof ghcnLayer !== 'undefined' && ghcnLayer && map.getLayers().getArray().includes(ghcnLayer));
-    } else if (ov === 'usgs') {
-      on = !!(typeof usgsStreamLayer !== 'undefined' && usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer));
     } else if (['state', 'county', 'tribal', 'huc'].includes(ov)) {
       const ids = OV_CHECKBOXES && OV_CHECKBOXES[ov];
       on = !!(ids && document.getElementById(ids.boundary).checked);
