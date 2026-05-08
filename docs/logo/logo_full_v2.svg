@@ -38,6 +38,6 @@
 
   <!-- Line 3: DASHBOARD -->
   <text x="102" y="70" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#FFAA00">D</text>
-  <text x="120" y="70" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="400" letter-spacing="1.5" fill="#5a5a5a">ASHBOARD</text>
+  <text x="120" y="70" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="600" letter-spacing="1.5" fill="#1a1a1a">ASHBOARD</text>
 
 </svg>
