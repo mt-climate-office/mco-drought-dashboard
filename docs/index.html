@@ -333,6 +333,7 @@
           <div class="depth-strip conv-seg" data-conv-group="method" style="flex:1;">
             <button type="button" class="depth-btn active" data-value="median">Median</button>
             <button type="button" class="depth-btn" data-value="mean">Mean</button>
+            <button type="button" class="depth-btn" data-value="mode" title="Categorical agreement: each indicator votes for its own USDM band, modal band wins. Avoids the probabilistic-interpretation issue of averaging standardized indices.">Mode</button>
           </div>
         </div>
         <label class="custom-check" style="margin-top:6px;font-size:0.75rem;">
@@ -682,6 +683,42 @@ document.addEventListener('DOMContentLoaded', function() {
    CONFIG
    ════════════════════════════════════════════════════════════════ */
 const BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web/latest";
+
+// Fallback: when a file is missing from latest/ (silent pipeline failure),
+// walk backward day-by-day through the dated archive of web-optimized COGs.
+// Filename pattern in the dated folder: <fileBase>_<YYYY-MM-DD>.tif.
+const ARCHIVE_BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web";
+const ARCHIVE_MAX_DAYS = 14;
+const _layerUrlCache = {};
+
+async function resolveLayerUrl(prefix, ts, period) {
+  const fileBase = prefix + ts + '_' + period;
+  if (_layerUrlCache[fileBase] !== undefined) return _layerUrlCache[fileBase];
+
+  const latestUrl = BASE_URL + '/' + fileBase + '.tif';
+  try {
+    const r = await fetch(latestUrl, { method: 'HEAD' });
+    if (r.ok) { _layerUrlCache[fileBase] = latestUrl; return latestUrl; }
+  } catch (e) { /* network error — fall through */ }
+
+  for (let i = 1; i <= ARCHIVE_MAX_DAYS; i++) {
+    const d = new Date(Date.now() - i * 86400000);
+    const ds = d.toISOString().slice(0, 10);
+    const archiveUrl = `${ARCHIVE_BASE_URL}/${ds}/${fileBase}_${ds}.tif`;
+    try {
+      const r = await fetch(archiveUrl, { method: 'HEAD' });
+      if (r.ok) {
+        console.warn(`[D3] ${fileBase}.tif missing from latest/, using archived ${ds}`);
+        _layerUrlCache[fileBase] = archiveUrl;
+        return archiveUrl;
+      }
+    } catch (e) { /* keep walking */ }
+  }
+
+  // Exhausted — return the latest URL so the existing error path fires once.
+  _layerUrlCache[fileBase] = latestUrl;
+  return latestUrl;
+}
 function isMobileView() {
   return window.innerWidth <= 640 || (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024);
 }
@@ -1689,7 +1726,7 @@ opacitySlider.addEventListener("input", function() {
   if (convActive && convCogLayer) {
     if (!zonalActive) convCogLayer.setOpacity(v);
   } else if (activeVar === "hhp" && hhpLayer) {
-    hhpLayer.changed();
+    hhpLayer.setOpacity(v);
   } else if (activeVar === "vhi" && vhiTileLayer) {
     vhiTileLayer.setOpacity(v);
   } else if (cogLayer) {
@@ -1914,7 +1951,8 @@ async function getCurrentZonalRaster() {
       w: convCogLayer._w,
       h: convCogLayer._h,
       bbox: convCogLayer._bbox,
-      isConv: true
+      isConv: true,
+      convMethod: convCogLayer._method || null
     };
   }
   var cfg = VAR_CONFIG[activeVar];
@@ -1926,7 +1964,7 @@ async function getCurrentZonalRaster() {
       : 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
     useZstd = true;
   } else {
-    url = BASE_URL + '/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
+    url = await resolveLayerUrl(cfg.prefix, activeTS, activePeriod);
   }
   var r = await loadZonalRaster(url, useZstd);
   return { data: r.data, w: r.w, h: r.h, bbox: r.bbox, cfg: cfg, isConv: false };
@@ -1973,10 +2011,14 @@ async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
   var resX = (bbox[2] - bbox[0]) / w;
   var resY = (bbox[3] - bbox[1]) / h;
   var isConv = !!raster.isConv;
+  var isConvMode = isConv && raster.convMethod === 'mode';
   var cfg = raster.cfg || VAR_CONFIG[activeVar];
   var scale = cfg ? (cfg.rawScale || 0.01) : 0.01;
   var minCoverage = (cfg && cfg.isSnodas) ? 0.25 : 0.5;
 
+  // For convergence/mode the raster carries integer USDM band indices, so use
+  // the categorical USDM palette directly (no SPI-style scale lookup).
+  var convModePalette = isConvMode ? getPaletteColors('usdm', USDM_BREAKS.length - 1, false) : null;
   var { scaleFn } = buildScale(isConv ? 'spi' : activeVar, isConv ? 'usdm' : (cfg ? cfg.defaultPalette : 'usdm'), null, null);
 
   var features = srcLayer.getSource().getFeatures();
@@ -2020,16 +2062,35 @@ async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
     if (vals.length === 0) return;
     var coverage = totalInside > 0 ? vals.length / totalInside : 0;
     if (coverage < minCoverage) return;
-    vals.sort(function(a, b) { return a - b; });
-    var mid = Math.floor(vals.length / 2);
-    var median = vals.length % 2 === 0 ? (vals[mid - 1] + vals[mid]) / 2 : vals[mid];
 
-    var color = scaleFn(median);
-    var hex = color ? color.hex() : null;
+    var aggValue, hex;
+    if (isConvMode) {
+      // vals are already categorical band indices (0..10). Take the mode;
+      // skip the polygon entirely if multiple bands tie (no clear convergence).
+      var bandCounts = new Array(11).fill(0);
+      for (var bi = 0; bi < vals.length; bi++) {
+        var idx = Math.round(vals[bi]);
+        if (idx >= 0 && idx <= 10) bandCounts[idx]++;
+      }
+      var bestCount = 0;
+      for (var bj = 0; bj < 11; bj++) if (bandCounts[bj] > bestCount) bestCount = bandCounts[bj];
+      var tiedAt = 0, bestIdx = -1;
+      for (var bk = 0; bk < 11; bk++) if (bandCounts[bk] === bestCount) { tiedAt++; bestIdx = bk; }
+      if (tiedAt !== 1) return; // skip — no clear modal band
+      aggValue = bestIdx;
+      hex = convModePalette[bestIdx];
+    } else {
+      vals.sort(function(a, b) { return a - b; });
+      var mid = Math.floor(vals.length / 2);
+      aggValue = vals.length % 2 === 0 ? (vals[mid - 1] + vals[mid]) / 2 : vals[mid];
+      var color = scaleFn(aggValue);
+      hex = color ? color.hex() : null;
+    }
     if (!hex) return;
 
     var styledFeat = new ol.Feature(geom.clone());
-    styledFeat.set('_median', median);
+    styledFeat.set('_median', aggValue);
+    styledFeat.set('_isConvMode', isConvMode);
     styledFeat.set('_name', feature.get('name') || feature.get('_name'));
     styledFeat.set('_color', hex);
     styledFeat.set('_count', vals.length);
@@ -2583,42 +2644,60 @@ function queryRasterAt(coord) {
     var method = getConvMethod();
     var qWeights = convLayers.map(function(l, i) { var w = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1; return vals[i] !== null ? w : 0; });
     var composite;
-    if (method === 'mean') {
-      var wsum = 0, wtotal = 0;
-      for (var qi = 0; qi < valid.length; qi++) {
-        var qw = qWeights[convLayers.findIndex(function(l, li) { return vals[li] !== null && valid.indexOf(vals[li]) <= qi; })] || 1;
+    var headline;            // text shown next to the swatch
+    var hex = '#888';
+    if (method === 'mode') {
+      // Categorical mode: classify each indicator, count agreements (no weights).
+      var modeVals = vals.filter(function(v) { return v !== null; });
+      var ag = modeAggregate(modeVals);
+      if (ag) {
+        composite = ag.modeIdx;
+        var modeColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
+        hex = chroma(modeColors[ag.modeIdx]).css();
+        headline = 'Mode: ' + USDM_CATEGORY_LABELS[ag.modeIdx] +
+                   ' <span style="color:var(--text-dim);font-weight:400">— ' +
+                   ag.nMode + ' of ' + ag.nTotal + ' agree</span>';
+      } else {
+        composite = 0;
+        hex = 'transparent';
+        headline = '<span style="color:var(--text-dim);font-weight:400">No clear mode (tied)</span>';
       }
-      // Simpler: zip vals with weights
-      wsum = 0; wtotal = 0;
-      convLayers.forEach(function(l, i) {
-        var lw = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
-        if (vals[i] !== null) { wsum += vals[i] * lw; wtotal += lw; }
-      });
-      composite = wtotal > 0 ? wsum / wtotal : 0;
     } else {
-      // Weighted median
-      var paired = [];
-      convLayers.forEach(function(l, i) {
-        if (vals[i] !== null) paired.push({ v: vals[i], w: (l.weight != null && !isNaN(l.weight)) ? l.weight : 1 });
-      });
-      paired.sort(function(a, b) { return a.v - b.v; });
-      var wtotal = paired.reduce(function(s, p) { return s + p.w; }, 0);
-      var half = wtotal / 2;
-      var cumW = 0;
-      composite = paired[paired.length - 1].v;
-      for (var mi = 0; mi < paired.length; mi++) {
-        cumW += paired[mi].w;
-        if (cumW >= half) { composite = paired[mi].v; break; }
+      if (method === 'mean') {
+        var wsum = 0, wtotal = 0;
+        convLayers.forEach(function(l, i) {
+          var lw = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
+          if (vals[i] !== null) { wsum += vals[i] * lw; wtotal += lw; }
+        });
+        composite = wtotal > 0 ? wsum / wtotal : 0;
+      } else {
+        // Weighted median
+        var paired = [];
+        convLayers.forEach(function(l, i) {
+          if (vals[i] !== null) paired.push({ v: vals[i], w: (l.weight != null && !isNaN(l.weight)) ? l.weight : 1 });
+        });
+        paired.sort(function(a, b) { return a.v - b.v; });
+        var wtotal = paired.reduce(function(s, p) { return s + p.w; }, 0);
+        var half = wtotal / 2;
+        var cumW = 0;
+        composite = paired[paired.length - 1].v;
+        for (var mi = 0; mi < paired.length; mi++) {
+          cumW += paired[mi].w;
+          if (cumW >= half) { composite = paired[mi].v; break; }
+        }
       }
+      // Color swatch from USDM breaks
+      var { scaleFn } = buildScale('spi', 'usdm', null, null);
+      var color = scaleFn(composite);
+      hex = color ? color.hex() : '#888';
+      headline = method.charAt(0).toUpperCase() + method.slice(1) + ': ' + composite.toFixed(2);
     }
-    // Color swatch from USDM breaks
-    var { scaleFn } = buildScale('spi', 'usdm', null, null); // use SPI/USDM scale for composite
-    var color = scaleFn(composite);
-    var hex = color ? color.hex() : '#888';
     // Build detail rows showing each layer with weight
     var detailRows = convLayers.map(function(l, i) {
       var wt = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
-      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts + (wt !== 1 ? ' (w:' + wt + ')' : '');
+      // Mode ignores weights — don't display them in this method
+      var wtSuffix = (method !== 'mode' && wt !== 1) ? ' (w:' + wt + ')' : '';
+      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts + wtSuffix;
       var rawVal = vals[i];
       // Get original (non-negated) value: from stored rasters (4+) or getData (2-3)
       var origScaled;
@@ -2630,15 +2709,20 @@ function queryRasterAt(coord) {
         var origRaw = data[i];
         origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * 0.01).toFixed(2) : 'N/A';
       }
+      var bandSuffix = '';
+      if (method === 'mode' && rawVal !== null) {
+        bandSuffix = ' <span style="color:var(--text-dim)">[' + USDM_CATEGORY_LABELS[valueToUsdmCategory(rawVal)] + ']</span>';
+      }
       return '<div style="color:var(--text-muted);font-size:0.7rem">' + label + ': ' +
         (rawVal !== null ? rawVal.toFixed(2) : 'N/A') +
+        bandSuffix +
         (CONV_INDICES[l.varKey].negate ? ' <span style="color:var(--text-dim)">(raw: ' + origScaled + ')</span>' : '') +
         '</div>';
     }).join('');
     html = '<div style="text-align:center;min-width:180px">' +
       '<div class="query-val">' +
         '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
-        method.charAt(0).toUpperCase() + method.slice(1) + ': ' + composite.toFixed(2) +
+        headline +
       '</div>' +
       '<div style="margin-top:4px;text-align:left;position:relative;">' +
         '<div style="max-height:120px;overflow-y:auto;">' + detailRows + '</div>' +
@@ -2757,7 +2841,12 @@ map.on("click", function(e) {
     var count = zonalHit.get('_count') || 0;
     var cfg = VAR_CONFIG[activeVar];
     var displayVal;
-    if (convActive) {
+    var isModeAgg = zonalHit.get('_isConvMode');
+    if (isModeAgg) {
+      // _median holds an integer USDM band index for mode aggregations
+      var bandIdx = Math.round(median);
+      displayVal = USDM_CATEGORY_LABELS[bandIdx] || median.toFixed(2);
+    } else if (convActive) {
       displayVal = median.toFixed(2);
     } else if (cfg && cfg.labelFmt) {
       displayVal = cfg.labelFmt(median);
@@ -2779,7 +2868,7 @@ map.on("click", function(e) {
         '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
         displayVal +
       '</div>' +
-      '<div class="query-label">' + zonalType + ' Median &middot; ' + label + '</div>' +
+      '<div class="query-label">' + zonalType + ' ' + (isModeAgg ? 'Mode' : 'Median') + ' &middot; ' + label + '</div>' +
       '<div class="query-coords" style="font-size:0.75em;opacity:0.6">' + count + ' grid cells (' + Math.round((zonalHit.get('_coverage') || 0) * 100) + '% coverage)</div>' +
     '</div>';
     var popupContent = popupEl.querySelector('.ol-popup-content');
@@ -2876,10 +2965,10 @@ async function loadHhpStreamflow() {
     var val = f.get('ft3_s_ecdf');
     var key = Math.round(val * 1000);
     if (!hhpStyleCache[key]) {
+      // Bake fully opaque fills; layer opacity is the single source of truth
+      // so the opacity slider works without rebuilding the style cache.
       hhpStyleCache[key] = new ol.style.Style({
-        fill: new ol.style.Fill({
-          color: streamflowScale(val).alpha(parseFloat(opacitySlider.value)).css()
-        }),
+        fill: new ol.style.Fill({ color: streamflowScale(val).hex() }),
         stroke: new ol.style.Stroke({ color: '#333', width: 0.4 })
       });
     }
@@ -2890,6 +2979,7 @@ async function loadHhpStreamflow() {
       var key = Math.round(feature.get('ft3_s_ecdf') * 1000);
       return hhpStyleCache[key] || null;
     },
+    opacity: parseFloat(opacitySlider.value),
     updateWhileAnimating: true,
     updateWhileInteracting: true,
     zIndex: 5
@@ -4161,7 +4251,7 @@ function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
   });
 }
 
-function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
+async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   _renderGen++;
   const myGen = _renderGen;
   // Remove previous COG layer
@@ -4174,9 +4264,11 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
 
   if (cfg.isComposite) {
     // Multi-source composite: load each index as a separate band
-    const sources = cfg.compositeVars.map(function(v) {
-      return { url: BASE_URL + '/' + VAR_CONFIG[v].prefix + ts + '_' + period + '.tif', nodata: -9999 };
-    });
+    const resolvedUrls = await Promise.all(
+      cfg.compositeVars.map(function(v) { return resolveLayerUrl(VAR_CONFIG[v].prefix, ts, period); })
+    );
+    if (myGen !== _renderGen) return; // stale
+    const sources = resolvedUrls.map(function(url) { return { url: url, nodata: -9999 }; });
     cogSource = new ol.source.GeoTIFF({
       sources: sources,
       normalize: false,
@@ -4193,7 +4285,8 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
       _loadSnodasLayer(varKey, paletteKey, rangeOverride);
       return;
     } else {
-      url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+      url = await resolveLayerUrl(cfg.prefix, ts, period);
+      if (myGen !== _renderGen) return; // stale
     }
     colorExpr = buildOLColorExpression(varKey, paletteKey, rangeOverride);
     cogSource = new ol.source.GeoTIFF({
@@ -4283,18 +4376,17 @@ function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
 /* ════════════════════════════════════════════════════════════════
    PREFETCH  (warm browser cache with HEAD request)
    ════════════════════════════════════════════════════════════════ */
-function prefetch(varKey, ts, period) {
+async function prefetch(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
   if (!cfg || cfg.noRaster) return;
-  const url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
-  // Just warm the browser HTTP cache with a HEAD request
-  fetch(url, { method: 'HEAD' }).catch(function() {});
+  // resolveLayerUrl itself HEAD-probes, which also warms the browser cache.
+  try { await resolveLayerUrl(cfg.prefix, ts, period); } catch (e) {}
 }
 
 /* ════════════════════════════════════════════════════════════════
    LOAD LAYER  (creates OpenLayers GeoTIFF layer via renderLayer)
    ════════════════════════════════════════════════════════════════ */
-function loadLayer(varKey, ts, period) {
+async function loadLayer(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
   if (cfg.noRaster) return;
 
@@ -4302,7 +4394,7 @@ function loadLayer(varKey, ts, period) {
   if (cfg.isSnodas) {
     url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
   } else {
-    url = BASE_URL + '/' + cfg.prefix + ts + '_' + period + '.tif';
+    url = await resolveLayerUrl(cfg.prefix, ts, period);
   }
 
   updateRangeSection(varKey, null);
@@ -4655,6 +4747,43 @@ function pointInPolygon(x, y, ring) {
   return inside;
 }
 
+// USDM category labels for the 11 bands defined by USDM_BREAKS
+//   idx 0 → D4 (≤ -2.0)         idx 6  → W0 (0.5 to 0.8)
+//   idx 1 → D3 (-2.0 to -1.6)   idx 7  → W1 (0.8 to 1.3)
+//   idx 2 → D2 (-1.6 to -1.3)   idx 8  → W2 (1.3 to 1.6)
+//   idx 3 → D1 (-1.3 to -0.8)   idx 9  → W3 (1.6 to 2.0)
+//   idx 4 → D0 (-0.8 to -0.5)   idx 10 → W4 (≥ 2.0)
+//   idx 5 → Normal (-0.5 to 0.5)
+const USDM_CATEGORY_LABELS = ['D4','D3','D2','D1','D0','Normal','W0','W1','W2','W3','W4'];
+
+// Map a standardized value to a USDM band index (0..10).
+function valueToUsdmCategory(v) {
+  for (var i = 1; i < USDM_BREAKS.length - 1; i++) {
+    if (v < USDM_BREAKS[i]) return i - 1;
+  }
+  return USDM_BREAKS.length - 2; // W4 (≥ 2.0)
+}
+
+// Categorical mode aggregation across N indicator values.
+// Each value is first classified into its USDM band, then we tally bands.
+// If multiple bands tie for the max count, the result is *no convergence* —
+// returns null so the pixel is rendered transparent. Only unambiguous modes
+// are shown. "Modal-or-worse" counts bands with index ≤ mode (drier side).
+// Returns: { modeIdx, nMode, nModalOrWorse, nTotal } or null (no values OR tie).
+function modeAggregate(vals) {
+  if (!vals || !vals.length) return null;
+  var counts = new Array(11).fill(0);
+  for (var i = 0; i < vals.length; i++) counts[valueToUsdmCategory(vals[i])]++;
+  var maxCount = 0;
+  for (var k = 0; k < 11; k++) if (counts[k] > maxCount) maxCount = counts[k];
+  var tiedCount = 0, modeIdx = -1;
+  for (var k2 = 0; k2 < 11; k2++) if (counts[k2] === maxCount) { tiedCount++; modeIdx = k2; }
+  if (tiedCount !== 1) return null;
+  var nWorse = 0;
+  for (var w = 0; w <= modeIdx; w++) nWorse += counts[w];
+  return { modeIdx: modeIdx, nMode: counts[modeIdx], nModalOrWorse: nWorse, nTotal: vals.length };
+}
+
 // Approximate inverse normal CDF (percentile → standardized value)
 function qnorm(p) {
   if (p <= 0.0001) return -3.5;
@@ -4752,11 +4881,12 @@ function applyConvergence() {
         });
       });
     } else {
-      var gUrl = BASE_URL + '/' + VAR_CONFIG[l.varKey].prefix + l.ts + '_' + getConvPeriod() + '.tif';
-      return GeoTIFF.fromUrl(gUrl).then(function(tiff) {
-        return tiff.getImage().then(function(image) {
-          return image.readRasters().then(function(rasters) {
-            return { data: rasters[0], width: image.getWidth(), height: image.getHeight(), bbox: image.getBoundingBox() };
+      return resolveLayerUrl(VAR_CONFIG[l.varKey].prefix, l.ts, getConvPeriod()).then(function(gUrl) {
+        return GeoTIFF.fromUrl(gUrl).then(function(tiff) {
+          return tiff.getImage().then(function(image) {
+            return image.readRasters().then(function(rasters) {
+              return { data: rasters[0], width: image.getWidth(), height: image.getHeight(), bbox: image.getBoundingBox() };
+            });
           });
         });
       });
@@ -4792,6 +4922,11 @@ function applyConvergence() {
     var refResY = (bbox[3] - bbox[1]) / h;
     var compositeData = new Float32Array(w * h);
     compositeData.fill(-9999);
+    // Mode method also writes auxiliary per-pixel counts for the popup display.
+    // (Weights are ignored for mode — one indicator, one vote.)
+    var nModeData  = method === 'mode' ? new Float32Array(w * h) : null;
+    var nWorseData = method === 'mode' ? new Float32Array(w * h) : null;
+    var nTotalData = method === 'mode' ? new Float32Array(w * h) : null;
     for (var ry = 0; ry < h; ry++) {
       for (var rx = 0; rx < w; rx++) {
         var ri = ry * w + rx;
@@ -4850,6 +4985,15 @@ function applyConvergence() {
         var validWeights = rweights;
         if (validVals.length === 0 || nodataWeight > totalWeight * 0.5) {
           compositeData[ri] = -9999;
+        } else if (method === 'mode') {
+          var ag = modeAggregate(validVals);
+          if (!ag) { compositeData[ri] = -9999; }
+          else {
+            compositeData[ri] = ag.modeIdx;
+            nModeData[ri]     = ag.nMode;
+            nWorseData[ri]    = ag.nModalOrWorse;
+            nTotalData[ri]    = ag.nTotal;
+          }
         } else if (method === 'mean') {
           var wsum = 0, wtotal = 0;
           for (var wi = 0; wi < validVals.length; wi++) {
@@ -4889,13 +5033,14 @@ function applyConvergence() {
         maxZoom: 12,
         tileSize: TS
       }),
-      interpolate: rasterInterpolate,
+      // Mode output is a categorical band index — must use nearest-neighbor sampling.
+      interpolate: method === 'mode' ? false : rasterInterpolate,
       loader: function(z, x, y) {
         var tileGrid = dataTileSource.getTileGrid();
         var tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
         var tile = new Float32Array(TS * TS);
         tile.fill(-9999);
-        var useInterp = rasterInterpolate;
+        var useInterp = method === 'mode' ? false : rasterInterpolate;
         for (var ty = 0; ty < TS; ty++) {
           var lat = tileExtent[3] - (ty + 0.5) / TS * (tileExtent[3] - tileExtent[1]);
           var fy = (bbox[3] - lat) / resY;
@@ -4926,20 +5071,40 @@ function applyConvergence() {
       }
     });
 
-    // Classified color expression
+    // Color expression — different per method
     var convColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var EPS = 0.001;
-    var convStops = [];
-    convStops.push(-10, chroma(convColors[0]).css());
-    for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
-      convStops.push(USDM_BREAKS[si] - EPS, chroma(convColors[si - 1]).css());
-      convStops.push(USDM_BREAKS[si], chroma(convColors[si]).css());
+    var convColorExpr;
+    if (method === 'mode') {
+      // Band value is an integer USDM category index (0..10). Use step-style
+      // case expression so each pixel gets the exact palette color for its band.
+      convColorExpr = ['case',
+        ['<=', ['band', 1], -99],  'rgba(0,0,0,0)',
+        ['<=', ['band', 1], 0.5],  chroma(convColors[0]).css(),
+        ['<=', ['band', 1], 1.5],  chroma(convColors[1]).css(),
+        ['<=', ['band', 1], 2.5],  chroma(convColors[2]).css(),
+        ['<=', ['band', 1], 3.5],  chroma(convColors[3]).css(),
+        ['<=', ['band', 1], 4.5],  chroma(convColors[4]).css(),
+        ['<=', ['band', 1], 5.5],  chroma(convColors[5]).css(),
+        ['<=', ['band', 1], 6.5],  chroma(convColors[6]).css(),
+        ['<=', ['band', 1], 7.5],  chroma(convColors[7]).css(),
+        ['<=', ['band', 1], 8.5],  chroma(convColors[8]).css(),
+        ['<=', ['band', 1], 9.5],  chroma(convColors[9]).css(),
+        chroma(convColors[10]).css()
+      ];
+    } else {
+      var EPS = 0.001;
+      var convStops = [];
+      convStops.push(-10, chroma(convColors[0]).css());
+      for (var si = 1; si < USDM_BREAKS.length - 1; si++) {
+        convStops.push(USDM_BREAKS[si] - EPS, chroma(convColors[si - 1]).css());
+        convStops.push(USDM_BREAKS[si], chroma(convColors[si]).css());
+      }
+      convStops.push(10, chroma(convColors[convColors.length - 1]).css());
+      convColorExpr = ['case',
+        ['<=', ['band', 1], -99], 'rgba(0,0,0,0)',
+        ['interpolate', ['linear'], ['band', 1], ...convStops]
+      ];
     }
-    convStops.push(10, chroma(convColors[convColors.length - 1]).css());
-    var convColorExpr = ['case',
-      ['<=', ['band', 1], -99], 'rgba(0,0,0,0)',
-      ['interpolate', ['linear'], ['band', 1], ...convStops]
-    ];
 
     var _anyZonalConv = countyAvgActive || stateAvgActive || tribalAvgActive || hucAvgActive;
     convCogLayer = new ol.layer.WebGLTile({
@@ -4959,25 +5124,33 @@ function applyConvergence() {
     convCogLayer._w = w;
     convCogLayer._h = h;
     convCogLayer._compositeData = compositeData;
+    convCogLayer._method = method;
+    convCogLayer._nModeData  = nModeData;
+    convCogLayer._nWorseData = nWorseData;
+    convCogLayer._nTotalData = nTotalData;
 
-    // Extract date from first non-SNODAS COG
+    // Extract date from first non-SNODAS COG (using the resolved URL so a
+    // fallback to the archive surfaces the actual file date in the legend)
     var firstNonSnodas = convLayers.find(function(l) { return !CONV_INDICES[l.varKey].isSnodas; });
-    var firstUrl = firstNonSnodas
-      ? BASE_URL + '/' + VAR_CONFIG[firstNonSnodas.varKey].prefix + firstNonSnodas.ts + '_' + getConvPeriod() + '.tif'
-      : null;
-    if (firstUrl && !dateCache[firstUrl]) {
-      fetch(firstUrl, { headers: { Range: 'bytes=0-200000' } })
-        .then(function(r) { return r.arrayBuffer(); })
-        .then(function(buf) {
-          dateCache[firstUrl] = extractDateFromTiff(buf) || "Date N/A";
-          activeDate = dateCache[firstUrl];
-          updateDateDisplay();
-          var dateEl = document.querySelector('.map-legend .legend-date');
-          if (dateEl) dateEl.textContent = formatDate(activeDate);
+    if (firstNonSnodas) {
+      resolveLayerUrl(VAR_CONFIG[firstNonSnodas.varKey].prefix, firstNonSnodas.ts, getConvPeriod())
+        .then(function(firstUrl) {
+          if (!firstUrl) return;
+          if (!dateCache[firstUrl]) {
+            return fetch(firstUrl, { headers: { Range: 'bytes=0-200000' } })
+              .then(function(r) { return r.arrayBuffer(); })
+              .then(function(buf) {
+                dateCache[firstUrl] = extractDateFromTiff(buf) || "Date N/A";
+                activeDate = dateCache[firstUrl];
+                updateDateDisplay();
+                var dateEl = document.querySelector('.map-legend .legend-date');
+                if (dateEl) dateEl.textContent = formatDate(activeDate);
+              });
+          } else {
+            activeDate = dateCache[firstUrl];
+            updateDateDisplay();
+          }
         }).catch(function() {});
-    } else if (firstUrl) {
-      activeDate = dateCache[firstUrl];
-      updateDateDisplay();
     }
 
     map.addLayer(convCogLayer);
@@ -4989,7 +5162,15 @@ function applyConvergence() {
 
     // Build legend (inside .then so colors/method are in scope)
     var legendColors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
-    var legendRows = makeBreakLabels(USDM_BREAKS, legendColors, function(v) { return v.toFixed(1); });
+    var legendRows;
+    if (method === 'mode') {
+      // Mode output is categorical — label by USDM band, not value range.
+      legendRows = USDM_CATEGORY_LABELS.map(function(label, i) {
+        return { color: legendColors[i], label: label };
+      });
+    } else {
+      legendRows = makeBreakLabels(USDM_BREAKS, legendColors, function(v) { return v.toFixed(1); });
+    }
     if (legendEl) { legendEl.remove(); legendEl = null; }
     var div = document.createElement('div');
     div.className = 'map-legend';
@@ -5228,8 +5409,15 @@ function drawConvergenceFooterLegend(ctx, footerY, sc) {
   const et = getExportTheme();
   var colors = getPaletteColors('usdm', USDM_BREAKS.length - 1, false);
   var convMethod = getConvMethod();
-  var labelFmt = function(v) { return v.toFixed(1); };
-  var legendRows = makeBreakLabels(USDM_BREAKS, colors, labelFmt);
+  var legendRows;
+  if (convMethod === 'mode') {
+    legendRows = USDM_CATEGORY_LABELS.map(function(label, i) {
+      return { color: colors[i], label: label };
+    });
+  } else {
+    var labelFmt = function(v) { return v.toFixed(1); };
+    legendRows = makeBreakLabels(USDM_BREAKS, colors, labelFmt);
+  }
   if (!legendRows || !legendRows.length) return 0;
 
   var margin = Math.round(24 * sc);
@@ -5991,7 +6179,11 @@ async function downloadGeoTIFF() {
             vals.push(scaled); wts.push(lw);
           }
           if (vals.length === 0 || eNodataW > eTotalW * 0.5) continue;
-          if (method === 'mean') {
+          if (method === 'mode') {
+            // GeoTIFF export of mode: store the integer USDM band index (0..10)
+            var modeAg = modeAggregate(vals);
+            if (modeAg) out[ri] = modeAg.modeIdx;
+          } else if (method === 'mean') {
             var ws = 0, wt = 0;
             for (var i = 0; i < vals.length; i++) { ws += vals[i] * wts[i]; wt += wts[i]; }
             out[ri] = wt > 0 ? ws / wt : -9999;
