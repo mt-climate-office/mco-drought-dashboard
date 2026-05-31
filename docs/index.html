@@ -671,6 +671,7 @@
     <button id="flow-panel-close" aria-label="Close panel">&times;</button>
   </div>
   <div id="flow-panel-content"></div>
+  <div id="flow-panel-resize-left"></div>
   <div id="flow-panel-resize"></div>
 </div>
 
@@ -743,16 +744,45 @@ const STREAMFLOW_COLORS  = [
 ];
 const streamflowScale = chroma.scale(STREAMFLOW_COLORS).classes(STREAMFLOW_BREAKS);
 
-const EXCLUDED_BASINS = [
-  "Great Salt Lake","Pyramid Lake","Walker Lake","Mono Lake",
-  "Carson Sink","Humboldt Sink","Summer Lake","Abert Lake",
-  "Klamath Lake","Medicine Lake","Great Divide Basin"
-];
-const EXCLUDED_BASIN_RE = /^Lake\b|\bLake$/;
-function isExcludedBasin(name) {
-  if (EXCLUDED_BASINS.includes(name)) return true;
-  if (EXCLUDED_BASIN_RE.test(name) && !/\b(River|Creek)\b/i.test(name)) return true;
-  return false;
+const HHP_BASE_URL = "https://data.climate.umt.edu/share/hhp_v2_test/hhp-kgml-test";
+const HHP_BASEMAP_URL = HHP_BASE_URL + "/huc10-basemap.topojson";
+const HHP_PERCENTILES_URL = HHP_BASE_URL + "/huc10-current-percentiles_latest.json";
+const HHP_PLOT_BASE = HHP_BASE_URL + "/plots/huc10";
+
+// Pick the percentile (0-1) used for color/value display for a KGML v2 record.
+// Empirical by default; switch to Stagge when q_mm_d <= 0 (the regime where
+// the empirical climatology degenerates because many years are zero-flow).
+function hhpPercentile(empirical, stagge, q) {
+  const src = (q != null && q <= 0) ? stagge : empirical;
+  return (src == null || isNaN(src)) ? null : src / 100;
+}
+
+// KGML v2 streamflow: join HUC10 basemap geometry with current percentile records.
+// Per-feature properties after join: huc10, name, empirical_percentile, band,
+// stagge_percentile, ssi, q_mm_d, gate_dry_prob_median, fit_status, plus a
+// derived `pctile` (0-1) chosen per hhpPercentile().
+async function fetchHhpFeatureCollection() {
+  const [topoResp, recResp] = await Promise.all([
+    fetch(HHP_BASEMAP_URL),
+    fetch(HHP_PERCENTILES_URL)
+  ]);
+  const [topo, recs] = await Promise.all([topoResp.json(), recResp.json()]);
+  const records = recs.records || {};
+  const objName = Object.keys(topo.objects)[0];
+  const fc = topojson.feature(topo, topo.objects[objName]);
+  const features = [];
+  for (let i = 0; i < fc.features.length; i++) {
+    const f = fc.features[i];
+    const huc10 = f.properties && f.properties.huc10;
+    if (!huc10) continue;
+    const rec = records[huc10];
+    if (!rec || rec.fit_status !== "ok") continue;
+    const pctile = hhpPercentile(rec.empirical_percentile, rec.stagge_percentile, rec.q_mm_d);
+    if (pctile == null) continue;
+    f.properties = Object.assign({}, f.properties, rec, { pctile: pctile });
+    features.push(f);
+  }
+  return { type: "FeatureCollection", features: features };
 }
 
 let hhpLayer = null, hhpLoaded = false;
@@ -2400,8 +2430,8 @@ map.on('pointermove', function(e) {
         tooltipText = gName;
       }
     } else if (layer === hhpLayer) {
-      const name = feature.get('basin_name');
-      const v = feature.get('ft3_s_ecdf');
+      const name = feature.get('name');
+      const v = feature.get('pctile');
       if (v <= 0) tooltipText = name + ': Daily 30-yr Minimum';
       else if (v >= 1) tooltipText = name + ': Daily 30-yr Maximum';
       else {
@@ -2516,8 +2546,8 @@ function queryRasterAt(coord) {
       });
       const popupContent = popupEl.querySelector('.ol-popup-content');
       if (hit) {
-        const name = hit.get('basin_name') || 'Unknown Basin';
-        const v = hit.get('ft3_s_ecdf');
+        const name = hit.get('name') || 'Unknown Basin';
+        const v = hit.get('pctile');
         const hex = streamflowScale(v).hex();
         let pctText;
         if (v <= 0) pctText = 'Daily 30-yr Minimum';
@@ -2954,15 +2984,12 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
    HHP STREAMFLOW OVERLAY
    ════════════════════════════════════════════════════════════════ */
 async function loadHhpStreamflow() {
-  const resp = await fetch("https://data.climate.umt.edu/share/current_flow_percentile.geojson");
-  const data = await resp.json();
-  const features = data.features.filter(f => !isExcludedBasin((f.properties?.basin_name || '').trim()));
-  const geojson = { type: "FeatureCollection", features: features };
+  const geojson = await fetchHhpFeatureCollection();
   // Pre-compute styles for HHP features (avoid creating new Style per render)
   var hhpFeatures = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
   var hhpStyleCache = {};
   hhpFeatures.forEach(function(f) {
-    var val = f.get('ft3_s_ecdf');
+    var val = f.get('pctile');
     var key = Math.round(val * 1000);
     if (!hhpStyleCache[key]) {
       // Bake fully opaque fills; layer opacity is the single source of truth
@@ -2976,7 +3003,7 @@ async function loadHhpStreamflow() {
   hhpLayer = new ol.layer.Vector({
     source: new ol.source.Vector({ features: hhpFeatures }),
     style: function(feature) {
-      var key = Math.round(feature.get('ft3_s_ecdf') * 1000);
+      var key = Math.round(feature.get('pctile') * 1000);
       return hhpStyleCache[key] || null;
     },
     opacity: parseFloat(opacitySlider.value),
@@ -4806,7 +4833,7 @@ function rasterizeHhp(hhpGeojson, w, h, bbox) {
   var resY = (bbox[3] - bbox[1]) / h;
 
   hhpGeojson.features.forEach(function(f) {
-    var pctile = f.properties.ft3_s_ecdf;
+    var pctile = f.properties.pctile;
     if (pctile == null || isNaN(pctile)) return;
     var standardized = qnorm(pctile);
     var geom = f.geometry;
@@ -4861,14 +4888,9 @@ function applyConvergence() {
     var ci = CONV_INDICES[l.varKey];
     if (ci.isHhp) {
       // HHP: load GeoJSON, rasterize later once we know the reference grid
-      return fetch('https://data.climate.umt.edu/share/current_flow_percentile.geojson')
-        .then(function(r) { return r.json(); })
-        .then(function(geojson) {
-          var features = geojson.features.filter(function(f) {
-            return !isExcludedBasin((f.properties?.basin_name || '').trim());
-          });
-          return { isHhp: true, geojson: { type: 'FeatureCollection', features: features } };
-        });
+      return fetchHhpFeatureCollection().then(function(geojson) {
+        return { isHhp: true, geojson: geojson };
+      });
     } else if (ci.isSnodas) {
       var sUrl = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
       return import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm').then(function(gt3) {
@@ -6796,9 +6818,9 @@ document.querySelectorAll('#export-dropdown button, #resources-dropdown a, #reso
    ════════════════════════════════════════════════════════════════ */
 function showFlowPanel(f) {
   const props = f.properties;
-  const basinId = props.basin_id;
-  const name = props.basin_name;
-  const v = props.ft3_s_ecdf;
+  const huc10 = props.huc10;
+  const name = props.name;
+  const v = props.pctile;
   let pctLabel;
   if (v <= 0)      pctLabel = "Daily 30-yr Minimum";
   else if (v >= 1) pctLabel = "Daily 30-yr Maximum";
@@ -6812,7 +6834,8 @@ function showFlowPanel(f) {
   const content = document.getElementById("flow-panel-content");
   content.innerHTML = "";
   const img = document.createElement("img");
-  img.src = `https://data.climate.umt.edu/share/operational-plots/current_climatology_plot_${basinId}.png?cacheBust=${Date.now()}`;
+  const huc4 = huc10.slice(0, 4);
+  img.src = `${HHP_PLOT_BASE}/huc4=${huc4}/huc10-${huc10}.png?cacheBust=${Date.now()}`;
   img.alt = "Current flow plot";
   content.appendChild(img);
   const panel = document.getElementById("flow-panel");
@@ -6882,33 +6905,45 @@ document.getElementById("flow-panel-close").addEventListener("click", function (
   });
 
   /* ── Resize ── */
-  let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
+  // dir: 'br' grows the right edge; 'bl' grows the left edge (right edge anchored).
+  let resizing = false, resizeDir = null, rsX = 0, rsW = 0, rsL = 0;
 
-  handle.addEventListener("mousedown", function (e) {
+  function startResize(e, dir) {
     if (isMobileView()) return;
     switchToLeft();
     resizing = true;
+    resizeDir = dir;
     rsX = e.clientX;
-    rsY = e.clientY;
     rsW = panel.offsetWidth;
-    rsH = panel.offsetHeight;
+    rsL = parseInt(panel.style.left) || 0;
     panel.classList.add("resizing");
     e.preventDefault();
     e.stopPropagation();
-  });
+  }
+
+  handle.addEventListener("mousedown", function (e) { startResize(e, 'br'); });
+  document.getElementById("flow-panel-resize-left")
+    .addEventListener("mousedown", function (e) { startResize(e, 'bl'); });
 
   document.addEventListener("mousemove", function (e) {
     if (!resizing) return;
-    const panelLeft = parseInt(panel.style.left) || 0;
-    const maxW = window.innerWidth - panelLeft;
-    const newW = clamp(rsW + (e.clientX - rsX), 280, maxW);
-    panel.style.width = newW + "px";
+    const dx = e.clientX - rsX;
+    if (resizeDir === 'br') {
+      const maxW = window.innerWidth - rsL;
+      panel.style.width = clamp(rsW + dx, 280, maxW) + "px";
+    } else {
+      // Bottom-left: shrink from the left, keep right edge fixed.
+      const maxW = rsL + rsW; // can grow until left edge hits 0
+      const newW = clamp(rsW - dx, 280, maxW);
+      panel.style.width = newW + "px";
+      panel.style.left = (rsL + (rsW - newW)) + "px";
+    }
     // Auto-height: let the content (image) determine height
     panel.style.height = "auto";
   });
 
   document.addEventListener("mouseup", function () {
-    if (resizing) { resizing = false; panel.classList.remove("resizing"); }
+    if (resizing) { resizing = false; resizeDir = null; panel.classList.remove("resizing"); }
   });
 }());
 

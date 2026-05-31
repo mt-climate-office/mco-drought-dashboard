@@ -2239,6 +2239,31 @@
       opacity: 0.8;
     }
 
+    #flow-panel-resize-left {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 20px;
+      height: 20px;
+      cursor: nesw-resize;
+    }
+
+    #flow-panel-resize-left::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      width: 8px;
+      height: 8px;
+      border-left: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      opacity: 0.4;
+    }
+
+    #flow-panel-resize-left:hover::after {
+      opacity: 0.8;
+    }
+
     /* ================================================================
        OpenLayers Controls
        ================================================================ */
