@@ -195,7 +195,7 @@
             <option value="snodas-swe">SWE — SNODAS Standardized Anomaly</option>
           </optgroup>
           <optgroup label="── Streamflow ──">
-            <option value="hhp">HHP Streamflow Basins</option>
+            <option value="hhp" data-flag="In Review" data-flag-tip="HHP KGML streamflow is a knowledge-guided machine learning model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of LSTM architectures masked by a separate wet/dry gate model, run as a 10-fold cross-validated ensemble over GridMET forcing. It produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology. This dataset is in the review pipeline and not yet officially published. Values are preliminary. Please contact zachary.hoylman@umontana.edu for details.">HHP Streamflow Basins</option>
           </optgroup>
           <optgroup label="── Vegetation ──">
             <option value="vhi">VHI — Vegetation Health Index (NOAA STAR)</option>
@@ -914,7 +914,7 @@ const VAR_CONFIG = {
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
   'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
   'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
-  hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Streamflow basin percentiles from the Headwaters Hydrology Project (HHP) machine-learning model, colored by percentile relative to a 30-year climatology." },
+  hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "HHP KGML streamflow is a knowledge-guided machine learning (KGML) model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of LSTM architectures (SingleExpert, TwoExpertAverage, MoE, MoeDynamic) whose flow predictions are masked by a separate wet/dry gate model, run as a 10-fold cross-validated ensemble over GridMET meteorological forcing. Operationally it produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology, shown here as USDM-style drought-to-wet bands with per-basin time-series plots on click." },
   vhi:          { label: "VHI",                             prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, tileLayer: true, attribution: "NOAA STAR / NESDIS", description: "Vegetation Health Index (VHI) from NOAA NESDIS / STAR — a satellite-derived weekly composite combining the Vegetation Condition Index (VCI) and Temperature Condition Index (TCI) from VIIRS-NOAA20 (J01) at 500 m. Low values (red/pink) indicate stressed vegetation; high values (blue) indicate healthy vegetation. Imagery is provided as map tiles directly from NESDIS — per-pixel values, zonal averages, and custom color ranges are not available." },
 };
 
@@ -7174,6 +7174,29 @@ function loadState() {
 /* ════════════════════════════════════════════════════════════════
    CUSTOM DROPDOWN
    ════════════════════════════════════════════════════════════════ */
+// Body-anchored tooltip for cs-flag pills (the dropdown panel scrolls, so an
+// in-panel tooltip would clip — render to <body> with fixed positioning).
+let _flagTipEl = null;
+function showFlagTip(anchor, text) {
+  if (!_flagTipEl) {
+    _flagTipEl = document.createElement('div');
+    _flagTipEl.className = 'cs-flag-tip';
+    document.body.appendChild(_flagTipEl);
+  }
+  _flagTipEl.textContent = text;
+  _flagTipEl.style.display = 'block';
+  const r = anchor.getBoundingClientRect();
+  const tw = _flagTipEl.offsetWidth;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  _flagTipEl.style.left = left + 'px';
+  _flagTipEl.style.top = (r.bottom + 6) + 'px';
+  _flagTipEl.classList.add('visible');
+}
+function hideFlagTip() {
+  if (_flagTipEl) { _flagTipEl.classList.remove('visible'); _flagTipEl.style.display = 'none'; }
+}
+
 function initCustomSelect() {
   const sel = document.getElementById('var-select');
   const container = document.getElementById('custom-var-select');
@@ -7192,7 +7215,23 @@ function initCustomSelect() {
       const item = document.createElement('div');
       item.className = 'cs-item';
       item.dataset.value = opt.value;
-      item.textContent = opt.textContent;
+      const label = document.createElement('span');
+      label.className = 'cs-item-label';
+      label.textContent = opt.textContent;
+      item.appendChild(label);
+      const flag = opt.dataset.flag;
+      if (flag) {
+        const pill = document.createElement('span');
+        pill.className = 'cs-flag';
+        pill.textContent = flag;
+        const tip = opt.dataset.flagTip;
+        if (tip) {
+          pill.addEventListener('mouseenter', function () { showFlagTip(pill, tip); });
+          pill.addEventListener('mouseleave', hideFlagTip);
+          pill.addEventListener('click', function (e) { e.stopPropagation(); });
+        }
+        item.appendChild(pill);
+      }
       if (opt.selected || opt.value === activeVar) item.classList.add('active');
       item.addEventListener('click', () => {
         panel.querySelectorAll('.cs-item').forEach(i => i.classList.remove('active'));
