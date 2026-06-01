@@ -776,7 +776,9 @@ async function fetchHhpFeatureCollection() {
     const huc10 = f.properties && f.properties.huc10;
     if (!huc10) continue;
     const rec = records[huc10];
-    if (!rec || rec.fit_status !== "ok") continue;
+    // TEMPORARY: also showing fit_status === "all_zero" basins (revert to
+    // `rec.fit_status !== "ok"` to hide them again).
+    if (!rec || (rec.fit_status !== "ok" && rec.fit_status !== "all_zero")) continue;
     const pctile = hhpPercentile(rec.empirical_percentile, rec.stagge_percentile, rec.q_mm_d);
     if (pctile == null) continue;
     f.properties = Object.assign({}, f.properties, rec, { pctile: pctile });
