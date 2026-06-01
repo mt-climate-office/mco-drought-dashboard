@@ -748,12 +748,15 @@ const HHP_BASE_URL = "https://data.climate.umt.edu/share/hhp_v2_test/hhp-kgml-te
 const HHP_BASEMAP_URL = HHP_BASE_URL + "/huc10-basemap.topojson";
 const HHP_PERCENTILES_URL = HHP_BASE_URL + "/huc10-current-percentiles_latest.json";
 const HHP_PLOT_BASE = HHP_BASE_URL + "/plots/huc10";
+const HHP_NO_FIT_COLOR = "#9e9e9e";  // grey for basins with no reliable climatology fit
 
 // Pick the percentile (0-1) used for color/value display for a KGML v2 record.
 // Empirical by default; switch to Stagge when q_mm_d <= 0 (the regime where
 // the empirical climatology degenerates because many years are zero-flow).
 function hhpPercentile(empirical, stagge, q) {
-  const src = (q != null && q <= 0) ? stagge : empirical;
+  let src = (q != null && q <= 0) ? stagge : empirical;
+  // Fall back to whichever value is present (e.g. fit_failed basins have null stagge).
+  if (src == null || isNaN(src)) src = (src === stagge) ? empirical : stagge;
   return (src == null || isNaN(src)) ? null : src / 100;
 }
 
@@ -776,9 +779,8 @@ async function fetchHhpFeatureCollection() {
     const huc10 = f.properties && f.properties.huc10;
     if (!huc10) continue;
     const rec = records[huc10];
-    // TEMPORARY: also showing fit_status === "all_zero" basins (revert to
-    // `rec.fit_status !== "ok"` to hide them again).
-    if (!rec || (rec.fit_status !== "ok" && rec.fit_status !== "all_zero")) continue;
+    // Show ok + all_zero (colored) and fit_failed (rendered grey, see loadHhpStreamflow).
+    if (!rec || (rec.fit_status !== "ok" && rec.fit_status !== "all_zero" && rec.fit_status !== "fit_failed")) continue;
     const pctile = hhpPercentile(rec.empirical_percentile, rec.stagge_percentile, rec.q_mm_d);
     if (pctile == null) continue;
     f.properties = Object.assign({}, f.properties, rec, { pctile: pctile });
@@ -2434,7 +2436,8 @@ map.on('pointermove', function(e) {
     } else if (layer === hhpLayer) {
       const name = feature.get('name');
       const v = feature.get('pctile');
-      if (v <= 0) tooltipText = name + ': Daily 30-yr Minimum';
+      if (feature.get('fit_status') === 'fit_failed') tooltipText = name + ': No reliable climatology fit';
+      else if (v <= 0) tooltipText = name + ': Daily 30-yr Minimum';
       else if (v >= 1) tooltipText = name + ': Daily 30-yr Maximum';
       else {
         const p = Math.round(v * 100);
@@ -2549,10 +2552,12 @@ function queryRasterAt(coord) {
       const popupContent = popupEl.querySelector('.ol-popup-content');
       if (hit) {
         const name = hit.get('name') || 'Unknown Basin';
+        const failed = hit.get('fit_status') === 'fit_failed';
         const v = hit.get('pctile');
-        const hex = streamflowScale(v).hex();
+        const hex = failed ? HHP_NO_FIT_COLOR : streamflowScale(v).hex();
         let pctText;
-        if (v <= 0) pctText = 'Daily 30-yr Minimum';
+        if (failed) pctText = 'No reliable climatology fit';
+        else if (v <= 0) pctText = 'Daily 30-yr Minimum';
         else if (v >= 1) pctText = 'Daily 30-yr Maximum';
         else {
           const p = Math.round(v * 100);
@@ -2990,7 +2995,14 @@ async function loadHhpStreamflow() {
   // Pre-compute styles for HHP features (avoid creating new Style per render)
   var hhpFeatures = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
   var hhpStyleCache = {};
+  // Basins with no reliable climatology fit (fit_failed) render grey rather than
+  // a misleading percentile color.
+  var hhpFailedStyle = new ol.style.Style({
+    fill: new ol.style.Fill({ color: HHP_NO_FIT_COLOR }),
+    stroke: new ol.style.Stroke({ color: '#333', width: 0.4 })
+  });
   hhpFeatures.forEach(function(f) {
+    if (f.get('fit_status') === 'fit_failed') return;
     var val = f.get('pctile');
     var key = Math.round(val * 1000);
     if (!hhpStyleCache[key]) {
@@ -3005,6 +3017,7 @@ async function loadHhpStreamflow() {
   hhpLayer = new ol.layer.Vector({
     source: new ol.source.Vector({ features: hhpFeatures }),
     style: function(feature) {
+      if (feature.get('fit_status') === 'fit_failed') return hhpFailedStyle;
       var key = Math.round(feature.get('pctile') * 1000);
       return hhpStyleCache[key] || null;
     },
@@ -4835,6 +4848,8 @@ function rasterizeHhp(hhpGeojson, w, h, bbox) {
   var resY = (bbox[3] - bbox[1]) / h;
 
   hhpGeojson.features.forEach(function(f) {
+    // Exclude no-fit basins from convergence composites (grey = no reliable value).
+    if (f.properties.fit_status === 'fit_failed') return;
     var pctile = f.properties.pctile;
     if (pctile == null || isNaN(pctile)) return;
     var standardized = qnorm(pctile);
@@ -6824,7 +6839,8 @@ function showFlowPanel(f) {
   const name = props.name;
   const v = props.pctile;
   let pctLabel;
-  if (v <= 0)      pctLabel = "Daily 30-yr Minimum";
+  if (props.fit_status === 'fit_failed') pctLabel = "No reliable climatology fit";
+  else if (v <= 0)      pctLabel = "Daily 30-yr Minimum";
   else if (v >= 1) pctLabel = "Daily 30-yr Maximum";
   else {
     const p = Math.round(v * 100);
