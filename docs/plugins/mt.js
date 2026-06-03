@@ -9,9 +9,9 @@ const PLOT_BASE = 'https://data.climate.umt.edu/drought-indicators/plots/';
 const FGB_LIB  = 'https://unpkg.com/flatgeobuf@3.22.0/dist/flatgeobuf-geojson.min.js';
 
 const DEPTHS = [
-  { key: 'shallow', label: 'Shallow (0-4")',  fgb: 'shallow.fgb', plot: 'Shallow' },
-  { key: 'middle',  label: 'Middle (8-20")',   fgb: 'middle.fgb',  plot: 'Middle'  },
-  { key: 'deep',    label: 'Deep (28-40")',    fgb: 'deep.fgb',    plot: 'Deep'    },
+  { key: 'shallow', name: 'Shallow', range: '0–10 cm',   label: 'Shallow (0–10 cm)',   fgb: 'shallow.fgb', plot: 'Shallow' },
+  { key: 'middle',  name: 'Middle',  range: '10–50 cm',  label: 'Middle (10–50 cm)',   fgb: 'middle.fgb',  plot: 'Middle'  },
+  { key: 'deep',    name: 'Deep',    range: '50–100 cm', label: 'Deep (50–100 cm)',    fgb: 'deep.fgb',    plot: 'Deep'    },
 ];
 
 const TIP_TEXT = 'Soil moisture anomaly from the Montana Mesonet network. ' +
@@ -213,7 +213,8 @@ function injectSidebar(sidebar) {
   DEPTHS.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'depth-btn' + (d.key === activeDepth ? ' active' : '');
-    btn.textContent = d.label;
+    // Name on the first line, depth range on the second (matches the SMI selector).
+    btn.innerHTML = d.name + '<br><span class="ts-btn-sub">' + d.range + '</span>';
     btn.dataset.depth = d.key;
     btn.addEventListener('click', () => {
       if (d.key === activeDepth) return;

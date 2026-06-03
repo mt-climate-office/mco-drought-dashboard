@@ -1478,7 +1478,8 @@
     /* ================================================================
        Timescale Grid
        ================================================================ */
-    #timescale-strip {
+    #timescale-strip,
+    #sm-depth-strip {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 4px;
@@ -1499,6 +1500,12 @@
 
     .ts-btn:hover { background: var(--overlay-hover-md); }
 
+    .ts-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .ts-btn:disabled:hover { background: var(--bg-elevated); }
+
     .ts-btn.active {
       background: var(--accent-active);
       color: var(--accent-light);
@@ -1508,6 +1515,13 @@
     }
 
     .ts-btn.ts-wide { grid-column: span 3; }
+
+    .ts-btn-sub {
+      display: block;
+      font-size: 0.85em;
+      opacity: 0.7;
+      margin-top: 1px;
+    }
 
     /* ================================================================
        Period Segmented Control

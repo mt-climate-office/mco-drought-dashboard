@@ -176,6 +176,12 @@
             <option value="eddi">EDDI — Evaporative Demand Drought Index</option>
             <option value="svpdi">SVPDI — Standardized Vapor Pressure Deficit Index</option>
           </optgroup>
+          <optgroup label="── Soil Moisture ──">
+            <option value="hhp-sm-shallow" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML soil moisture is a knowledge-guided machine learning model that predicts daily soil moisture for the conterminous US, reported here as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Negative values indicate drier-than-normal soils; positive values wetter-than-normal. This shallow (0–10 cm) product (1/7/15/30-day timescales) is in the review pipeline and not yet officially published. Values are provisional. Please contact zachary.hoylman@umontana.edu for details.">HHP Soil Moisture — SMI (Soil Moisture Index)</option>
+          </optgroup>
+          <optgroup label="── Streamflow ──">
+            <option value="hhp" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET forcing. It produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology. This dataset is in the review pipeline and not yet officially published. Values are preliminary. Please contact zachary.hoylman@umontana.edu for details.">HHP Streamflow Basins</option>
+          </optgroup>
           <optgroup label="── Precipitation ──">
             <option value="precip-pctile">Precipitation — Percentile</option>
             <option value="precip-pon">Precipitation — Percent of Normal</option>
@@ -193,9 +199,6 @@
           </optgroup>
           <optgroup label="── Snowpack ──">
             <option value="snodas-swe">SWE — SNODAS Standardized Anomaly</option>
-          </optgroup>
-          <optgroup label="── Streamflow ──">
-            <option value="hhp" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET forcing. It produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology. This dataset is in the review pipeline and not yet officially published. Values are preliminary. Please contact zachary.hoylman@umontana.edu for details.">HHP Streamflow Basins</option>
           </optgroup>
           <optgroup label="── Vegetation ──">
             <option value="vhi">VHI — Vegetation Health Index (NOAA STAR)</option>
@@ -262,6 +265,12 @@
       <div class="section-label" data-sec="sec-timescale" style="--i:1">Timescale <span class="info-tip" tabindex="0" data-tip="timescale">&#9432;</span><span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-timescale">
         <div id="timescale-strip"></div>
+      </div>
+
+      <!-- Soil-moisture Depth — shown only for HHP SMI layers -->
+      <div class="section-label" data-sec="sec-sm-depth" id="sm-depth-label" style="--i:1; display:none;">Depth <span class="caret">&#9660;</span></div>
+      <div class="section-body" id="sec-sm-depth" style="display:none;">
+        <div id="sm-depth-strip"></div>
       </div>
 
       <!-- Reference Period — section index 2 -->
@@ -692,11 +701,21 @@ const ARCHIVE_BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_dr
 const ARCHIVE_MAX_DAYS = 14;
 const _layerUrlCache = {};
 
+// The gridMET COG server (data2) sends no Cache-Control, so browsers heuristically
+// cache the COGs and serve a stale file (and its embedded "Data Valid" date) for a
+// while after the pipeline updates. Until the server sends no-cache/no-store, append
+// a per-page-load token so every visit fetches the current file. Applied to BOTH the
+// tile source and the date-extraction fetch (they share this resolved URL), so the
+// legend date and the rendered pixels can never desync. Range requests within a
+// session reuse the same URL, so panning/zooming still hits the browser cache.
+const CACHE_BUST = "v=" + Date.now();
+function withBust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + CACHE_BUST; }
+
 async function resolveLayerUrl(prefix, ts, period) {
   const fileBase = prefix + ts + '_' + period;
   if (_layerUrlCache[fileBase] !== undefined) return _layerUrlCache[fileBase];
 
-  const latestUrl = BASE_URL + '/' + fileBase + '.tif';
+  const latestUrl = withBust(BASE_URL + '/' + fileBase + '.tif');
   try {
     const r = await fetch(latestUrl, { method: 'HEAD' });
     if (r.ok) { _layerUrlCache[fileBase] = latestUrl; return latestUrl; }
@@ -705,7 +724,7 @@ async function resolveLayerUrl(prefix, ts, period) {
   for (let i = 1; i <= ARCHIVE_MAX_DAYS; i++) {
     const d = new Date(Date.now() - i * 86400000);
     const ds = d.toISOString().slice(0, 10);
-    const archiveUrl = `${ARCHIVE_BASE_URL}/${ds}/${fileBase}_${ds}.tif`;
+    const archiveUrl = withBust(`${ARCHIVE_BASE_URL}/${ds}/${fileBase}_${ds}.tif`);
     try {
       const r = await fetch(archiveUrl, { method: 'HEAD' });
       if (r.ok) {
@@ -749,6 +768,59 @@ const HHP_BASEMAP_URL = HHP_BASE_URL + "/huc10-basemap.topojson";
 const HHP_PERCENTILES_URL = HHP_BASE_URL + "/huc10-current-percentiles_latest.json";
 const HHP_PLOT_BASE = HHP_BASE_URL + "/plots/huc10";
 const HHP_NO_FIT_COLOR = "#9e9e9e";  // grey for basins with no reliable climatology fit
+
+// HHP KGML soil moisture (SMI). 1/7/15/30-day timescales (provisional); depths below.
+// (Padded-preview build temporarily used a flat {depth}/smi_latest.tif layout — reverted.)
+const HHP_SM_BASE = "https://data.climate.umt.edu/share/hhp-kgml-soil-moisture";
+// Build the per-timescale COG URL map for a given depth folder.
+function hhpSmUrlsForDepth(depth) {
+  return {
+    "1d":  HHP_SM_BASE + "/" + depth + "/smi-1d-provisional/smi_latest.tif",
+    "7d":  HHP_SM_BASE + "/" + depth + "/smi-7d-provisional/smi_latest.tif",
+    "15d": HHP_SM_BASE + "/" + depth + "/smi-15d-provisional/smi_latest.tif",
+    "30d": HHP_SM_BASE + "/" + depth + "/smi-30d-provisional/smi_latest.tif"
+  };
+}
+const HHP_SM_SHALLOW_URLS = hhpSmUrlsForDepth("shallow");
+const HHP_SM_MIDDLE_URLS  = hhpSmUrlsForDepth("middle");
+// Depth options (timescale-strip-style selector). Flip `ready` to true when the
+// middle (10–50 cm) product ships; its data lives under the "middle/" folder.
+const HHP_SM_MIDDLE_READY = true;
+const HHP_SM_DEPTHS = [
+  { value: "shallow", name: "Shallow", range: "0–10 cm",  label: "Shallow (0–10 cm)",  ready: true,                 urls: HHP_SM_SHALLOW_URLS },
+  { value: "middle",  name: "Mid-Depth", range: "10–50 cm", label: "Mid-Depth (10–50 cm)",  ready: HHP_SM_MIDDLE_READY,  urls: HHP_SM_MIDDLE_URLS }
+];
+let activeSmDepth = "shallow";
+function smDepthLabel(v) {
+  var d = HHP_SM_DEPTHS.find(function(o) { return o.value === v; });
+  return d ? d.label : v;
+}
+// Returns the depth value if it's a known, ready depth; else null (for share-URL validation).
+function validSmDepth(v) {
+  var d = HHP_SM_DEPTHS.find(function(o) { return o.value === v; });
+  return (d && d.ready) ? v : null;
+}
+// SMI timescale options shown in the timescale strip when an SMI layer is active.
+const HHP_SM_TIMESCALES = [
+  { value: "1d",  label: "Daily" },
+  { value: "7d",  label: "7d" },
+  { value: "15d", label: "15d" },
+  { value: "30d", label: "30d" }
+];
+const HHP_SM_DEFAULT_TS = "1d";
+// Flip to true to expose the SMI timescale picker (1/7/15/30-day) in the sidebar
+// and convergence. Locked to 1d (daily instantaneous) for now; plumbing is kept.
+const HHP_SM_SHOW_TIMESCALES = false;
+let activeSmTS = HHP_SM_DEFAULT_TS;
+function smTsLabel(v) {
+  var t = HHP_SM_TIMESCALES.find(function(o) { return o.value === v; });
+  return t ? t.label : v;
+}
+function hhpSmUrl() {
+  // Active depth + active timescale → COG URL (falls back to default timescale).
+  var d = HHP_SM_DEPTHS.find(function(o) { return o.value === activeSmDepth; }) || HHP_SM_DEPTHS[0];
+  return d.urls[activeSmTS] || d.urls[HHP_SM_DEFAULT_TS];
+}
 
 // Pick the percentile (0-1) used for color/value display for a KGML v2 record.
 // Empirical by default; switch to Stagge when q_mm_d <= 0 (the regime where
@@ -918,14 +990,17 @@ const VAR_CONFIG = {
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
   'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
   'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
+  'hhp-sm-shallow': { label: "HHP Soil Moisture — SMI", fullLabel: "HHP Soil Moisture — SMI (Soil Moisture Index)", prefix: null, isHhpSm: true, smTimescales: HHP_SM_TIMESCALES, smUrls: HHP_SM_SHALLOW_URLS, hidePeriod: true, paletteGroup: 'idx_diverging', defaultPalette: 'usdm', reversed: false, breaks: USDM_BREAKS, labelFmt: v => v.toFixed(1), dynamic: false, rawScale: 1, nodata: -9999, nanNodata: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML soil moisture, reported as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Interpreted like SPI: negative values indicate drier-than-normal soils, positive values wetter-than-normal. This shallow (0–10 cm) product is available at 1-, 7-, 15-, and 30-day timescales and is provisional and in review." },
   hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning (KGML) model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures (SingleExpert, TwoExpertAverage, MoE, MoeDynamic) masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET meteorological forcing. Operationally it produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology, shown here as USDM-style drought-to-wet bands with per-basin time-series plots on click." },
   vhi:          { label: "VHI",                             prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, tileLayer: true, attribution: "NOAA STAR / NESDIS", description: "Vegetation Health Index (VHI) from NOAA NESDIS / STAR — a satellite-derived weekly composite combining the Vegetation Condition Index (VCI) and Temperature Condition Index (TCI) from VIIRS-NOAA20 (J01) at 500 m. Low values (red/pink) indicate stressed vegetation; high values (blue) indicate healthy vegetation. Imagery is provided as map tiles directly from NESDIS — per-pixel values, zonal averages, and custom color ranges are not available." },
 };
 
 /* ── Screenshot helpers: full names & timescale labels ──────── */
 function getFullVarName(varKey) {
+  const cfg = VAR_CONFIG[varKey];
+  if (cfg && cfg.fullLabel) return cfg.fullLabel;
   const opt = document.querySelector(`#var-select option[value="${varKey}"]`);
-  return opt ? opt.textContent.trim() : VAR_CONFIG[varKey].label;
+  return opt ? opt.textContent.trim() : cfg.label;
 }
 const TS_FULL = {
   "15d":"15 Days", "30d":"30 Days", "45d":"45 Days",
@@ -1335,11 +1410,37 @@ const COUNTY_MIN_ZOOM = 6;
    ════════════════════════════════════════════════════════════════ */
 const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
 
-(function buildTimescaleStrip() {
+// Build the timescale strip for the active variable. Standard gridMET timescales
+// for most vars; an SMI-specific set (Daily only for now) when an SMI layer is active.
+function renderTimescaleStrip(varKey) {
   const strip = document.getElementById("timescale-strip");
+  strip.innerHTML = "";
+  const cfg = VAR_CONFIG[varKey] || {};
+
+  if (cfg.smTimescales) {
+    cfg.smTimescales.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "ts-btn" + (opt.value === activeSmTS ? " active" : "");
+      btn.textContent = opt.label;
+      btn.dataset.ts = opt.value;
+      btn.addEventListener("click", () => {
+        if (opt.value === activeSmTS) return;
+        strip.querySelectorAll(".ts-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeSmTS = opt.value;
+        if (convActive) { convActive = false; cleanupConvergence(); }
+        updateVarInfo(activeVar);
+        loadLayer(activeVar, activeTS, activePeriod);
+        if (ghcnActive) restyleGhcnLayer();
+      });
+      strip.appendChild(btn);
+    });
+    return;
+  }
+
   TIMESCALES.forEach(ts => {
     const btn = document.createElement("button");
-    btn.className = "ts-btn" + (ts === DEFAULT_TS ? " active" : "");
+    btn.className = "ts-btn" + (ts === activeTS ? " active" : "");
     if (ts === 'wy' || ts === 'ytd') btn.classList.add('ts-wide');
     btn.textContent = TS_LABELS[ts] || ts;
     btn.dataset.ts = ts;
@@ -1359,7 +1460,44 @@ const TS_LABELS = { wy: "Water Year", ytd: "Year to Date" };
     });
     strip.appendChild(btn);
   });
-})();
+}
+renderTimescaleStrip(activeVar);
+
+// Depth selector for SMI (timescale-strip-style). Unavailable depths render
+// disabled until their product ships (see HHP_SM_DEPTHS[].ready).
+function renderDepthStrip() {
+  const strip = document.getElementById("sm-depth-strip");
+  if (!strip) return;
+  strip.innerHTML = "";
+  HHP_SM_DEPTHS.forEach(function(d) {
+    const btn = document.createElement("button");
+    btn.className = "ts-btn ts-wide" + (d.value === activeSmDepth ? " active" : "");
+    // Name on the first line, depth range on the second.
+    btn.innerHTML = d.name + '<br><span class="ts-btn-sub">' + d.range + '</span>';
+    btn.dataset.depth = d.value;
+    if (!d.ready) {
+      btn.disabled = true;
+      btn.title = "Coming soon";
+    }
+    btn.addEventListener("click", function() {
+      if (d.value === activeSmDepth || !d.ready) return;
+      strip.querySelectorAll(".ts-btn").forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      activeSmDepth = d.value;
+      if (convActive) { convActive = false; cleanupConvergence(); }
+      updateVarInfo(activeVar);
+      loadLayer(activeVar, activeTS, activePeriod);
+      if (ghcnActive) restyleGhcnLayer();
+    });
+    strip.appendChild(btn);
+  });
+}
+// Show/hide the Depth section (only relevant for SMI layers).
+function setSmDepthVisible(show) {
+  document.getElementById("sm-depth-label").style.display = show ? "" : "none";
+  document.getElementById("sec-sm-depth").style.display   = show ? "" : "none";
+  if (show) renderDepthStrip();
+}
 
 /* ════════════════════════════════════════════════════════════════
    PERIOD TOGGLE
@@ -1631,6 +1769,16 @@ document.getElementById("var-select").addEventListener("change", function() {
 
   activeVar = this.value;
   saveState();
+  setSmDepthVisible(!!VAR_CONFIG[activeVar].isHhpSm);
+
+  // Repopulate counties if they were toggled off when entering HHP. Done here (before
+  // the per-variable branches) so it fires on EVERY switch-away path, including the
+  // ones that return early (SMI, SNODAS, VHI) — not just the normal-raster path.
+  if (hhpCountiesRestore) {
+    const cc = document.getElementById("counties-chk");
+    if (!cc.checked) { cc.checked = true; cc.dispatchEvent(new Event("change")); }
+    hhpCountiesRestore = false;
+  }
 
   // Clear convergence layer if active
   if (convActive) {
@@ -1665,6 +1813,19 @@ document.getElementById("var-select").addEventListener("change", function() {
   }
   // Restore interpolate row for non-SNODAS variables
   document.getElementById("interpolate-row").style.display = "";
+
+  if (VAR_CONFIG[activeVar].isHhpSm) {
+    // SMI: locked to 1d (daily) unless the timescale picker is enabled. No reference period.
+    if (!HHP_SM_SHOW_TIMESCALES) activeSmTS = HHP_SM_DEFAULT_TS;
+    tsLabel.style.display = HHP_SM_SHOW_TIMESCALES ? "" : "none";
+    tsBody.style.display  = HHP_SM_SHOW_TIMESCALES ? "" : "none";
+    prLabel.style.display = "none";
+    prBody.style.display  = "none";
+    if (HHP_SM_SHOW_TIMESCALES) renderTimescaleStrip(activeVar);
+    loadLayer(activeVar, activeTS, activePeriod);
+    if (ghcnActive) restyleGhcnLayer();
+    return;
+  }
 
   if (activeVar === "hhp") {
     // Hide timescale and period sections for HHP
@@ -1724,16 +1885,7 @@ document.getElementById("var-select").addEventListener("change", function() {
   tsBody.style.display  = "";
   prLabel.style.display = "";
   prBody.style.display  = "";
-
-  // Restore counties if they were on before switching to HHP
-  if (hhpCountiesRestore) {
-    const countiesChk = document.getElementById("counties-chk");
-    if (!countiesChk.checked) {
-      countiesChk.checked = true;
-      countiesChk.dispatchEvent(new Event("change"));
-    }
-    hhpCountiesRestore = false;
-  }
+  renderTimescaleStrip(activeVar);  // restore standard timescale buttons (e.g. after SMI)
 
   loadLayer(activeVar, activeTS, activePeriod);
   if (ghcnActive) restyleGhcnLayer();
@@ -1818,6 +1970,14 @@ function updateVarInfo(varKey) {
 
   if (varKey === "hhp") {
     el.innerHTML = cfg.description || "";
+    return;
+  }
+
+  if (cfg.isHhpSm) {
+    // SMI has no reference period; show a timescale line only when the picker is on.
+    var smHtml = `<p>${cfg.description || ""}</p>`;
+    if (HHP_SM_SHOW_TIMESCALES) smHtml += `<p style="margin-top:6px"><b>Timescale:</b> ${smTsLabel(activeSmTS)}.</p>`;
+    el.innerHTML = smHtml;
     return;
   }
 
@@ -1992,7 +2152,9 @@ async function getCurrentZonalRaster() {
   var cfg = VAR_CONFIG[activeVar];
   if (!cfg || cfg.noRaster) return null;
   var url, useZstd = false;
-  if (cfg.isSnodas) {
+  if (cfg.isHhpSm) {
+    url = hhpSmUrl();
+  } else if (cfg.isSnodas) {
     url = cfg.isSnodasRaw
       ? 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif'
       : 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
@@ -2634,8 +2796,8 @@ function queryRasterAt(coord) {
         var rr = convCogLayer._rasters[i];
         var ci = CONV_INDICES[l.varKey];
         var raw;
-        if (rr.isSnodas) {
-          // Mean resample from SNODAS grid
+        if (rr.isSnodas || rr.isHhpSm) {
+          // Mean resample from the source (SNODAS/SMI) grid to the reference grid
           var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
           var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
           var refRX = (convCogLayer._bbox[2] - convCogLayer._bbox[0]) / rw;
@@ -2734,13 +2896,16 @@ function queryRasterAt(coord) {
       var wt = (l.weight != null && !isNaN(l.weight)) ? l.weight : 1;
       // Mode ignores weights — don't display them in this method
       var wtSuffix = (method !== 'mode' && wt !== 1) ? ' (w:' + wt + ')' : '';
-      var label = CONV_INDICES[l.varKey].label + ' ' + l.ts + wtSuffix;
+      var lts = CONV_INDICES[l.varKey].isHhpSm
+        ? smTsLabel(HHP_SM_SHALLOW_URLS[l.ts] ? l.ts : HHP_SM_DEFAULT_TS)
+        : l.ts;
+      var label = CONV_INDICES[l.varKey].label + ' ' + lts + wtSuffix;
       var rawVal = vals[i];
       // Get original (non-negated) value: from stored rasters (4+) or getData (2-3)
       var origScaled;
       if (convCogLayer._rasters) {
         var ciScale = CONV_INDICES[l.varKey].rawScale || 0.01;
-        var origRaw = convCogLayer._rasters[i].isSnodas ? null : convCogLayer._rasters[i].data[pixIdx];
+        var origRaw = (convCogLayer._rasters[i].isSnodas || convCogLayer._rasters[i].isHhpSm) ? null : convCogLayer._rasters[i].data[pixIdx];
         origScaled = origRaw != null && origRaw !== -9999 ? (origRaw * ciScale).toFixed(2) : 'N/A';
       } else {
         var origRaw = data[i];
@@ -2800,7 +2965,7 @@ function queryRasterAt(coord) {
         '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
         displayVal +
       '</div>' +
-      '<div class="query-label">' + cfg.label + (cfg.isSnodas ? '' : ' &middot; ' + activeTS) + '</div>' +
+      '<div class="query-label">' + cfg.label + (cfg.isSnodas ? '' : cfg.isHhpSm ? (' &middot; ' + smDepthLabel(activeSmDepth) + (HHP_SM_SHOW_TIMESCALES ? ' &middot; ' + smTsLabel(activeSmTS) : '')) : ' &middot; ' + activeTS) + '</div>' +
       '<div class="query-coords">' + coordStr + '</div>' +
     '</div>';
   }
@@ -3951,9 +4116,12 @@ function buildLegend(varKey, ts, period, legendRows) {
     }).join('');
   }
 
+  const subLabel = cfg.isHhpSm
+    ? (smDepthLabel(activeSmDepth) + (HHP_SM_SHOW_TIMESCALES ? '<br>' + smTsLabel(activeSmTS) : ''))
+    : (ts + '<br>' + periodLabel);
   div.innerHTML =
     '<h4>' + cfg.label.replace(/\s*\u2014\s*/g, '<br>') + '</h4>' +
-    '<div class="legend-sub">' + ts + '<br>' + periodLabel + '</div>' +
+    (subLabel ? '<div class="legend-sub">' + subLabel + '</div>' : '') +
     '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
     legendBody;
 
@@ -4150,6 +4318,18 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
   // alpha band interpolates to ~0.5. Require alpha near 1 to mask out any
   // pixel whose sample stencil overlaps nodata.
   const alpha = ['/', ['band', 2], 255];
+  if (cfg.nanNodata) {
+    // Float COG whose fill is NaN with no declared nodata (e.g. SMI). OL's alpha
+    // band can't mask NaN, and NaN fails every '>=' in the colormap — so it would
+    // fall through to colors[0] (D4). Gate on a finite valid range: NaN and any
+    // sentinel like -9999 fail 'between' and render transparent.
+    return [
+      'case',
+      ['<', alpha, 0.99], transparent,
+      ['between', value, -50, 50], colorExpr,
+      transparent
+    ];
+  }
   return [
     'case',
     ['<', alpha, 0.99], transparent,
@@ -4321,7 +4501,9 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
   } else {
     var url;
     var nodata = cfg.nodata || -9999;
-    if (cfg.isSnodas) {
+    if (cfg.isHhpSm) {
+      url = hhpSmUrl();
+    } else if (cfg.isSnodas) {
       // SNODAS uses ZSTD compression — load via geotiff.js directly + DataTile
       // (OL's GeoTIFF source can't handle ZSTD in web workers)
       _loadSnodasLayer(varKey, paletteKey, rangeOverride);
@@ -4420,7 +4602,7 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
    ════════════════════════════════════════════════════════════════ */
 async function prefetch(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
-  if (!cfg || cfg.noRaster) return;
+  if (!cfg || cfg.noRaster || cfg.isHhpSm || cfg.isSnodas) return; // no prefix / fixed URL
   // resolveLayerUrl itself HEAD-probes, which also warms the browser cache.
   try { await resolveLayerUrl(cfg.prefix, ts, period); } catch (e) {}
 }
@@ -4433,7 +4615,9 @@ async function loadLayer(varKey, ts, period) {
   if (cfg.noRaster) return;
 
   var url;
-  if (cfg.isSnodas) {
+  if (cfg.isHhpSm) {
+    url = hhpSmUrl();
+  } else if (cfg.isSnodas) {
     url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
   } else {
     url = await resolveLayerUrl(cfg.prefix, ts, period);
@@ -4473,8 +4657,8 @@ async function loadLayer(varKey, ts, period) {
     renderLayer(null, varKey, ts, period, cfg.defaultPalette, getRangeOverride());
     hideSpinner();
 
-    // Prefetch neighbor timescales (skip for SNODAS)
-    if (!cfg.isSnodas) {
+    // Prefetch neighbor timescales (skip for SNODAS and single-URL SMI)
+    if (!cfg.isSnodas && !cfg.isHhpSm) {
       var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
       var idx = TIMESCALES.indexOf(ts);
       [-1, 1].forEach(function(offset) {
@@ -4559,6 +4743,8 @@ const CONV_INDICES = {
   eddi:         { label: 'EDDI',  negate: true },
   svpdi:        { label: 'SVPDI', negate: true },
   'snodas-swe': { label: 'Standardized SWE', negate: false, isSnodas: true, rawScale: 0.01 },
+  'hhp-sm-shallow': { label: 'SMI — Shallow', negate: false, isHhpSm: true, smUrls: HHP_SM_SHALLOW_URLS, url: HHP_SM_SHALLOW_URLS[HHP_SM_DEFAULT_TS], rawScale: 1, ready: true },
+  'hhp-sm-middle':  { label: 'SMI — Mid-Depth', negate: false, isHhpSm: true, smUrls: HHP_SM_MIDDLE_URLS,  url: HHP_SM_MIDDLE_URLS[HHP_SM_DEFAULT_TS],  rawScale: 1, ready: HHP_SM_MIDDLE_READY },
   'hhp':        { label: 'HHP Streamflow',   negate: false, isHhp: true, rawScale: 1 }
 };
 let convLayers = []; // array of { varKey, ts }
@@ -4575,7 +4761,9 @@ function convRenderList() {
     row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;min-width:0;';
     row.innerHTML =
       '<select class="conv-var" style="flex:1;padding:4px 6px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;font-family:var(--font-display);">' +
-        Object.keys(CONV_INDICES).map(function(k) {
+        Object.keys(CONV_INDICES).filter(function(k) {
+          return CONV_INDICES[k].ready !== false || k === layer.varKey;
+        }).map(function(k) {
           return '<option value="' + k + '"' + (k === layer.varKey ? ' selected' : '') + '>' + CONV_INDICES[k].label + '</option>';
         }).join('') +
       '</select>' +
@@ -4588,14 +4776,30 @@ function convRenderList() {
       '<button class="conv-remove" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:2px 4px;min-width:22px;" title="Remove">&times;</button>';
     row.querySelector('.conv-var').addEventListener('change', function() {
       convLayers[idx].varKey = this.value;
-      if (CONV_INDICES[this.value].isSnodas || CONV_INDICES[this.value].isHhp) { convLayers[idx].ts = 'daily'; }
+      var nv = CONV_INDICES[this.value];
+      if (nv.isSnodas || nv.isHhp) { convLayers[idx].ts = 'daily'; }
+      else if (nv.isHhpSm && !HHP_SM_SHALLOW_URLS[convLayers[idx].ts]) { convLayers[idx].ts = HHP_SM_DEFAULT_TS; }
       convRenderList(); // re-render to show/hide timescale
     });
     var tsSelect = row.querySelector('.conv-ts');
-    if (CONV_INDICES[layer.varKey] && (CONV_INDICES[layer.varKey].isSnodas || CONV_INDICES[layer.varKey].isHhp)) {
+    var convCi = CONV_INDICES[layer.varKey];
+    if (convCi && (convCi.isSnodas || convCi.isHhp)) {
       tsSelect.disabled = true;
       tsSelect.innerHTML = '<option value="daily">Daily</option>';
       layer.ts = 'daily';
+    } else if (convCi && convCi.isHhpSm) {
+      if (HHP_SM_SHOW_TIMESCALES) {
+        // SMI: only its own timescales are available
+        if (!HHP_SM_SHALLOW_URLS[layer.ts]) layer.ts = HHP_SM_DEFAULT_TS;
+        tsSelect.innerHTML = HHP_SM_TIMESCALES.map(function(o) {
+          return '<option value="' + o.value + '"' + (o.value === layer.ts ? ' selected' : '') + '>' + o.label + '</option>';
+        }).join('');
+      } else {
+        // Locked to 1d (daily instantaneous)
+        layer.ts = HHP_SM_DEFAULT_TS;
+        tsSelect.disabled = true;
+        tsSelect.innerHTML = '<option value="1d">Daily</option>';
+      }
     }
     tsSelect.addEventListener('change', function() { convLayers[idx].ts = this.value; });
     var wtInput = row.querySelector('.conv-weight');
@@ -4614,7 +4818,7 @@ function convRenderList() {
 
 document.getElementById('conv-add-btn').addEventListener('click', function() {
   var used = convLayers.map(function(l) { return l.varKey; });
-  var next = Object.keys(CONV_INDICES).find(function(k) { return !used.includes(k); }) || 'spi';
+  var next = Object.keys(CONV_INDICES).find(function(k) { return !used.includes(k) && CONV_INDICES[k].ready !== false; }) || 'spi';
   convLayers.push({ varKey: next, ts: activeTS, weight: 1 });
   convRenderList();
 });
@@ -4624,7 +4828,7 @@ document.getElementById('conv-preset').addEventListener('change', function() {
   if (!ts) return;
   // Append drought indices at this timescale (skip SNODAS and duplicates)
   Object.keys(CONV_INDICES).forEach(function(k) {
-    if (CONV_INDICES[k].isSnodas || CONV_INDICES[k].isHhp) return; // must be explicitly added
+    if (CONV_INDICES[k].isSnodas || CONV_INDICES[k].isHhp || CONV_INDICES[k].isHhpSm) return; // must be explicitly added
     var exists = convLayers.some(function(l) { return l.varKey === k && l.ts === ts; });
     if (!exists) convLayers.push({ varKey: k, ts: ts, weight: 1 });
   });
@@ -4635,7 +4839,7 @@ document.getElementById('conv-preset').addEventListener('change', function() {
 document.getElementById('conv-all-btn').addEventListener('click', function() {
   // Add SPI, SPEI, EDDI, SVPDI at ALL timescales (skip duplicates)
   var droughtKeys = Object.keys(CONV_INDICES).filter(function(k) {
-    return !CONV_INDICES[k].isSnodas && !CONV_INDICES[k].isHhp;
+    return !CONV_INDICES[k].isSnodas && !CONV_INDICES[k].isHhp && !CONV_INDICES[k].isHhpSm;
   });
   TIMESCALES.forEach(function(ts) {
     droughtKeys.forEach(function(k) {
@@ -4919,6 +5123,17 @@ function applyConvergence() {
           });
         });
       });
+    } else if (ci.isHhpSm) {
+      // SMI: standardized float COG (DEFLATE). Resampled to the reference grid like SNODAS.
+      // Honor the row's timescale when it maps to an SMI product; else fall back to default.
+      var smUrl = (ci.smUrls && ci.smUrls[l.ts]) || ci.url;
+      return GeoTIFF.fromUrl(smUrl).then(function(tiff) {
+        return tiff.getImage().then(function(image) {
+          return image.readRasters().then(function(rasters) {
+            return { data: rasters[0], width: image.getWidth(), height: image.getHeight(), bbox: image.getBoundingBox(), isHhpSm: true };
+          });
+        });
+      });
     } else {
       return resolveLayerUrl(VAR_CONFIG[l.varKey].prefix, l.ts, getConvPeriod()).then(function(gUrl) {
         return GeoTIFF.fromUrl(gUrl).then(function(tiff) {
@@ -4933,8 +5148,8 @@ function applyConvergence() {
   });
 
   Promise.all(fetchPromises).then(function(rasters) {
-    // Use the first gridMET raster as the reference grid
-    var refIdx = rasters.findIndex(function(r) { return !r.isSnodas && !r.isHhp; });
+    // Use the first gridMET raster as the reference grid (SNODAS/HHP/SMI are resampled to it)
+    var refIdx = rasters.findIndex(function(r) { return !r.isSnodas && !r.isHhp && !r.isHhpSm; });
     var w, h, bbox;
     if (refIdx >= 0) {
       w = rasters[refIdx].width;
@@ -4983,7 +5198,7 @@ function applyConvergence() {
           totalWeight += layerWeight;
           var rraw;
           var layerNodata = false;
-          if (rr.isSnodas) {
+          if (rr.isSnodas || rr.isHhpSm) {
             var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
             var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
             var sColMin = Math.floor((pixLon - refResX/2 - rr.bbox[0]) / sResX);
@@ -6193,7 +6408,7 @@ async function downloadGeoTIFF() {
             var rr = rasters[rli], lw = weights[rli], raw, nodata = false;
             if (lw <= 0) continue;
             eTotalW += lw;
-            if (rr.isSnodas) {
+            if (rr.isSnodas || rr.isHhpSm) {
               var sRX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
               var sRY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
               var c0 = Math.max(0, Math.floor((pixLon - refResX/2 - rr.bbox[0]) / sRX));
@@ -6274,6 +6489,9 @@ async function downloadGeoTIFF() {
   } else if (cfg.isSnodas) {
     sourceUrl = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
     filename = 'snodas_swe_standardized_' + dateStr + '.tif';
+  } else if (cfg.isHhpSm) {
+    sourceUrl = hhpSmUrl();
+    filename = 'hhp_smi_' + activeSmDepth + '_' + activeSmTS + '_' + dateStr + '.tif';
   } else {
     var fileBase = cfg.prefix + activeTS + '_' + activePeriod;
     sourceUrl = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + fileBase + '.tif';
@@ -6546,6 +6764,10 @@ async function takeScreenshot(exportScale) {
       if (cfg && cfg.isSnodas) {
         titleLine1 = getFullVarName(activeVar);
         titleLine2 = 'Data Valid: ' + dateTxt;
+      } else if (cfg && cfg.isHhpSm) {
+        // SMI: show depth; no reference period; timescale only when the picker is enabled.
+        titleLine1 = getFullVarName(activeVar) + (HHP_SM_SHOW_TIMESCALES ? ' \u2014 ' + smTsLabel(activeSmTS) : '');
+        titleLine2 = smDepthLabel(activeSmDepth) + '  |  Data Valid: ' + dateTxt;
       } else if (cfg && cfg.tileLayer) {
         // External tile layers (e.g. VHI) have no timescale or reference period;
         // surface the relevant temporal scope instead (composite week for VHI).
@@ -6993,6 +7215,8 @@ function buildShareUrl() {
     if (document.getElementById('conv-weights-chk').checked) qp.set('cw', '1');
   } else {
     hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
+    // SMI depth isn't part of the var key, so carry it as a query param.
+    if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm) qp.set('smd', activeSmDepth);
   }
 
   hash += '/' + (activeZoomState || '');
@@ -7183,10 +7407,12 @@ function loadState() {
   }
 
   if (!VAR_CONFIG[v]) return null;
-  if (ts && !TIMESCALES.includes(ts)) return null;
+  // SMI layers use a fixed daily timescale + their own depth — skip the gridMET ts check.
+  if (ts && !VAR_CONFIG[v].isHhpSm && !TIMESCALES.includes(ts)) return null;
   if (period && !['rolling-30','fixed-1991-2020','full'].includes(period)) return null;
   if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView };
+  const smDepth = VAR_CONFIG[v].isHhpSm ? validSmDepth(params.get('smd')) : null;
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView, smDepth: smDepth };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -7333,6 +7559,7 @@ if (savedState) {
   activeTS = savedState.ts;
   activePeriod = savedState.period;
   activeZoomState = savedState.zoomState || '';
+  if (savedState.smDepth) activeSmDepth = savedState.smDepth;
   // Update UI
   document.getElementById('var-select').value = activeVar;
   // Update custom dropdown
@@ -7380,6 +7607,18 @@ if (savedState) {
     tsBody.style.display = "none";
     prLabel.style.display = "none";
     prBody.style.display = "none";
+  } else if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm) {
+    // SMI: no reference period; timescale strip only when the picker is enabled.
+    document.querySelector(".section-label[data-sec='sec-period']").style.display = "none";
+    document.getElementById("sec-period").style.display = "none";
+    if (HHP_SM_SHOW_TIMESCALES) {
+      renderTimescaleStrip(activeVar);
+    } else {
+      activeSmTS = HHP_SM_DEFAULT_TS;
+      document.querySelector(".section-label[data-sec='sec-timescale']").style.display = "none";
+      document.getElementById("sec-timescale").style.display = "none";
+    }
+    setSmDepthVisible(true);
   }
 
   // Restore theme
@@ -7467,6 +7706,7 @@ window.addEventListener('popstate', function() {
   activeTS = st.ts;
   activePeriod = st.period;
   activeZoomState = st.zoomState || '';
+  if (st.smDepth) activeSmDepth = st.smDepth;
   document.getElementById('var-select').value = activeVar;
   document.querySelectorAll('.ts-btn').forEach(b => b.classList.toggle('active', b.dataset.ts === activeTS));
   document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
@@ -7485,10 +7725,15 @@ window.addEventListener('popstate', function() {
   const tsLabel = document.querySelector(".section-label[data-sec='sec-timescale']");
   const tsBody = document.getElementById("sec-timescale");
   const isHhp = activeVar === 'hhp';
-  prLabel.style.display = isHhp ? "none" : "";
-  prBody.style.display  = isHhp ? "none" : "";
-  tsLabel.style.display = isHhp ? "none" : "";
-  tsBody.style.display  = isHhp ? "none" : "";
+  const isSm = VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm;
+  const hideSmTs = isSm && !HHP_SM_SHOW_TIMESCALES;
+  if (hideSmTs) activeSmTS = HHP_SM_DEFAULT_TS;
+  prLabel.style.display = (isHhp || isSm) ? "none" : "";
+  prBody.style.display  = (isHhp || isSm) ? "none" : "";
+  tsLabel.style.display = (isHhp || hideSmTs) ? "none" : "";
+  tsBody.style.display  = (isHhp || hideSmTs) ? "none" : "";
+  renderTimescaleStrip(activeVar);
+  setSmDepthVisible(!!isSm);
   // Restore theme
   activeTheme = st.theme || 'light';
   if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
