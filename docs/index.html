@@ -180,7 +180,7 @@
             <option value="hhp-sm-shallow" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML soil moisture is a knowledge-guided machine learning model that predicts daily soil moisture for the conterminous US, reported here as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Negative values indicate drier-than-normal soils; positive values wetter-than-normal. This shallow (0–10 cm) product (1/7/15/30-day timescales) is in the review pipeline and not yet officially published. Values are provisional. Please contact zachary.hoylman@umontana.edu for details.">HHP Soil Moisture — SMI (Soil Moisture Index)</option>
           </optgroup>
           <optgroup label="── Streamflow ──">
-            <option value="hhp" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET forcing. It produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology. This dataset is in the review pipeline and not yet officially published. Values are preliminary. Please contact zachary.hoylman@umontana.edu for details.">HHP Streamflow Basins</option>
+            <option value="hhp" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET forcing. It produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology. This dataset is in the review pipeline and not yet officially published. Values are preliminary. Please contact zachary.hoylman@umontana.edu for details.">HHP Streamflow (Modelled Percentiles)</option>
           </optgroup>
           <optgroup label="── Precipitation ──">
             <option value="precip-pctile">Precipitation — Percentile</option>
@@ -881,6 +881,23 @@ function ghcnPropKey(v, ts, period) {
   return prefix + ts + '_' + period;
 }
 
+// Stale-station filter. Hide GHCN stations whose last obs lags the raster's valid
+// date by more than GHCN_MAX_LAG_DAYS — stale stations misrepresent current
+// conditions (a lagged accumulation/percentile reads anomalously dry vs the grid).
+// Applies to all GHCN-mapped variables.
+const GHCN_MAX_LAG_DAYS = 4;
+function _ghcnDateMs(s) {
+  if (!s) return NaN;
+  var m = String(s).match(/\d{4}-\d{2}-\d{2}/);
+  return m ? Date.parse(m[0] + 'T00:00:00Z') : NaN;
+}
+function ghcnIsStale(feature) {
+  var r  = _ghcnDateMs(activeDate);
+  var st = _ghcnDateMs(feature.get('_ghcnDate'));
+  if (isNaN(r) || isNaN(st)) return false;   // unparseable on either side → show
+  return (r - st) / 86400000 > GHCN_MAX_LAG_DAYS;
+}
+
 // ── Sliced-layout configuration (lazy per-slice GHCN loading) ──
 // Flip GHCN_USE_SLICED_LAYOUT to false to fully revert to the bundled fetch path.
 // On manifest fetch failure, the loader auto-falls back to the bundled file too.
@@ -991,7 +1008,7 @@ const VAR_CONFIG = {
   'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using the Zero-Inflated Gamma (ZIG) distribution. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
   'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
   'hhp-sm-shallow': { label: "HHP Soil Moisture — SMI", fullLabel: "HHP Soil Moisture — SMI (Soil Moisture Index)", prefix: null, isHhpSm: true, smTimescales: HHP_SM_TIMESCALES, smUrls: HHP_SM_SHALLOW_URLS, hidePeriod: true, paletteGroup: 'idx_diverging', defaultPalette: 'usdm', reversed: false, breaks: USDM_BREAKS, labelFmt: v => v.toFixed(1), dynamic: false, rawScale: 1, nodata: -9999, nanNodata: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML soil moisture, reported as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Interpreted like SPI: negative values indicate drier-than-normal soils, positive values wetter-than-normal. This shallow (0–10 cm) product is available at 1-, 7-, 15-, and 30-day timescales and is provisional and in review." },
-  hhp:          { label: "HHP Streamflow Basins",           prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning (KGML) model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures (SingleExpert, TwoExpertAverage, MoE, MoeDynamic) masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET meteorological forcing. Operationally it produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology, shown here as USDM-style drought-to-wet bands with per-basin time-series plots on click." },
+  hhp:          { label: "HHP Streamflow (Modelled Percentiles)", prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning (KGML) model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures (SingleExpert, TwoExpertAverage, MoE, MoeDynamic) masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET meteorological forcing. Operationally it produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology, shown here as USDM-style drought-to-wet bands with per-basin time-series plots on click." },
   vhi:          { label: "VHI",                             prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, tileLayer: true, attribution: "NOAA STAR / NESDIS", description: "Vegetation Health Index (VHI) from NOAA NESDIS / STAR — a satellite-derived weekly composite combining the Vegetation Condition Index (VCI) and Temperature Condition Index (TCI) from VIIRS-NOAA20 (J01) at 500 m. Low values (red/pink) indicate stressed vegetation; high values (blue) indicate healthy vegetation. Imagery is provided as map tiles directly from NESDIS — per-pixel values, zonal averages, and custom color ranges are not available." },
 };
 
@@ -3503,6 +3520,7 @@ function getGhcnSliceValue(feature, v, ts, period) {
 }
 
 function ghcnFeatureStyle(feature) {
+  if (ghcnIsStale(feature)) return null;  // hide stations lagging the raster (accumulated precip)
   var val = getGhcnSliceValue(feature, activeVar, activeTS, activePeriod);
   if (val == null || isNaN(val)) return null;
   var cfg = VAR_CONFIG[activeVar];
@@ -3630,6 +3648,7 @@ function restyleGhcnLayer() {
       } else if (ghcnLayer) {
         var vals = [];
         ghcnLayer.getSource().forEachFeature(function(f) {
+          if (ghcnIsStale(f)) return;
           var v = getGhcnSliceValue(f, activeVar, activeTS, activePeriod);
           if (v != null && !isNaN(v) && v > -9000) vals.push(cfg.mmToIn ? v / 25.4 : cfg.cToF ? v * 9 / 5 : v);
         });
@@ -4745,7 +4764,7 @@ const CONV_INDICES = {
   'snodas-swe': { label: 'Standardized SWE', negate: false, isSnodas: true, rawScale: 0.01 },
   'hhp-sm-shallow': { label: 'SMI — Shallow', negate: false, isHhpSm: true, smUrls: HHP_SM_SHALLOW_URLS, url: HHP_SM_SHALLOW_URLS[HHP_SM_DEFAULT_TS], rawScale: 1, ready: true },
   'hhp-sm-middle':  { label: 'SMI — Mid-Depth', negate: false, isHhpSm: true, smUrls: HHP_SM_MIDDLE_URLS,  url: HHP_SM_MIDDLE_URLS[HHP_SM_DEFAULT_TS],  rawScale: 1, ready: HHP_SM_MIDDLE_READY },
-  'hhp':        { label: 'HHP Streamflow',   negate: false, isHhp: true, rawScale: 1 }
+  'hhp':        { label: 'HHP Streamflow (%ile)',   negate: false, isHhp: true, rawScale: 1 }
 };
 let convLayers = []; // array of { varKey, ts }
 let convActive = false;
