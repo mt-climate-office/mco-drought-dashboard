@@ -1,0 +1,131 @@
+<style>
+  .cr-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:8px; }
+  @media (max-width:1050px){ .cr-grid{ grid-template-columns:1fr; } }
+  .cr{ border:2px solid transparent; border-radius:14px; padding:6px; cursor:pointer; transition:transform .15s,border-color .15s; }
+  .cr:hover{ transform:translateY(-3px); }
+  .cr.selected{ border-color:var(--accl,#7cc6ff); }
+  .cr-cap{ padding:11px 4px 2px; }
+  .cr-name{ font-weight:700; font-size:13.5px; color:#eaf0f6; }
+  .cr-desc{ font-size:11px; color:#9fb0c4; margin-top:3px; line-height:1.45; }
+
+  .app{ font-family:'Outfit',system-ui,sans-serif; height:330px; display:flex; flex-direction:column; border-radius:10px; overflow:hidden; background:var(--bg); color:var(--tx); }
+  .nav{ height:36px; display:flex; align-items:center; gap:11px; padding:0 12px; background:var(--surf); position:relative; }
+  .logo{ font-weight:700; font-size:14px; } .logo sup{ color:var(--accl); font-size:9px; }
+  .ni{ font-size:10px; color:var(--txd); }
+  .sp{ flex:1; }
+  .body{ flex:1; display:flex; min-height:0; }
+  .side{ width:126px; background:var(--surf); padding:11px 11px; display:flex; flex-direction:column; gap:10px; position:relative; }
+  .lab{ font-size:8px; color:var(--txd); }
+  .sel{ background:var(--elev); border:1px solid var(--bd); border-radius:var(--rad); padding:7px 9px; font-size:9.5px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .pills{ display:flex; gap:4px; }
+  .pill{ flex:1; text-align:center; font-size:8px; font-family:'Space Mono',monospace; padding:5px 0; border-radius:var(--radp); background:var(--elev); color:var(--txd); border:1px solid transparent; }
+  .pill.on{ background:var(--accbg); color:var(--accl); border-color:var(--accbd); font-weight:700; }
+  .sld{ height:4px; border-radius:3px; background:var(--elev); position:relative; }
+  .sld i{ position:absolute; left:0;top:0;bottom:0;width:60%; background:var(--acc); border-radius:3px; }
+  .sld b{ position:absolute; left:58%; top:-3px; width:10px;height:10px;border-radius:50%; background:var(--accl); }
+  .map{ flex:1; position:relative; background:var(--map); }
+  /* dock legend (chosen B) */
+  .dock{ position:absolute; left:9px; bottom:9px; width:150px; background:var(--glass); backdrop-filter:blur(13px); border:1px solid var(--hair); border-radius:11px; overflow:hidden; box-shadow:var(--shadow); }
+  .dh{ display:flex; align-items:center; gap:5px; padding:6px 9px; border-bottom:1px solid var(--hair); }
+  .dh .ic{ width:9px;height:9px;border-radius:2px; background:linear-gradient(135deg,var(--acc),var(--accl)); }
+  .dh .t{ font-size:8.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--txm); }
+  .mod{ padding:7px 9px; border-bottom:1px solid var(--hair); } .mod:last-child{border-bottom:none}
+  .mod.pri{ background:linear-gradient(180deg,var(--accbg),transparent); }
+  .mt{ font-size:9.5px; font-weight:600; } .ms{ font-size:7.5px; font-family:'Space Mono',monospace; color:var(--txd); margin:1px 0 5px; }
+  .ramp{ display:flex; height:7px; border-radius:2px; overflow:hidden; } .ramp span{ flex:1; }
+</style>
+
+<h2>Refined chrome — before → after (and settle the blue)</h2>
+<p class="subtitle">Same shell with the refinements applied: hairline nav (no gradient stripe), no sidebar dot-texture, lighter dividers, calmer labels, de-glowed slider, the unified dock legend (B). The only difference between the two "after" panels is the <b>accent</b>. Click whichever after you prefer.</p>
+
+<div class="cr-grid">
+
+  <!-- CURRENT -->
+  <div class="cr">
+    <div style="--bg:#161b22;--surf:#1e2530;--elev:#2c3545;--acc:#1a6faf;--accl:#5aaee8;--accbg:rgba(26,111,175,.15);--accbd:rgba(26,111,175,.3);--bd:#3a4558;--hair:#3a4558;--tx:#e8ecf0;--txm:#9aa8bd;--txd:#8a99b0;--rad:8px;--radp:20px;--glass:rgba(30,37,48,.82);--shadow:0 8px 28px rgba(0,0,0,.5);--map:radial-gradient(120% 90% at 70% 18%,#243244,#1a2330 55%,#151c27);">
+      <div class="app">
+        <div class="nav" style="border-bottom:none">
+          <span class="logo">D<sup>3</sup></span><span class="ni">Map</span><span class="ni">Methods</span><span class="sp"></span><span style="width:9px;height:9px;border-radius:50%;background:#5aaee8"></span>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#114f80,#1a6faf,#5aaee8,#1a6faf,#114f80)"></div>
+        </div>
+        <div class="body">
+          <div class="side" style="border-right:1px solid #3a4558">
+            <div style="position:absolute;inset:0;opacity:.15;pointer-events:none;background-image:radial-gradient(#6b7a90 .5px,transparent .5px);background-size:10px 10px"></div>
+            <div class="lab" style="text-transform:uppercase;letter-spacing:.1em;font-weight:600;border-top:1px solid rgba(255,255,255,.04);padding-top:8px">Variable</div>
+            <div class="sel">SPI <span style="color:var(--txd)">▾</span></div>
+            <div class="lab" style="text-transform:uppercase;letter-spacing:.1em;font-weight:600;border-top:1px solid rgba(255,255,255,.04);padding-top:8px">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab" style="text-transform:uppercase;letter-spacing:.1em;font-weight:600">Opacity</div>
+            <div class="sld"><i></i><b style="box-shadow:0 0 8px var(--accl)"></b></div>
+          </div>
+          <div class="map">
+            <div class="dock" style="border-radius:12px;border-color:#3a4558">
+              <div class="dh"><span class="ic"></span><span class="t">SPI</span></div>
+              <div class="mod" style="background:none"><div class="ms">30d · Rolling-30</div><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cr-cap"><div class="cr-name">Current</div><div class="cr-desc">Gradient stripe under nav, dotted sidebar texture, heavy borders/shadows, glowing slider thumb, uppercase labels with rules.</div></div>
+  </div>
+
+  <!-- REFINED, SAME BLUE -->
+  <div class="cr selected" data-choice="refined-keep-blue" onclick="toggleSelect(this)">
+    <div style="--bg:#0c0f14;--surf:#11151c;--elev:#1a212b;--acc:#1a6faf;--accl:#5aaee8;--accbg:rgba(26,111,175,.16);--accbd:rgba(90,174,232,.4);--bd:#222a35;--hair:rgba(255,255,255,.07);--tx:#f2f5f9;--txm:#9aa8bd;--txd:#74839a;--rad:7px;--radp:6px;--glass:rgba(14,18,24,.78);--shadow:0 10px 28px rgba(0,0,0,.4);--map:radial-gradient(120% 90% at 70% 18%,#1b2937,#121a24 55%,#0b1019);">
+      <div class="app">
+        <div class="nav" style="border-bottom:1px solid var(--hair)">
+          <span class="logo">D<sup>3</sup></span><span class="ni">Map</span><span class="ni">Methods</span><span class="sp"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--accl)"></span>
+        </div>
+        <div class="body">
+          <div class="side" style="border-right:1px solid var(--hair)">
+            <div class="lab" style="font-weight:600">Variable</div>
+            <div class="sel">SPI <span style="color:var(--accl)">▾</span></div>
+            <div class="lab" style="font-weight:600">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab" style="font-weight:600">Opacity</div>
+            <div class="sld"><i></i><b></b></div>
+          </div>
+          <div class="map">
+            <div class="dock">
+              <div class="dh"><span class="ic"></span><span class="t">Legend</span></div>
+              <div class="mod pri"><div class="mt">SPI</div><div class="ms">30d · Rolling-30</div><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+              <div class="mod"><div class="mt">USDM</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cr-cap"><div class="cr-name">Refined · keep current blue</div><div class="cr-desc">All refinements, accent held at today's #1a6faf / #5aaee8.</div></div>
+  </div>
+
+  <!-- REFINED, NEW BLUE -->
+  <div class="cr" data-choice="refined-new-blue" onclick="toggleSelect(this)">
+    <div style="--bg:#0c0f14;--surf:#11151c;--elev:#1a212b;--acc:#2e8fd6;--accl:#7cc6ff;--accbg:rgba(46,143,214,.18);--accbd:rgba(124,198,255,.45);--bd:#222a35;--hair:rgba(255,255,255,.07);--tx:#f2f5f9;--txm:#9aa8bd;--txd:#74839a;--rad:7px;--radp:6px;--glass:rgba(14,18,24,.78);--shadow:0 10px 28px rgba(0,0,0,.4);--map:radial-gradient(120% 90% at 70% 18%,#1b2937,#121a24 55%,#0b1019);">
+      <div class="app">
+        <div class="nav" style="border-bottom:1px solid var(--hair)">
+          <span class="logo">D<sup>3</sup></span><span class="ni">Map</span><span class="ni">Methods</span><span class="sp"></span><span style="width:8px;height:8px;border-radius:50%;background:var(--accl);box-shadow:0 0 7px var(--accl)"></span>
+        </div>
+        <div class="body">
+          <div class="side" style="border-right:1px solid var(--hair)">
+            <div class="lab" style="font-weight:600">Variable</div>
+            <div class="sel">SPI <span style="color:var(--accl)">▾</span></div>
+            <div class="lab" style="font-weight:600">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab" style="font-weight:600">Opacity</div>
+            <div class="sld"><i></i><b></b></div>
+          </div>
+          <div class="map">
+            <div class="dock">
+              <div class="dh"><span class="ic"></span><span class="t">Legend</span></div>
+              <div class="mod pri"><div class="mt">SPI</div><div class="ms">30d · Rolling-30</div><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+              <div class="mod"><div class="mt">USDM</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cr-cap"><div class="cr-name">Refined · cleaner blue</div><div class="cr-desc">Same refinements, accent shifted to a brighter, cooler #2e8fd6 / #7cc6ff. More confident, slightly more "modern instrument."</div></div>
+  </div>
+
+</div>

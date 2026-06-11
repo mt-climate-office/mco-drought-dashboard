@@ -1,0 +1,57 @@
+<style>
+  .ln{ --surf:#11151c; font-family:'Outfit',system-ui,sans-serif; }
+  .row{ border:2px solid transparent; border-radius:14px; cursor:pointer; transition:transform .15s,border-color .15s; margin-bottom:14px; overflow:hidden; }
+  .row:hover{ transform:translateY(-2px); } .row.selected{ border-color:#5aaee8; }
+  .nav{ display:flex; align-items:center; gap:14px; height:56px; padding:0 16px; background:var(--surf);
+        border-bottom:2px solid; border-image:linear-gradient(90deg,#114f80,#1a6faf,#5aaee8,#1a6faf,#114f80) 1; }
+  .d3{ height:44px; width:auto; display:block; }
+  .mco{ height:32px; width:auto; display:block; }
+  .sep{ width:1px; height:20px; background:rgba(255,255,255,.14); }
+  .sp{ flex:1; }
+  .cap{ padding:9px 14px; background:#0a0d12; }
+  .nm{ font-weight:700; font-size:13.5px; color:#eaf0f6; } .ds{ font-size:11px; color:#9fb0c4; margin-top:2px; line-height:1.45; }
+
+  /* dark glass chip (no white) */
+  .chip{ padding:4px 9px; border-radius:9px; background:rgba(255,255,255,.05);
+         box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), 0 2px 8px rgba(0,0,0,.3); }
+  /* brand-edge chip */
+  .edge{ padding:4px 9px 4px 11px; border-radius:9px; background:rgba(255,255,255,.04);
+         box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+         border-left:3px solid; border-image:linear-gradient(180deg,#FFAA00,#E60000,#730000) 1; }
+</style>
+
+<div class="ln">
+<h2>Card-free, dark-native logos</h2>
+<p class="subtitle">No white sticker at all — I rebuilt the D³ wordmark for dark (light body text, brand-colored D's, light-outlined mark). Three ways to frame it. Click your favorite.</p>
+
+<div class="row selected" data-choice="pure" onclick="toggleSelect(this)">
+  <div class="nav">
+    <img class="d3" src="http://localhost:8000/logo/logo_full_dark.svg">
+    <span class="sep"></span>
+    <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">1 · Pure card-free</div><div class="ds">Logos sit directly on the bar, no backing. Cleanest and most modern. (MCO's near-black element may dim against the dark bar — see option 2 if it needs grounding.)</div></div>
+</div>
+
+<div class="row" data-choice="mco-chip" onclick="toggleSelect(this)">
+  <div class="nav">
+    <img class="d3" src="http://localhost:8000/logo/logo_full_dark.svg">
+    <span class="sep"></span>
+    <span class="chip"><img class="mco" src="http://localhost:8000/logo/MCO_logo.svg"></span>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">2 · D³ free, MCO on a dark glass chip</div><div class="ds">D³ card-free; MCO gets a subtle translucent-dark chip (a faint light ring + soft shadow — no white) so its darker elements read. Best of both if MCO needs a home.</div></div>
+</div>
+
+<div class="row" data-choice="edge-chips" onclick="toggleSelect(this)">
+  <div class="nav">
+    <span class="edge"><img class="d3" src="http://localhost:8000/logo/logo_full_dark.svg"></span>
+    <span class="sep"></span>
+    <span class="edge"><img class="mco" src="http://localhost:8000/logo/MCO_logo.svg"></span>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">3 · Brand-edge dark chips</div><div class="ds">Both on translucent-dark chips with a thin D³ color bar (orange→red→maroon) on the left edge — a designed flourish that ties the chrome to the brand. Still no white.</div></div>
+</div>
+
+</div>

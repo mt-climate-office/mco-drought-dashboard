@@ -1,0 +1,143 @@
+<style>
+  .lg-wrap{ --bg:#0c0f14; --surf:#12161d; --elev:#1b212b; --acc:#2e8fd6; --accl:#7cc6ff;
+            --bd:#222a35; --hair:rgba(255,255,255,.07); --tx:#f2f5f9; --txm:#9aa8bd; --txd:#6b7a90;
+            --glass:rgba(14,18,24,.78); font-family:'Outfit',system-ui,sans-serif; }
+  .lg-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:8px; }
+  @media (max-width:1050px){ .lg-grid{ grid-template-columns:1fr; } }
+  .lg-col .da-cap{ padding:11px 2px 0; }
+  .lg-name{ font-weight:700; font-size:14px; color:#eaf0f6; }
+  .lg-desc{ font-size:11.5px; color:#9fb0c4; margin-top:3px; line-height:1.45; }
+  .lg-pick{ border:2px solid transparent; border-radius:14px; cursor:pointer; transition:transform .15s, border-color .15s; padding:6px; }
+  .lg-pick:hover{ transform:translateY(-3px); }
+  .lg-pick.selected{ border-color:var(--accl); }
+  /* faux map */
+  .map{ position:relative; height:300px; border-radius:10px; overflow:hidden;
+        background:radial-gradient(130% 100% at 75% 15%, #1b2937 0%, #121a24 55%, #0b1019 100%); }
+  .stamp{ position:absolute; inset:0; opacity:.5;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:34px 34px; }
+  /* shared ramp bits */
+  .ramp{ display:flex; height:8px; border-radius:3px; overflow:hidden; }
+  .ramp.tall{ height:6px; }
+  .ramp span{ flex:1; }
+  .rlabels{ display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:8px; color:var(--txd); margin-top:3px; }
+
+  /* ============ CURRENT: scattered glass cards ============ */
+  .cur-card{ position:absolute; background:rgba(30,37,48,.82); backdrop-filter:blur(12px);
+    border:1px solid #3a4558; border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.5); padding:9px 11px; color:#e8ecf0; }
+  .cur-title{ font-size:11px; font-weight:600; margin-bottom:5px; }
+  .swrow{ display:flex; gap:5px; align-items:center; margin:2px 0; font-size:9px; color:#c0cad6; }
+  .sw{ width:13px;height:11px;border-radius:3px; }
+
+  /* ============ DOCK ============ */
+  .dock{ position:absolute; left:10px; bottom:10px; width:184px; background:var(--glass);
+    backdrop-filter:blur(14px); border:1px solid var(--hair); border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4); color:var(--tx); overflow:hidden; }
+  .dock-h{ display:flex; align-items:center; gap:6px; padding:8px 11px; border-bottom:1px solid var(--hair); }
+  .dock-h .ic{ width:11px;height:11px;border-radius:3px; background:linear-gradient(135deg,var(--acc),var(--accl)); }
+  .dock-h .t{ font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--txm); }
+  .dock-h .cv{ margin-left:auto; color:var(--txd); font-size:10px; }
+  .mod{ padding:9px 11px; border-bottom:1px solid var(--hair); }
+  .mod:last-child{ border-bottom:none; }
+  .mod .mt{ font-size:11px; font-weight:600; color:var(--tx); }
+  .mod .ms{ font-size:8.5px; font-family:'Space Mono',monospace; color:var(--txd); margin:1px 0 6px; }
+  .mod.primary{ background:linear-gradient(180deg,rgba(46,143,214,.08),transparent); }
+  .dotrow{ display:flex; gap:7px; align-items:center; font-size:8.5px; color:var(--txm); }
+  .dot{ width:9px;height:9px;border-radius:50%; border:1px solid rgba(0,0,0,.3); }
+
+  /* ============ CHIPS ============ */
+  .chips{ position:absolute; left:10px; bottom:10px; display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+  .chip{ display:flex; align-items:center; gap:7px; background:var(--glass); backdrop-filter:blur(14px);
+    border:1px solid var(--hair); border-radius:9px; padding:5px 9px; color:var(--tx); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .chip .mini{ display:flex; height:7px; width:34px; border-radius:2px; overflow:hidden; }
+  .chip .mini span{ flex:1; }
+  .chip .cn{ font-size:10px; font-weight:600; }
+  .chip .cs{ font-size:8px; font-family:'Space Mono',monospace; color:var(--txd); }
+  .chip .cv{ color:var(--txd); font-size:9px; margin-left:2px; }
+  .chip.exp{ flex-direction:column; align-items:stretch; gap:5px; width:178px; border-color:rgba(124,198,255,.4); }
+  .chip.exp .chead{ display:flex; align-items:center; gap:7px; }
+  .chip.exp .ramp{ height:8px; }
+</style>
+
+<div class="lg-wrap">
+<h2>Re-imagining the floating legend(s)</h2>
+<p class="subtitle">All three show the same scene: <b>SPI raster + U.S. Drought Monitor + Streamflow</b> all active at once. Left is today; B and C are redesigns built in the refined dark style. Click the one you want to pursue.</p>
+
+<div class="lg-grid">
+
+  <!-- CURRENT -->
+  <div class="lg-col">
+    <div style="padding:6px">
+      <div class="map">
+        <div class="stamp"></div>
+        <!-- raster legend bottom-left -->
+        <div class="cur-card" style="left:10px;bottom:10px;width:150px">
+          <div class="cur-title">SPI</div>
+          <div style="font-size:8px;font-family:'Space Mono',monospace;color:#8a99b0;margin-bottom:6px">30d · Rolling-30 · 2026-06-08</div>
+          <div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div>
+        </div>
+        <!-- stacked right cards -->
+        <div class="cur-card" style="right:10px;bottom:96px;width:138px">
+          <div class="cur-title">U.S. Drought Monitor</div>
+          <div class="swrow"><span class="sw" style="background:#ffff00"></span>D0 Abnormally Dry</div>
+          <div class="swrow"><span class="sw" style="background:#fcd37f"></span>D1 Moderate</div>
+          <div class="swrow"><span class="sw" style="background:#e69800"></span>D2 Severe</div>
+        </div>
+        <div class="cur-card" style="right:10px;bottom:10px;width:138px">
+          <div class="cur-title">Streamflow (%ile)</div>
+          <div class="swrow"><span class="dot2" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#730000"></span> low</div>
+          <div class="swrow"><span class="dot2" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#325cfe"></span> high</div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="lg-name">A · Current</div><div class="lg-desc">Independent glass cards scattered to two corners; each overlay adds another box. Heavy borders + big shadows = the "leaflet-y" pileup.</div></div>
+  </div>
+
+  <!-- DOCK -->
+  <div class="lg-pick" data-choice="dock" onclick="toggleSelect(this)">
+    <div class="map">
+      <div class="stamp"></div>
+      <div class="dock">
+        <div class="dock-h"><span class="ic"></span><span class="t">Legend</span><span class="cv">⌄</span></div>
+        <div class="mod primary">
+          <div class="mt">SPI</div>
+          <div class="ms">30d · Rolling-30 · 2026-06-08</div>
+          <div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#fcd37f"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#32e1fa"></span><span style="background:#325cfe"></span></div>
+          <div class="rlabels"><span>D4</span><span>D0</span><span>W0</span><span>W4</span></div>
+        </div>
+        <div class="mod">
+          <div class="mt">U.S. Drought Monitor</div>
+          <div class="ms">valid 2026-06-03</div>
+          <div class="ramp tall"><span style="background:#ffff00"></span><span style="background:#fcd37f"></span><span style="background:#e69800"></span><span style="background:#e60000"></span><span style="background:#730000"></span></div>
+          <div class="rlabels"><span>D0</span><span>D2</span><span>D4</span></div>
+        </div>
+        <div class="mod">
+          <div class="mt">Streamflow (%ile)</div>
+          <div class="dotrow"><span class="dot" style="background:#730000"></span><span class="dot" style="background:#ffaa00"></span><span class="dot" style="background:#fff"></span><span class="dot" style="background:#32e1fa"></span><span class="dot" style="background:#325cfe"></span><span style="margin-left:2px">low → high</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="lg-name">B · Unified Legend Dock</div><div class="lg-desc">One card, one corner. Each layer is a module with a hairline divider; active raster is the emphasized primary on top. Collapses as a whole, scrolls if tall. Scales cleanly to any number of overlays.</div></div>
+  </div>
+
+  <!-- CHIPS -->
+  <div class="lg-pick" data-choice="chips" onclick="toggleSelect(this)">
+    <div class="map">
+      <div class="stamp"></div>
+      <div class="chips">
+        <!-- expanded primary -->
+        <div class="chip exp">
+          <div class="chead"><span class="mini"><span style="background:#730000"></span><span style="background:#ffaa00"></span><span style="background:#fff"></span><span style="background:#32e1fa"></span><span style="background:#325cfe"></span></span><span class="cn">SPI</span><span class="cs">30d</span><span class="cv" style="margin-left:auto">⌄</span></div>
+          <div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#fcd37f"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#32e1fa"></span><span style="background:#325cfe"></span></div>
+          <div class="rlabels"><span>D4 driest</span><span>W4 wettest</span></div>
+        </div>
+        <!-- collapsed chips -->
+        <div class="chip"><span class="mini"><span style="background:#ffff00"></span><span style="background:#e69800"></span><span style="background:#730000"></span></span><span class="cn">USDM</span><span class="cs">2026-06-03</span><span class="cv" style="margin-left:auto">›</span></div>
+        <div class="chip"><span class="mini"><span style="background:#730000"></span><span style="background:#fff"></span><span style="background:#325cfe"></span></span><span class="cn">Streamflow</span><span class="cv" style="margin-left:auto">›</span></div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="lg-name">C · Collapsible Chips</div><div class="lg-desc">Each legend is a slim chip (mini-ramp + name); click to expand one at a time. Smallest footprint, progressive disclosure — best when many overlays are on and you want the map to breathe.</div></div>
+  </div>
+
+</div>
+</div>

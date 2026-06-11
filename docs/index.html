@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +27,7 @@
   <link rel="icon" type="image/svg+xml" href="logo/logo_unified.svg">
 
   <!-- Google Fonts -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 
   <!-- OpenLayers CSS + JS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.5.0/ol.css">
@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=scroll-runway2">
+  <link rel="stylesheet" href="styles.css?v=refine-c21">
 </head>
 <body>
 
@@ -289,7 +289,7 @@
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;">Meteorological Drought Metrics</div>
         <div id="ghcn-btn-row">
           <button id="ghcn-btn" type="button">
-            <span>GHCN Station Data</span>
+            <span>GHCNd Station Data</span>
           </button>
         </div>
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:10px;margin-bottom:4px;">Streamflow</div>
@@ -429,6 +429,7 @@
               <option value="4">HUC4 (Subregion)</option>
               <option value="6">HUC6 (Basin)</option>
               <option value="8">HUC8 (Subbasin)</option>
+              <option value="10">HUC10 (Watershed)</option>
             </select>
           </div>
           <div class="depth-strip ov-seg" data-ov-type="huc">
@@ -512,8 +513,8 @@
         </div>
         <div class="subsec-label" style="margin-top:10px">Theme</div>
         <div id="theme-strip">
-          <button class="basemap-btn" data-theme="dark">Dark</button>
-          <button class="basemap-btn active" data-theme="light">Light</button>
+          <button class="basemap-btn active" data-theme="dark">Dark</button>
+          <button class="basemap-btn" data-theme="light">Light</button>
           <button class="basemap-btn" data-theme="high-contrast">High Contrast</button>
         </div>
       </div>
@@ -602,8 +603,15 @@
 <!-- Spinner -->
 <div id="spinner"><div class="spin-ring"></div><div class="spin-label">Loading data…</div></div>
 
+<!-- ═══ Unified legend dock — one docked panel holding the active raster/convergence
+     legend (inserted as the primary module by buildLegend) plus overlay legend
+     modules (streamflow, mesonet, USDM, VHI). Replaces the old scattered cards. ═══ -->
+<div id="legend-dock">
+  <div id="legend-dock-label"><span>Legend</span><span class="legend-dock-hint">click for details</span></div>
+  <div id="legend-dock-body">
+
 <!-- Streamflow percentile legend -->
-<div id="sf-legend" style="display:none">
+<div id="sf-legend" class="legend-mod" style="display:none">
   <div class="sf-leg-title">Streamflow Percentile</div>
   <div class="sf-leg-period">Rolling 30-yr Climatology</div>
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#730000"></span>0–2%</div>
@@ -620,7 +628,7 @@
 </div>
 
 <!-- Montana Mesonet soil moisture legend -->
-<div id="mesonet-legend" style="display:none">
+<div id="mesonet-legend" class="legend-mod" style="display:none">
   <div class="sf-leg-title">Standardized Soil<br>Moisture Anomaly</div>
   <div class="sf-leg-period">Montana Mesonet</div>
   <div class="sf-leg-row"><span class="sf-swatch meso-circle" style="background:#730000"></span>Exceptionally Dry</div>
@@ -637,7 +645,7 @@
 </div>
 
 <!-- USDM legend -->
-<div id="usdm-legend" style="display:none">
+<div id="usdm-legend" class="legend-mod" style="display:none">
   <div class="sf-leg-title">U.S. Drought Monitor</div>
   <div class="sf-leg-period" id="usdm-date"></div>
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#FFFF00"></span>D0 — Abnormally Dry</div>
@@ -648,7 +656,7 @@
 </div>
 
 <!-- VHI legend (NOAA STAR / NESDIS palette) -->
-<div id="vhi-legend" style="display:none">
+<div id="vhi-legend" class="legend-mod" style="display:none">
   <div class="sf-leg-title">Vegetation Health Index</div>
   <div class="sf-leg-period">VIIRS-NOAA20 · 500&nbsp;m</div>
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#FF0080"></span>0–6 · Severe stress</div>
@@ -664,6 +672,9 @@
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#C0C0C0"></span>Snow/ice</div>
   <div class="sf-leg-row"><span class="sf-swatch" style="background:#E8E8E8;border:1px solid #ccc"></span>Desert / missing</div>
 </div>
+
+  </div><!-- /legend-dock-body -->
+</div><!-- /legend-dock -->
 
 <!-- HHP basin flow panel -->
 <div id="flow-panel">
@@ -708,7 +719,7 @@ const _layerUrlCache = {};
 // tile source and the date-extraction fetch (they share this resolved URL), so the
 // legend date and the rendered pixels can never desync. Range requests within a
 // session reuse the same URL, so panning/zooming still hits the browser cache.
-const CACHE_BUST = "v=" + Date.now();
+const CACHE_BUST = "v=" + Math.floor(Date.now() / 3600000);  // hourly bucket — fresh ≤1h, but revisits reuse cached COG tiles
 function withBust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + CACHE_BUST; }
 
 async function resolveLayerUrl(prefix, ts, period) {
@@ -1153,7 +1164,7 @@ function getVisibleRange() {
   const [w, h] = mapSize;
 
   const unitFactor = cfg.mmToIn ? 1 / 25.4 : cfg.cToF ? 9 / 5 : 1;
-  const step = Math.max(4, Math.floor(Math.max(w, h) / 80)); // ~80 samples per axis
+  const step = Math.max(6, Math.floor(Math.max(w, h) / 48)); // ~48 samples/axis (read-backs are costly)
   let mn = Infinity, mx = -Infinity;
   let count = 0;
 
@@ -1379,13 +1390,8 @@ document.getElementById('map').classList.add('basemap-grey');
 // Legend toggle control
 var legendsHidden = false;
 function showLegendEl(el) {
-  if (legendsHidden) {
-    el.style.display = 'none';
-    el._wasVisible = true;
-    el._savedDisplay = 'block';
-  } else {
-    el.style.display = 'block';
-  }
+  el.style.display = 'block';   // module becomes active; dock visibility handled centrally
+  stackRightLegends();
 }
 (function() {
   let legendsVisible = true;
@@ -1402,22 +1408,73 @@ function showLegendEl(el) {
   togBtn.addEventListener('click', function() {
     legendsVisible = !legendsVisible;
     legendsHidden = !legendsVisible;
-    var els = document.querySelectorAll('.map-legend, #sf-legend, #usdm-legend, #mesonet-legend, #vhi-legend');
-    els.forEach(function(el) {
-      if (legendsVisible) {
-        if (el._wasVisible) el.style.display = el._savedDisplay || 'block';
-      } else {
-        el._wasVisible = el.style.display !== 'none';
-        el._savedDisplay = el.style.display;
-        el.style.display = 'none';
-      }
-    });
+    stackRightLegends();   // shows/hides the whole dock
     togBtn.innerHTML = legendsVisible ? eyeOpen : eyeClosed;
     togBtn.style.opacity = legendsVisible ? '1' : '0.5';
     togBtn.title = legendsVisible ? 'Hide legends' : 'Show legends';
-    if (legendsVisible) stackRightLegends();
   });
   map.addControl(new ol.control.Control({ element: togContainer }));
+})();
+
+// Move the legend dock into the OL overlay container (so it positions relative to
+// the map), and turn each static overlay legend into a compact ramp-bar module:
+// name + inline tag + horizontal ramp + end labels, with the existing detailed
+// rows tucked into a hidden .legmod-detail (reserved for click-to-expand).
+(function initLegendDock() {
+  const dock = document.getElementById('legend-dock');
+  if (!dock) return;
+  const oc = document.querySelector('#map .ol-overlaycontainer-stopevent')
+    || document.querySelector('#map .ol-viewport')
+    || document.getElementById('map');
+  if (oc) oc.appendChild(dock);
+
+  const SPECS = {
+    'sf-legend':      { name: 'Streamflow',     ts: '· %ile',    ends: ['low', 'high'], dots: true },
+    'usdm-legend':    { name: 'Drought Monitor', ts: '',              ends: ['D0', 'D4'] },
+    'mesonet-legend': { name: 'Soil Moisture',  ts: '· Mesonet', ends: ['Exc. Dry', 'Exc. Wet'], dots: true },
+    'vhi-legend':     { name: 'Vegetation',     ts: '· VHI',     ends: ['stress', 'healthy'] }
+  };
+  Object.keys(SPECS).forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const spec = SPECS[id];
+    const colors = Array.prototype.map.call(el.querySelectorAll('.sf-swatch'), function(s) {
+      return s.style.backgroundColor || '#888';
+    });
+    // Move existing content into a hidden detail block.
+    const detail = document.createElement('div');
+    detail.className = 'legmod-detail';
+    while (el.firstChild) detail.appendChild(el.firstChild);
+    // Build the compact summary.
+    const name = document.createElement('div');
+    name.className = 'legmod-name';
+    name.innerHTML = spec.name + (spec.ts ? ' <span class="legmod-ts">' + spec.ts + '</span>' : '');
+    const ramp = document.createElement('div');
+    ramp.className = 'legmod-ramp' + (spec.dots ? ' dots' : '');
+    colors.forEach(function(c) {
+      const i = document.createElement('i'); i.style.background = c; ramp.appendChild(i);
+    });
+    const ends = document.createElement('div');
+    ends.className = 'legmod-ends';
+    ends.innerHTML = '<span>' + spec.ends[0] + '</span><span>' + spec.ends[1] + '</span>';
+    el.appendChild(name); el.appendChild(ramp); el.appendChild(ends); el.appendChild(detail);
+  });
+
+  // Click a module to expand its full detail as a popover above the bar (one at a
+  // time). Click again, click outside the dock, or press Esc to close.
+  function closeAll() {
+    dock.querySelectorAll('.open').forEach(function(m) { m.classList.remove('open'); });
+  }
+  dock.addEventListener('click', function(e) {
+    if (e.target.closest('.legmod-detail')) return;   // interacting inside the popover
+    const mod = e.target.closest('.legend-mod, .map-legend');
+    if (!mod || mod.parentNode.id !== 'legend-dock-body') return;
+    const wasOpen = mod.classList.contains('open');
+    closeAll();
+    if (!wasOpen) mod.classList.add('open');
+  });
+  document.addEventListener('click', function(e) { if (!dock.contains(e.target)) closeAll(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
 })();
 
 const COUNTY_MIN_ZOOM = 6;
@@ -1738,7 +1795,7 @@ document.querySelectorAll("#basemap-strip .basemap-btn").forEach(btn => {
 });
 
 /* ── Theme toggle ─────────────────────────────────────────────── */
-let activeTheme = "light";
+let activeTheme = "dark";
 document.querySelectorAll("#theme-strip .basemap-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.classList.contains("active")) return;
@@ -2246,14 +2303,19 @@ async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
     var rowMin = Math.max(0, Math.floor((bbox[3] - ext4326[3]) / resY));
     var rowMax = Math.min(h - 1, Math.ceil((bbox[3] - ext4326[1]) / resY));
 
+    // Web Mercator is separable (X←lon, Y←lat): precompute the 3857 X per column
+    // and Y per row so fromLonLat() runs O(cols+rows) times, not once per pixel.
+    var colX = new Float64Array(colMax - colMin + 1);
+    for (var _c = colMin; _c <= colMax; _c++) {
+      colX[_c - colMin] = ol.proj.fromLonLat([bbox[0] + (_c + 0.5) * resX, 0])[0];
+    }
     var vals = [];
     var totalInside = 0;
     for (var row = rowMin; row <= rowMax; row++) {
       var lat = bbox[3] - (row + 0.5) * resY;
+      var rowY = ol.proj.fromLonLat([0, lat])[1];
       for (var col = colMin; col <= colMax; col++) {
-        var lon = bbox[0] + (col + 0.5) * resX;
-        var coord3857 = ol.proj.fromLonLat([lon, lat]);
-        if (!geom.intersectsCoordinate(coord3857)) continue;
+        if (!geom.intersectsCoordinate([colX[col - colMin], rowY])) continue;
         totalInside++;
         var raw = data[row * w + col];
         if (isNaN(raw) || !isFinite(raw) || raw === -9999 || raw <= -9000) continue;
@@ -2434,6 +2496,55 @@ async function loadHucLevel(level) {
   return geojson;
 }
 
+// HUC10 is served as a level-of-detail stack: at coarse zoom we render the HUC10
+// set dissolved up to its HUC6 parents (~340 polys), at mid zoom dissolved to HUC8
+// (~2.1k), and only when zoomed in the full HUC10 set (~15.4k). The tiers nest
+// exactly (all derived from the same HUC10 geometry), so zooming in just
+// subdivides the watersheds \u2014 keeping coarse-zoom rendering fast.
+var HUC10_TIERS = [
+  { maxZoom: 6,        file: 'huc10-coarse', idProp: 'huc6' },
+  { maxZoom: 8,        file: 'huc10-mid',    idProp: 'huc8' },
+  { maxZoom: Infinity, file: 'huc10',        idProp: 'huc10' }
+];
+function huc10TierForZoom(z) {
+  for (var i = 0; i < HUC10_TIERS.length; i++) if (z < HUC10_TIERS[i].maxZoom) return HUC10_TIERS[i];
+  return HUC10_TIERS[HUC10_TIERS.length - 1];
+}
+async function loadHucFile(fileBase, idProp) {
+  if (hucCache[fileBase]) return hucCache[fileBase];
+  var resp = await fetch('data/' + fileBase + '.topojson');
+  var topo = await resp.json();
+  var objectName = Object.keys(topo.objects)[0];
+  var geojson = topojson.feature(topo, topo.objects[objectName]);
+  geojson.features.forEach(function(f) {
+    var p = f.properties || {};
+    f.properties._name = p.name || p.NAME || p[idProp] || idProp.toUpperCase();
+  });
+  hucCache[fileBase] = geojson;
+  return geojson;
+}
+
+function _buildHucLayer(geojson) {
+  var features = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
+  return new ol.layer.Vector({
+    source: new ol.source.Vector({ features: features }),
+    style: new ol.style.Style({
+      stroke: new ol.style.Stroke({ color: '#2196F3', width: 1.2 }),
+      fill: new ol.style.Fill({ color: 'rgba(0,0,0,0)' })
+    }),
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
+    zIndex: 6
+  });
+}
+
+var _huc10MoveHandler = null;
+var _huc10CurrentTier = null;
+function _clearHuc10MoveHandler() {
+  if (_huc10MoveHandler) { map.un('moveend', _huc10MoveHandler); _huc10MoveHandler = null; }
+  _huc10CurrentTier = null;
+}
+
 function showHucLayer() {
   // Remove ALL HUC-related layers
   map.getLayers().getArray().slice().forEach(function(l) {
@@ -2441,22 +2552,16 @@ function showHucLayer() {
   });
   hucLayer = null;
   hucAvgLayer = null;
+  _clearHuc10MoveHandler();
 
   var level = document.getElementById('huc-level').value;
+
+  if (level === '10') { showHuc10Tiered(); return; }
+
   // Load from local simplified TopoJSON
   showSpinner('Loading HUC' + level + ' boundaries\u2026');
   loadHucLevel(level).then(function(geojson) {
-    var features = new ol.format.GeoJSON().readFeatures(geojson, { featureProjection: 'EPSG:3857' });
-    hucLayer = new ol.layer.Vector({
-      source: new ol.source.Vector({ features: features }),
-      style: new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: '#2196F3', width: 1.2 }),
-        fill: new ol.style.Fill({ color: 'rgba(0,0,0,0)' })
-      }),
-      updateWhileAnimating: true,
-      updateWhileInteracting: true,
-      zIndex: 6
-    });
+    hucLayer = _buildHucLayer(geojson);
     map.addLayer(hucLayer);
     ensureLayerStack();
     if (hucAvgActive) computeHucAverages();
@@ -2464,6 +2569,40 @@ function showHucLayer() {
   }).catch(function(e) {
     console.error('HUC load failed:', e);
     hideSpinner();
+  });
+}
+
+// Render the HUC10 LOD tier for the current zoom, and swap tiers as the user
+// zooms across the thresholds.
+function showHuc10Tiered() {
+  _renderHuc10Tier(huc10TierForZoom(map.getView().getZoom()), true);
+  _huc10MoveHandler = function() {
+    if (document.getElementById('huc-level').value !== '10' ||
+        !document.getElementById('huc-chk').checked) return;
+    var t = huc10TierForZoom(map.getView().getZoom());
+    if (t === _huc10CurrentTier) return;   // still within the same LOD band
+    _renderHuc10Tier(t, false);
+  };
+  map.on('moveend', _huc10MoveHandler);
+}
+function _renderHuc10Tier(tier, withSpinner) {
+  _huc10CurrentTier = tier;
+  if (withSpinner) showSpinner('Loading HUC10 watersheds\u2026');
+  loadHucFile(tier.file, tier.idProp).then(function(geojson) {
+    // The tier may have changed again while loading (fast zoom) \u2014 bail if stale.
+    if (_huc10CurrentTier !== tier || document.getElementById('huc-level').value !== '10') {
+      if (withSpinner) hideSpinner();
+      return;
+    }
+    if (hucLayer) { map.removeLayer(hucLayer); hucLayer = null; }
+    hucLayer = _buildHucLayer(geojson);
+    map.addLayer(hucLayer);
+    ensureLayerStack();
+    if (hucAvgActive) computeHucAverages();
+    if (withSpinner) hideSpinner();
+  }).catch(function(e) {
+    console.error('HUC10 tier load failed:', e);
+    if (withSpinner) hideSpinner();
   });
 }
 
@@ -2477,6 +2616,7 @@ document.getElementById('huc-chk').addEventListener('change', function() {
     clearZonalAvg('county');
     countyAvgActive = false;
   } else {
+    _clearHuc10MoveHandler();
     map.getLayers().getArray().slice().forEach(function(l) {
       if (l === hucLayer || l === hucAvgLayer) map.removeLayer(l);
     });
@@ -2596,7 +2736,7 @@ map.on('pointermove', function(e) {
     } else if (layer === usgsStreamLayer) {
       tooltipText = feature.get('_tooltip') || '';
     } else if (layer === ghcnLayer) {
-      var gName = feature.get('_ghcnName') || 'GHCN Station';
+      var gName = feature.get('_ghcnName') || 'GHCNd Station';
       var gHasMap = !!ghcnPropKey(activeVar, activeTS, activePeriod);
       if (gHasMap) {
         var gVal = getGhcnSliceValue(feature, activeVar, activeTS, activePeriod);
@@ -2640,7 +2780,16 @@ let tribalLayer = null, tribalLoaded = false;
 let tribalBounds = {};
 let pendingTribalZoom = null;
 
-async function loadTribalNations() {
+// Lazy-loaded (off by default, external BIA WFS). Shared-promise guard prevents a
+// double fetch / duplicate dropdown options if both a LAR share-link restore and the
+// tribal toggle request it.
+let _tribalPromise = null;
+function loadTribalNations() {
+  if (_tribalPromise) return _tribalPromise;
+  _tribalPromise = _loadTribalNationsImpl();
+  return _tribalPromise;
+}
+async function _loadTribalNationsImpl() {
   const url = "https://biamaps.geoplatform.gov/server/rest/services/DivLTR/BIA_AIAN_National_LAR/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&outSR=4326";
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -3017,7 +3166,7 @@ map.on("click", function(e) {
   // GHCN station click popup
   if (ghcnHit) {
     var gHasMap = !!ghcnPropKey(activeVar, activeTS, activePeriod);
-    var gName = ghcnHit.get('_ghcnName') || 'GHCN Station';
+    var gName = ghcnHit.get('_ghcnName') || 'GHCNd Station';
     var gState = ghcnHit.get('_ghcnState');
     var gElev = ghcnHit.get('_ghcnElev');
     var gDate = ghcnHit.get('_ghcnDate');
@@ -3047,7 +3196,7 @@ map.on("click", function(e) {
       '<div class="query-label">' + (gCfg ? gCfg.label : activeVar) + ' &middot; ' + activeTS + '</div>' +
       (gState ? '<div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px">' + gState + (gElev != null ? ' &middot; ' + Math.round(gElev) + ' m' : '') + '</div>' : '') +
       (gDate ? '<div style="font-size:0.68rem;color:var(--text-dim);margin-top:1px">Data: ' + gDate + '</div>' : '') +
-      '<div style="font-size:0.6rem;color:var(--text-dim);margin-top:4px;border-top:1px solid var(--border);padding-top:3px;">GHCN &middot; NOAA/NCEI</div>' +
+      '<div style="font-size:0.6rem;color:var(--text-dim);margin-top:4px;border-top:1px solid var(--border);padding-top:3px;">GHCNd &middot; NOAA/NCEI</div>' +
     '</div>';
     popupOverlay.setPosition(e.coordinate);
     return;
@@ -3131,7 +3280,7 @@ document.getElementById("interpolate-chk").addEventListener("change", function()
     'timescale': 'The time window over which the selected variable is calculated. Shorter timescales (15&ndash;30 days) capture recent conditions, while longer timescales (90&ndash;365 days) reveal persistent trends. Water Year (WY) runs October 1 through September 30; Year to Date (YTD) runs January 1 through today.',
     'ref-period': '<strong>Rolling 30-Year</strong> compares current conditions to the most recent 30 years of data. This window updates annually and better reflects recent climate patterns.<br><br><strong>1991&ndash;2020 Climate Normal</strong> uses the WMO standard fixed reference period. It is the official baseline for international climate monitoring and is well-suited for cross-comparison with NOAA, NCEI, WMO, and other published climatologies that share the same window.<br><br><strong>Full Period</strong> uses all available data (1979&ndash;present), providing the largest possible sample size but one that may be less representative of current conditions due to long-term trends.<br><br>The rolling 30-year period is recommended for drought assessment that seeks to best represent contemporary climate conditions and present-day risk. All three are valid depending on your use case.',
     'zoom': 'Quickly zoom the map to a specific state or back to the full CONUS view. Select a state from the dropdown to center and zoom to its bounds.',
-    'station': 'Load station observations onto the map. <strong>USGS</strong> shows streamflow percentiles at gaging sites. <strong>GHCN</strong> shows drought index values (SPI, SPEI, EDDI) and precipitation statistics at ~5,000 weather stations, colored to match the active map layer.',
+    'station': 'Load station observations onto the map. <strong>USGS</strong> shows streamflow percentiles at gaging sites. <strong>GHCNd</strong> shows drought index values (SPI, SPEI, EDDI) and precipitation statistics at ~5,000 weather stations, colored to match the active map layer.',
     'basemap': 'Choose a background map style and color theme. Basemap controls the underlying map tiles; theme controls the overall look of the dashboard interface.',
     'information': 'Displays a description of the currently selected data layer, including what it measures and how to interpret the values.',
     'overlays': 'Toggle geographic boundaries and reference layers on the map, including state and county lines, tribal nation boundaries, and the U.S. Drought Monitor.',
@@ -3532,7 +3681,7 @@ function ghcnFeatureStyle(feature) {
   var color = _ghcnScaleFn ? _ghcnScaleFn(displayVal) : null;
   var hex = color ? color.hex() : '#888';
   ghcnStyleCache[qKey] = new ol.style.Style({
-    image: new ol.style.Circle({ radius: 4, fill: new ol.style.Fill({ color: hex }), stroke: new ol.style.Stroke({ color: '#000', width: 0.7 }) })
+    image: new ol.style.Circle({ radius: 4.5, fill: new ol.style.Fill({ color: hex }), stroke: new ol.style.Stroke({ color: '#000', width: 0.8 }) })
   });
   return ghcnStyleCache[qKey];
 }
@@ -3570,7 +3719,7 @@ async function loadGhcnStationsSliced() {
   bData.features.forEach(function(f) {
     var p = f.properties || {};
     f.properties._ghcnId    = p.id || '';
-    f.properties._ghcnName  = p.name || p.id || 'GHCN Station';
+    f.properties._ghcnName  = p.name || p.id || 'GHCNd Station';
     f.properties._ghcnState = p.state || '';
     f.properties._ghcnElev  = p.elev;
     f.properties._ghcnDate  = p.data_date || '';
@@ -3601,7 +3750,7 @@ async function loadGhcnStationsBundled() {
 
   data.features.forEach(function(f) {
     var p = f.properties || {};
-    f.properties._ghcnName = p.name || p.id || 'GHCN Station';
+    f.properties._ghcnName = p.name || p.id || 'GHCNd Station';
     f.properties._ghcnState = p.state || '';
     f.properties._ghcnElev = p.elev;
     f.properties._ghcnDate = p.data_date || p.spi_last_obs || '';
@@ -3669,6 +3818,55 @@ function restyleGhcnLayer() {
     ghcnLayer.setVisible(hasMapping);
     ghcnLayer.changed();
   }
+  updateGhcndLegend();
+}
+
+// GHCNd point-legend module in the bottom-left dock. Shown only when the stations
+// overlay is on AND the active variable actually has GHCNd data for the current
+// timescale/period (ghcnPropKey truthy); hidden otherwise (e.g. the user toggles
+// stations on, then picks a variable with no station mapping).
+let ghcndLegendEl = null;
+function updateGhcndLegend() {
+  var dockBody = document.getElementById('legend-dock-body');
+  if (ghcndLegendEl) { ghcndLegendEl.remove(); ghcndLegendEl = null; }
+  var show = ghcnActive && !!ghcnPropKey(activeVar, activeTS, activePeriod)
+             && _ghcnLegendRows && _ghcnLegendRows.length;
+  if (!show || !dockBody) {
+    if (typeof stackRightLegends === 'function') stackRightLegends();
+    return;
+  }
+  var cfg = VAR_CONFIG[activeVar] || {};
+  var rows = _ghcnLegendRows;
+  var dotsHtml = rows.map(function(r) { return '<i style="background:' + r.color + '"></i>'; }).join('');
+  var lowEnd  = (rows[0].label.split('–')[0] || '').trim();
+  var highEnd = (rows[rows.length - 1].label.split('–').pop() || '').trim();
+  var detailRows = rows.map(function(r) {
+    return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div>' +
+           '<div class="legend-lbl">' + r.label + '</div></div>';
+  }).join('');
+  // Timescale + reference period, formatted exactly like the gridded raster legend.
+  var shortPeriod = activePeriod === 'rolling-30' ? 'Rolling-30'
+    : activePeriod === 'fixed-1991-2020' ? '1991–2020'
+    : activePeriod === 'full' ? 'Full' : '';
+  var tsInline = '· ' + activeTS + (shortPeriod ? ' · ' + shortPeriod : '');
+  var periodLabel = getPeriodLabel(activePeriod);
+  var div = document.createElement('div');
+  div.className = 'legend-mod';
+  div.id = 'ghcnd-legend';
+  div.innerHTML =
+    '<div class="legmod-name">GHCNd <span class="legmod-ts">' + tsInline + '</span></div>' +
+    '<div class="legmod-ramp dots">' + dotsHtml + '</div>' +
+    '<div class="legmod-ends"><span>' + lowEnd + '</span><span>' + highEnd + '</span></div>' +
+    '<div class="legmod-detail">' +
+      '<h4>GHCNd Stations</h4>' +
+      '<div class="legend-sub">' + (cfg.label || activeVar) + ' · ' + activeTS +
+        (periodLabel ? '<br>' + periodLabel : '') + '</div>' +
+      '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
+      detailRows +
+    '</div>';
+  dockBody.appendChild(div);
+  ghcndLegendEl = div;
+  if (typeof stackRightLegends === 'function') stackRightLegends();
 }
 
 /* ── GHCN button ────────────────────────────────────────────── */
@@ -3678,10 +3876,11 @@ document.getElementById("ghcn-btn").addEventListener("click", async function() {
     map.removeLayer(ghcnLayer);
     ghcnActive = false;
     this.classList.remove("is-on");
+    updateGhcndLegend();
     return;
   }
   if (!ghcnLoaded) {
-    showSpinner('Loading GHCN stations\u2026');
+    showSpinner('Loading GHCNd stations\u2026');
     try { await loadGhcnStations(); } finally { hideSpinner(); }
   }
   ghcnActive = true;
@@ -3921,29 +4120,17 @@ function _isLegendActive(el) {
   if (legendsHidden && el._wasVisible) return true;
   return false;
 }
+// Drives the unified legend dock: show it whenever legends aren't globally hidden
+// and at least one module (raster primary or any overlay) is visible. (Name kept
+// for its ~15 existing callers; it no longer positions separate cards.)
 function stackRightLegends() {
-  const sf = document.getElementById("sf-legend");
-  const usdm = document.getElementById("usdm-legend");
-  const meso = document.getElementById("mesonet-legend");
-  const vhi = document.getElementById("vhi-legend");
-  let bottom = isMobileView() ? 10 : 30;
-  // Stack from bottom up: VHI / streamflow (mutually exclusive variables),
-  // then mesonet, then USDM.
-  if (_isLegendActive(vhi)) {
-    vhi.style.bottom = bottom + "px";
-    bottom += (vhi.offsetHeight || 280) + 8;
-  }
-  if (_isLegendActive(sf)) {
-    sf.style.bottom = bottom + "px";
-    bottom += (sf.offsetHeight || 180) + 8;
-  }
-  if (_isLegendActive(meso)) {
-    meso.style.bottom = bottom + "px";
-    bottom += (meso.offsetHeight || 200) + 8;
-  }
-  if (usdm) {
-    usdm.style.bottom = (_isLegendActive(usdm) ? bottom : 30) + "px";
-  }
+  const dock = document.getElementById("legend-dock");
+  const body = document.getElementById("legend-dock-body");
+  if (!dock || !body) return;
+  const anyVisible = Array.prototype.some.call(body.children, function(m) {
+    return m.style.display !== "none";
+  });
+  dock.style.display = (!legendsHidden && anyVisible) ? "flex" : "none";
 }
 
 document.getElementById("usdm-chk").addEventListener("change", async function () {
@@ -4138,23 +4325,35 @@ function buildLegend(varKey, ts, period, legendRows) {
   const subLabel = cfg.isHhpSm
     ? (smDepthLabel(activeSmDepth) + (HHP_SM_SHOW_TIMESCALES ? '<br>' + smTsLabel(activeSmTS) : ''))
     : (ts + '<br>' + periodLabel);
+
+  // Compact ramp-bar summary (always visible) + full detail (hidden).
+  const shortPeriod = period === 'rolling-30' ? 'Rolling-30'
+    : period === 'fixed-1991-2020' ? '1991\u20132020'
+    : period === 'full' ? 'Full' : '';
+  let tsInline;
+  if (cfg.isSnodas) tsInline = '';
+  else if (cfg.isHhpSm) tsInline = '\u00b7 ' + smDepthLabel(activeSmDepth);
+  else tsInline = '\u00b7 ' + ts + (shortPeriod ? ' \u00b7 ' + shortPeriod : '');
+  const rampHtml = legendRows.map(function(r) { return '<i style="background:' + r.color + '"></i>'; }).join('');
+  const lowEnd = (legendRows[0].label.split('\u2013')[0] || '').trim();
+  const highEnd = (legendRows[legendRows.length - 1].label.split('\u2013').pop() || '').trim();
+
   div.innerHTML =
-    '<h4>' + cfg.label.replace(/\s*\u2014\s*/g, '<br>') + '</h4>' +
-    (subLabel ? '<div class="legend-sub">' + subLabel + '</div>' : '') +
-    '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
-    legendBody;
+    '<div class="legmod-name">' + cfg.label + (tsInline ? ' <span class="legmod-ts">' + tsInline + '</span>' : '') + '</div>' +
+    '<div class="legmod-ramp">' + rampHtml + '</div>' +
+    '<div class="legmod-ends"><span>' + lowEnd + '</span><span>' + highEnd + '</span></div>' +
+    '<div class="legmod-detail">' +
+      '<h4>' + cfg.label.replace(/\s*\u2014\s*/g, '<br>') + '</h4>' +
+      (subLabel ? '<div class="legend-sub">' + subLabel + '</div>' : '') +
+      '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
+      legendBody +
+    '</div>';
 
   legendEl = div;
-  if (legendsHidden) {
-    div.style.display = 'none';
-    div._wasVisible = true;
-    div._savedDisplay = 'block';
-  }
-  // Append to OL's overlay container so it renders above map layers
-  const overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
-    || document.querySelector('#map .ol-viewport')
-    || document.getElementById('map');
-  overlayContainer.appendChild(div);
+  // Insert as the primary (top) module of the legend dock.
+  const dockBody = document.getElementById('legend-dock-body');
+  if (dockBody) dockBody.insertBefore(div, dockBody.firstChild);
+  stackRightLegends();
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4565,7 +4764,7 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
     const cfg2 = VAR_CONFIG[varKey];
     if (cfg2 && cfg2.dynamic && !rangeOverride) {
       // Retry auto-scaling until enough pixels are available
-      function retryAutoScale(attempts) {
+      function retryAutoScale(attempts, delay) {
         if (myGen !== _renderGen) return;
         const vis = getVisibleRange();
         if (vis && vis.min !== vis.max) {
@@ -4580,13 +4779,14 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
           buildLegend(varKey, ts, period, result.legendRows);
           if (ghcnActive) restyleGhcnLayer();
         } else if (attempts > 0) {
-          setTimeout(function() { retryAutoScale(attempts - 1); }, 300);
+          // Exponential backoff — each retry re-samples pixels, so don't storm.
+          setTimeout(function() { retryAutoScale(attempts - 1, Math.min(delay * 1.5, 1200)); }, delay);
         } else {
           // Fallback: reveal layer even if auto-scale couldn't sample pixels
           cogLayer.setOpacity(parseFloat(opacitySlider.value));
         }
       }
-      retryAutoScale(8);
+      retryAutoScale(5, 200);
     }
     // Re-query the pinned point after tiles finish loading (skip when zonal averages hide raster)
     if (queryActive && queryLastLatLng && !queryDismissed
@@ -4899,6 +5099,9 @@ function cleanupConvergence() {
   convSubLayers = [];
   // Restore HHP visibility if it was hidden by convergence
   if (hhpLayer) hhpLayer.setVisible(true);
+  // GHCNd stations become available again once convergence is off.
+  var _ghcnBtn = document.getElementById('ghcn-btn');
+  if (_ghcnBtn) _ghcnBtn.disabled = false;
   // Restore dropdown label and highlight to current variable
   var csTrigger = document.querySelector('#custom-var-select .cs-label');
   var selOpt = document.getElementById('var-select').selectedOptions[0];
@@ -4918,6 +5121,15 @@ document.getElementById('conv-apply-btn').addEventListener('click', function() {
   }
   errEl.style.display = 'none';
   convActive = true;
+  // GHCNd stations are not part of convergence — turn the overlay off and lock it.
+  var ghcnBtn = document.getElementById('ghcn-btn');
+  if (ghcnActive && ghcnLayer) {
+    try { map.removeLayer(ghcnLayer); } catch (e) {}
+    ghcnActive = false;
+    if (ghcnBtn) ghcnBtn.classList.remove('is-on');
+    updateGhcndLegend();
+  }
+  if (ghcnBtn) ghcnBtn.disabled = true;
   applyConvergence();
   // Update dropdown label to show convergence is active
   var csTrigger = document.querySelector('#custom-var-select .cs-label');
@@ -5049,6 +5261,112 @@ function modeAggregate(vals) {
   return { modeIdx: modeIdx, nMode: counts[modeIdx], nModalOrWorse: nWorse, nTotal: vals.length };
 }
 
+// Pure convergence composite (per-pixel weighted mean / median / mode over the
+// reference grid). Takes flat per-layer params (no CONV_INDICES dependency) so it
+// can run unchanged on the main thread OR inside a Web Worker. Returns the composite
+// Float32Array (+ mode aux arrays). Identical logic to the former inline loop.
+function computeCompositeCore(layers, method, w, h, bbox) {
+  var refResX = (bbox[2] - bbox[0]) / w;
+  var refResY = (bbox[3] - bbox[1]) / h;
+  var compositeData = new Float32Array(w * h);
+  compositeData.fill(-9999);
+  var nModeData  = method === 'mode' ? new Float32Array(w * h) : null;
+  var nWorseData = method === 'mode' ? new Float32Array(w * h) : null;
+  var nTotalData = method === 'mode' ? new Float32Array(w * h) : null;
+  for (var ry = 0; ry < h; ry++) {
+    for (var rx = 0; rx < w; rx++) {
+      var ri = ry * w + rx;
+      var pixLon = bbox[0] + (rx + 0.5) * refResX;
+      var pixLat = bbox[3] - (ry + 0.5) * refResY;
+      var rvals = [], rweights = [], totalWeight = 0, nodataWeight = 0;
+      for (var rli = 0; rli < layers.length; rli++) {
+        var rr = layers[rli];
+        var layerWeight = rr.weight;
+        if (layerWeight <= 0) continue;
+        totalWeight += layerWeight;
+        var rraw, layerNodata = false;
+        if (rr.resample) {
+          var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
+          var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
+          var sColMin = Math.max(0, Math.floor((pixLon - refResX/2 - rr.bbox[0]) / sResX));
+          var sColMax = Math.min(rr.width, Math.ceil((pixLon + refResX/2 - rr.bbox[0]) / sResX));
+          var sRowMin = Math.max(0, Math.floor((rr.bbox[3] - pixLat - refResY/2) / sResY));
+          var sRowMax = Math.min(rr.height, Math.ceil((rr.bbox[3] - pixLat + refResY/2) / sResY));
+          var sSum = 0, sCount = 0;
+          for (var sr = sRowMin; sr < sRowMax; sr++) {
+            for (var sc = sColMin; sc < sColMax; sc++) {
+              var sv = rr.data[sr * rr.width + sc];
+              if (!isNaN(sv) && isFinite(sv) && sv > -500 && sv < 500) { sSum += sv; sCount++; }
+            }
+          }
+          if (sCount === 0) { layerNodata = true; }
+          else { rraw = sSum / sCount; if (rraw < -400) rraw = -400; if (rraw > 400) rraw = 400; }
+        } else {
+          rraw = rr.data[ri];
+          if (rraw === -9999 || isNaN(rraw) || !isFinite(rraw)) { layerNodata = true; }
+        }
+        if (layerNodata) { nodataWeight += layerWeight; continue; }
+        var rscaled = rraw * rr.scale;
+        if (rr.negate) rscaled = -rscaled;
+        rvals.push(rscaled); rweights.push(layerWeight);
+      }
+      var validVals = rvals, validWeights = rweights;
+      if (validVals.length === 0 || nodataWeight > totalWeight * 0.5) {
+        compositeData[ri] = -9999;
+      } else if (method === 'mode') {
+        var ag = modeAggregate(validVals);
+        if (!ag) { compositeData[ri] = -9999; }
+        else { compositeData[ri] = ag.modeIdx; nModeData[ri] = ag.nMode; nWorseData[ri] = ag.nModalOrWorse; nTotalData[ri] = ag.nTotal; }
+      } else if (method === 'mean') {
+        var wsum = 0, wtotal = 0;
+        for (var wi = 0; wi < validVals.length; wi++) { wsum += validVals[wi] * validWeights[wi]; wtotal += validWeights[wi]; }
+        compositeData[ri] = wtotal > 0 ? wsum / wtotal : -9999;
+      } else {
+        var paired = validVals.map(function(v, pi) { return { v: v, w: validWeights[pi] }; });
+        paired.sort(function(a, b) { return a.v - b.v; });
+        var wtot = validWeights.reduce(function(a, b) { return a + b; }, 0);
+        var half = wtot / 2, cumW = 0;
+        compositeData[ri] = paired[paired.length - 1].v;
+        for (var mi = 0; mi < paired.length; mi++) { cumW += paired[mi].w; if (cumW >= half) { compositeData[ri] = paired[mi].v; break; } }
+      }
+    }
+  }
+  return { compositeData: compositeData, nModeData: nModeData, nWorseData: nWorseData, nTotalData: nTotalData };
+}
+
+// Run the composite in a Web Worker (built once as a Blob from the pure functions
+// above) so the ~810k-px × N-layer loop doesn't freeze the UI. Inputs are cloned
+// (NOT transferred) because rasters[].data is retained for point-query/export;
+// outputs are transferred back. Falls back to synchronous compute if Workers are
+// unavailable or fail.
+var _convWorkerUrl = null, _convWorkerFailed = false;
+function _buildConvWorkerUrl() {
+  if (_convWorkerUrl) return _convWorkerUrl;
+  var src =
+    'var USDM_BREAKS=' + JSON.stringify(USDM_BREAKS) + ';\n' +
+    valueToUsdmCategory.toString() + '\n' +
+    modeAggregate.toString() + '\n' +
+    computeCompositeCore.toString() + '\n' +
+    'self.onmessage=function(e){var d=e.data;var r=computeCompositeCore(d.layers,d.method,d.w,d.h,d.bbox);' +
+    'var t=[r.compositeData.buffer];if(r.nModeData){t.push(r.nModeData.buffer,r.nWorseData.buffer,r.nTotalData.buffer);}' +
+    'self.postMessage(r,t);};';
+  _convWorkerUrl = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+  return _convWorkerUrl;
+}
+function _convComposite(layers, method, w, h, bbox) {
+  if (typeof Worker === 'undefined' || _convWorkerFailed) {
+    return Promise.resolve(computeCompositeCore(layers, method, w, h, bbox));
+  }
+  return new Promise(function(resolve) {
+    var worker;
+    try { worker = new Worker(_buildConvWorkerUrl()); }
+    catch (e) { _convWorkerFailed = true; resolve(computeCompositeCore(layers, method, w, h, bbox)); return; }
+    worker.onmessage = function(e) { worker.terminate(); resolve(e.data); };
+    worker.onerror = function() { worker.terminate(); resolve(computeCompositeCore(layers, method, w, h, bbox)); };
+    worker.postMessage({ layers: layers, method: method, w: w, h: h, bbox: bbox });
+  });
+}
+
 // Approximate inverse normal CDF (percentile → standardized value)
 function qnorm(p) {
   if (p <= 0.0001) return -3.5;
@@ -5063,7 +5381,10 @@ function qnorm(p) {
 }
 
 // Rasterize HHP basins to a gridMET-compatible raster
+var _hhpRasterCache = new Map();  // grid signature → rasterized HHP Float32Array (stable per session)
 function rasterizeHhp(hhpGeojson, w, h, bbox) {
+  var _hhpKey = w + 'x' + h + '_' + bbox.join(',');
+  if (_hhpRasterCache.has(_hhpKey)) return _hhpRasterCache.get(_hhpKey);
   console.time('HHP rasterize');
   var raster = new Float32Array(w * h);
   raster.fill(NaN);
@@ -5104,6 +5425,7 @@ function rasterizeHhp(hhpGeojson, w, h, bbox) {
     });
   });
   console.timeEnd('HHP rasterize');
+  _hhpRasterCache.set(_hhpKey, raster);
   return raster;
 }
 
@@ -5166,7 +5488,7 @@ function applyConvergence() {
     }
   });
 
-  Promise.all(fetchPromises).then(function(rasters) {
+  Promise.all(fetchPromises).then(async function(rasters) {
     // Use the first gridMET raster as the reference grid (SNODAS/HHP/SMI are resampled to it)
     var refIdx = rasters.findIndex(function(r) { return !r.isSnodas && !r.isHhp && !r.isHhpSm; });
     var w, h, bbox;
@@ -5190,107 +5512,24 @@ function applyConvergence() {
       }
     });
 
-    // Compute weighted composite into Float32Array
-    var refResX = (bbox[2] - bbox[0]) / w;
-    var refResY = (bbox[3] - bbox[1]) / h;
-    var compositeData = new Float32Array(w * h);
-    compositeData.fill(-9999);
-    // Mode method also writes auxiliary per-pixel counts for the popup display.
-    // (Weights are ignored for mode — one indicator, one vote.)
-    var nModeData  = method === 'mode' ? new Float32Array(w * h) : null;
-    var nWorseData = method === 'mode' ? new Float32Array(w * h) : null;
-    var nTotalData = method === 'mode' ? new Float32Array(w * h) : null;
-    for (var ry = 0; ry < h; ry++) {
-      for (var rx = 0; rx < w; rx++) {
-        var ri = ry * w + rx;
-        // Geographic coords for this reference grid pixel
-        var pixLon = bbox[0] + (rx + 0.5) * refResX;
-        var pixLat = bbox[3] - (ry + 0.5) * refResY;
-        var rvals = [];
-        var rweights = [];
-        var totalWeight = 0;
-        var nodataWeight = 0;
-        for (var rli = 0; rli < rasters.length; rli++) {
-          var rr = rasters[rli];
-          var layerWeight = weights[rli];
-          if (layerWeight <= 0) continue;
-          totalWeight += layerWeight;
-          var rraw;
-          var layerNodata = false;
-          if (rr.isSnodas || rr.isHhpSm) {
-            var sResX = (rr.bbox[2] - rr.bbox[0]) / rr.width;
-            var sResY = (rr.bbox[3] - rr.bbox[1]) / rr.height;
-            var sColMin = Math.floor((pixLon - refResX/2 - rr.bbox[0]) / sResX);
-            var sColMax = Math.ceil((pixLon + refResX/2 - rr.bbox[0]) / sResX);
-            var sRowMin = Math.floor((rr.bbox[3] - pixLat - refResY/2) / sResY);
-            var sRowMax = Math.ceil((rr.bbox[3] - pixLat + refResY/2) / sResY);
-            sColMin = Math.max(0, sColMin); sColMax = Math.min(rr.width, sColMax);
-            sRowMin = Math.max(0, sRowMin); sRowMax = Math.min(rr.height, sRowMax);
-            var sSum = 0, sCount = 0;
-            for (var sr = sRowMin; sr < sRowMax; sr++) {
-              for (var sc = sColMin; sc < sColMax; sc++) {
-                var sv = rr.data[sr * rr.width + sc];
-                if (!isNaN(sv) && isFinite(sv) && sv > -500 && sv < 500) { sSum += sv; sCount++; }
-              }
-            }
-            if (sCount === 0) { layerNodata = true; }
-            else {
-              rraw = sSum / sCount;
-              if (rraw < -400) rraw = -400;
-              if (rraw > 400) rraw = 400;
-            }
-          } else {
-            rraw = rr.data[ri];
-            if (rraw === -9999 || isNaN(rraw) || !isFinite(rraw)) { layerNodata = true; }
-          }
-          if (layerNodata) {
-            nodataWeight += layerWeight;
-            continue;
-          }
-          var scale = CONV_INDICES[convLayers[rli].varKey].rawScale || 0.01;
-          var rscaled = rraw * scale;
-          if (CONV_INDICES[convLayers[rli].varKey].negate) rscaled = -rscaled;
-          rvals.push(rscaled);
-          rweights.push(layerWeight);
-        }
-        // Nodata if majority of weight is missing
-        var validVals = rvals;
-        var validWeights = rweights;
-        if (validVals.length === 0 || nodataWeight > totalWeight * 0.5) {
-          compositeData[ri] = -9999;
-        } else if (method === 'mode') {
-          var ag = modeAggregate(validVals);
-          if (!ag) { compositeData[ri] = -9999; }
-          else {
-            compositeData[ri] = ag.modeIdx;
-            nModeData[ri]     = ag.nMode;
-            nWorseData[ri]    = ag.nModalOrWorse;
-            nTotalData[ri]    = ag.nTotal;
-          }
-        } else if (method === 'mean') {
-          var wsum = 0, wtotal = 0;
-          for (var wi = 0; wi < validVals.length; wi++) {
-            wsum += validVals[wi] * validWeights[wi];
-            wtotal += validWeights[wi];
-          }
-          compositeData[ri] = wtotal > 0 ? wsum / wtotal : -9999;
-        } else {
-          var paired = validVals.map(function(v, pi) { return { v: v, w: validWeights[pi] }; });
-          paired.sort(function(a, b) { return a.v - b.v; });
-          var wtotal = validWeights.reduce(function(a, b) { return a + b; }, 0);
-          var half = wtotal / 2;
-          var cumW = 0;
-          compositeData[ri] = paired[paired.length - 1].v; // fallback
-          for (var mi = 0; mi < paired.length; mi++) {
-            cumW += paired[mi].w;
-            if (cumW >= half) {
-              compositeData[ri] = paired[mi].v;
-              break;
-            }
-          }
-        }
-      }
-    }
+    // Build flat per-layer params (resolve CONV_INDICES scale/negate here so the
+    // worker stays dependency-free) and run the heavy composite loop off the main
+    // thread. Inputs are cloned (NOT transferred) — rasters[].data is retained
+    // below on convCogLayer._rasters for point-query/export. Mode method also
+    // returns auxiliary per-pixel counts for the popup display.
+    var _convLayerParams = rasters.map(function(rr, i) {
+      var ci = CONV_INDICES[convLayers[i].varKey];
+      return {
+        data: rr.data, width: rr.width, height: rr.height, bbox: rr.bbox,
+        resample: !!(rr.isSnodas || rr.isHhpSm),
+        scale: ci.rawScale || 0.01, negate: !!ci.negate, weight: weights[i]
+      };
+    });
+    var _compOut = await _convComposite(_convLayerParams, method, w, h, bbox);
+    var compositeData = _compOut.compositeData;
+    var nModeData  = _compOut.nModeData;
+    var nWorseData = _compOut.nWorseData;
+    var nTotalData = _compOut.nTotalData;
 
     // DataTile + WebGLTile rendering
     var resX = (bbox[2] - bbox[0]) / w;
@@ -5447,23 +5686,26 @@ function applyConvergence() {
     if (legendEl) { legendEl.remove(); legendEl = null; }
     var div = document.createElement('div');
     div.className = 'map-legend';
+    var convMethodLabel = method.charAt(0).toUpperCase() + method.slice(1);
+    var convRamp = legendRows.map(function(r) { return '<i style="background:' + r.color + '"></i>'; }).join('');
+    var convLow = (legendRows[0].label.split('–')[0] || '').trim();
+    var convHigh = (legendRows[legendRows.length - 1].label.split('–').pop() || '').trim();
     div.innerHTML =
-      '<h4>Convergence<br>' + method.charAt(0).toUpperCase() + method.slice(1) + '</h4>' +
-      '<div class="legend-sub">' + getConvLayerSummary() + '<br>' + getPeriodLabel(getConvPeriod()) + '</div>' +
-      '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
-      legendRows.map(function(r) {
-        return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
-      }).join('');
+      '<div class="legmod-name">Convergence <span class="legmod-ts">· ' + convMethodLabel + '</span></div>' +
+      '<div class="legmod-ramp">' + convRamp + '</div>' +
+      '<div class="legmod-ends"><span>' + convLow + '</span><span>' + convHigh + '</span></div>' +
+      '<div class="legmod-detail">' +
+        '<h4>Convergence<br>' + convMethodLabel + '</h4>' +
+        '<div class="legend-sub">' + getConvLayerSummary() + '<br>' + getPeriodLabel(getConvPeriod()) + '</div>' +
+        '<div class="legend-date">' + formatDate(activeDate) + '</div>' +
+        legendRows.map(function(r) {
+          return '<div class="legend-row"><div class="legend-swatch" style="background:' + r.color + '"></div><div class="legend-lbl">' + r.label + '</div></div>';
+        }).join('') +
+      '</div>';
     legendEl = div;
-    if (legendsHidden) {
-      div.style.display = 'none';
-      div._wasVisible = true;
-      div._savedDisplay = 'block';
-    }
-    var overlayContainer = document.querySelector('#map .ol-overlaycontainer-stopevent')
-      || document.querySelector('#map .ol-viewport')
-      || document.getElementById('map');
-    overlayContainer.appendChild(div);
+    var dockBody = document.getElementById('legend-dock-body');
+    if (dockBody) dockBody.insertBefore(div, dockBody.firstChild);
+    stackRightLegends();
 
     hideSpinner();
     // Recompute zonal averages if active — reads compositeData off convCogLayer,
@@ -5620,7 +5862,11 @@ const EXPORT_THEMES = {
     brandGrad: ["#2a9aff", "#6ec0ff", "#a0d8ff", "#6ec0ff", "#2a9aff"]
   }
 };
-function getExportTheme() { return EXPORT_THEMES[activeTheme] || EXPORT_THEMES.dark; }
+// Exports always use the light palette regardless of the on-screen theme — static
+// maps end up in reports, slides, and print (white backgrounds), where light chrome
+// embeds cleanly and prints without flooding ink. (The basemap is captured live and
+// is independent of the UI theme.)
+function getExportTheme() { return EXPORT_THEMES.light; }
 
 /* ── Attribution builders ──────────────────────────────────────── */
 function _collectActiveDataSources() {
@@ -5632,7 +5878,7 @@ function _collectActiveDataSources() {
     if (cfg && cfg.attribution) sources.add(cfg.attribution);
   }
   if (usgsStreamLayer && map.getLayers().getArray().includes(usgsStreamLayer)) sources.add("USGS");
-  if (ghcnLayer && map.getLayers().getArray().includes(ghcnLayer)) sources.add("GHCN/NOAA");
+  if (ghcnLayer && map.getLayers().getArray().includes(ghcnLayer)) sources.add("GHCNd/NOAA");
   const mesoLeg = document.getElementById("mesonet-legend");
   if (mesoLeg && mesoLeg.style.display !== "none") sources.add("Montana Mesonet");
   if (usdmLayer && map.getLayers().getArray().includes(usdmLayer)) sources.add("USDM/NDMC");
@@ -5647,7 +5893,7 @@ function getExportAttribution() {
 // in the Partners modal so the attribution and the modal point to the same URLs.
 const ATTRIB_LINKS = {
   'gridMET':            'https://www.climatologylab.org/gridmet.html',
-  'GHCN/NOAA':          'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
+  'GHCNd/NOAA':          'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily',
   'USGS':               'https://waterdata.usgs.gov/nwis',
   'USDM/NDMC':          'https://droughtmonitor.unl.edu/',
   'SNODAS':             'https://www.nohrsc.noaa.gov/nsa/',
@@ -6026,7 +6272,7 @@ function drawGhcnFooterLegend(ctx, footerY, startX, sc) {
 
   var cfg = VAR_CONFIG[activeVar];
   var isDynamic = cfg && cfg.dynamic;
-  var title = 'GHCN Stations \u2014 ' + (cfg ? cfg.label : activeVar);
+  var title = 'GHCNd Stations \u2014 ' + (cfg ? cfg.label : activeVar);
   var titleFS = Math.round(13 * sc);
   var labelFS = Math.round(11 * sc);
   var tickMarkLen = Math.round(4 * sc);
@@ -7568,8 +7814,11 @@ function initCustomSelect() {
 initCollapsibles();
 initCustomSelect();
 loadStates();
-loadCounties();
-loadTribalNations();
+// Counties are default-on but ~200KB topojson + ~3k-feature parse — defer off the
+// critical path so the map + raster paint first, then counties populate.
+(window.requestIdleCallback || function(cb){ setTimeout(cb, 200); })(function(){ loadCounties(); });
+// Tribal (BIA WFS) is off by default and external/slow — lazy-loaded on first toggle
+// (tribal-chk handler) or on a LAR: share-link restore (below). Not loaded at boot.
 
 // Restore URL state
 const savedState = loadState();
@@ -7599,6 +7848,7 @@ if (savedState) {
   if (activeZoomState) {
     if (activeZoomState.startsWith("LAR:") && !tribalBounds[activeZoomState]) {
       pendingTribalZoom = activeZoomState;
+      loadTribalNations();   // tribal no longer loads at boot — trigger it for the LAR restore
     } else {
       document.getElementById('state-select').value = activeZoomState;
       zoomToState(activeZoomState);
@@ -7731,6 +7981,7 @@ window.addEventListener('popstate', function() {
   document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
   if (activeZoomState.startsWith("LAR:") && !tribalBounds[activeZoomState]) {
     pendingTribalZoom = activeZoomState;
+    loadTribalNations();   // tribal no longer loads at boot — trigger it for the LAR restore
   } else {
     document.getElementById('state-select').value = activeZoomState;
     zoomToState(activeZoomState);

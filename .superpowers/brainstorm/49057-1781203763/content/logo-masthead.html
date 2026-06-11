@@ -1,0 +1,91 @@
+<style>
+  .lm{ --surf:#11151c; font-family:'Outfit',system-ui,sans-serif; }
+  .row{ border:2px solid transparent; border-radius:14px; cursor:pointer; transition:transform .15s,border-color .15s; margin-bottom:14px; overflow:hidden; }
+  .row:hover{ transform:translateY(-2px); } .row.selected{ border-color:#5aaee8; }
+  /* dark navbar over a faux map sliver so translucency/blur reads like the real app */
+  .nav{ position:relative; display:flex; align-items:center; height:56px; padding:0 16px; overflow:hidden;
+        background:linear-gradient(var(--surf),var(--surf)) padding-box;
+        border-bottom:2px solid; border-image:linear-gradient(90deg,#114f80,#1a6faf,#5aaee8,#1a6faf,#114f80) 1; }
+  .nav::before{ content:''; position:absolute; inset:0; z-index:0;
+     background:radial-gradient(120% 200% at 80% -40%, #20354a 0%, #141c27 60%, #0e141d 100%); opacity:.55; }
+  .d3{ height:44px; width:auto; display:block; position:relative; z-index:2; }
+  .mco{ height:32px; width:auto; display:block; position:relative; z-index:2; }
+  .sep{ width:1px; height:20px; background:rgba(0,0,0,.18); position:relative; z-index:2; margin:0 12px; }
+  .brand{ display:flex; align-items:center; position:relative; }
+  .sp{ flex:1; }
+  .cap{ padding:9px 14px; background:#0a0d12; }
+  .nm{ font-weight:700; font-size:13.5px; color:#eaf0f6; } .ds{ font-size:11px; color:#9fb0c4; margin-top:2px; line-height:1.45; }
+  .wash{ position:absolute; top:0; bottom:0; left:-16px; z-index:1; pointer-events:none; }
+</style>
+
+<div class="lm">
+<h2>Masthead, elevated — long eased fades</h2>
+<p class="subtitle">Original logos, left masthead. The difference now is the <b>fade</b>: long, multi-stop, eased — plus subtle tint/translucency. (Background behind the bar is a faux map so the frosted option reads correctly.) Click the best.</p>
+
+<!-- 1: long eased pure -->
+<div class="row selected" data-choice="eased" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-150px;
+        background:
+          linear-gradient(to bottom, rgba(255,255,255,.10), rgba(255,255,255,0) 55%),
+          linear-gradient(to right, #fff 0%, #fff 38%, rgba(255,255,255,.92) 54%, rgba(255,255,255,.6) 72%, rgba(255,255,255,.22) 86%, rgba(255,255,255,0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">1 · Long eased fade</div><div class="ds">Same idea as A but the dissolve is ~2× longer with eased multi-stops + a faint top sheen. The white melts out gradually instead of cutting off — reads expensive.</div></div>
+</div>
+
+<!-- 2: warm brand-tinted tail -->
+<div class="row" data-choice="warm" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-160px;
+        background:
+          linear-gradient(to bottom, rgba(255,255,255,.10), rgba(255,255,255,0) 55%),
+          linear-gradient(to right, #fff 0%, #fff 40%, rgba(255,250,242,.85) 58%, rgba(255,224,180,.35) 76%, rgba(255,170,0,.10) 90%, rgba(255,170,0,0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">2 · Warm brand-tinted tail</div><div class="ds">The fade passes through a warm cream → faint amber (echoing the D³ orange→red mark) before vanishing. Ties the masthead to the logo's own palette.</div></div>
+</div>
+
+<!-- 3: horizontal light beam (feathered top/bottom too) -->
+<div class="row" data-choice="beam" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-150px; top:-2px; bottom:-2px;
+        background:linear-gradient(to right, #fff 0%, #fff 42%, rgba(255,255,255,.55) 72%, rgba(255,255,255,0) 100%);
+        -webkit-mask:linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%);
+        mask:linear-gradient(to bottom, transparent 0%, #000 9%, #000 91%, transparent 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">3 · Light beam (feathers all sides)</div><div class="ds">Not a full block — a soft horizontal beam of light that feathers top &amp; bottom as well as right, so it floats in the bar rather than filling it. Most refined / least "panel".</div></div>
+</div>
+
+<!-- 4: frosted bright glass -->
+<div class="row" data-choice="frosted" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-150px; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+        background:linear-gradient(to right, rgba(255,255,255,.96) 0%, rgba(255,255,255,.93) 44%, rgba(255,255,255,.55) 72%, rgba(255,255,255,.12) 90%, rgba(255,255,255,0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">4 · Frosted bright glass</div><div class="ds">Slightly translucent + blurred, so the map faintly shows through the fade tail — integrates with the dashboard's glass aesthetic instead of sitting on top of it. Premium, modern.</div></div>
+</div>
+
+</div>

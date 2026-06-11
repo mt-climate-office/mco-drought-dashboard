@@ -1,0 +1,6 @@
+{"type":"server-started","port":64735,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:64735","screen_dir":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/content","state_dir":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/state"}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/content/logo-backing.html"}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/content/logo-darknative.html"}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/content/logo-wash.html"}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/49057-1781203763/content/logo-masthead.html"}
+{"type":"server-stopped","reason":"idle timeout"}

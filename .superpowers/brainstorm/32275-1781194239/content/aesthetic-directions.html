@@ -1,0 +1,138 @@
+<style>
+  .da-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:8px; }
+  @media (max-width:900px){ .da-grid{ grid-template-columns:1fr; } }
+  .da { border-radius:14px; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:transform .15s ease, border-color .15s ease; }
+  .da:hover{ transform:translateY(-3px); }
+  .da.selected{ border-color:#5aaee8; }
+  .da-shot{ font-family:'Outfit',system-ui,sans-serif; }
+  /* mini-app shell driven by per-card vars */
+  .app{ background:var(--bg); color:var(--tx); height:268px; display:flex; flex-direction:column; }
+  .nav{ height:34px; display:flex; align-items:center; gap:12px; padding:0 12px; background:var(--surf); border-bottom:1px solid var(--bd); }
+  .logo{ font-weight:700; letter-spacing:.02em; color:var(--tx); font-size:14px; }
+  .logo sup{ color:var(--acc2); font-size:9px; }
+  .navitem{ font-size:10px; color:var(--txd); }
+  .navspacer{ flex:1; }
+  .dot{ width:9px;height:9px;border-radius:50%; }
+  .body{ flex:1; display:flex; min-height:0; }
+  .side{ width:118px; background:var(--surf); border-right:1px solid var(--bd); padding:10px 10px; display:flex; flex-direction:column; gap:9px; }
+  .lab{ font-size:7.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--txd); font-weight:600; }
+  .select{ background:var(--elev); border:1px solid var(--bd); border-radius:var(--rad); padding:6px 8px; font-size:9px; color:var(--tx); display:flex; justify-content:space-between; align-items:center; }
+  .pills{ display:flex; gap:4px; }
+  .pill{ flex:1; text-align:center; font-size:8px; padding:4px 0; border-radius:var(--radp); background:var(--elev); color:var(--txd); border:1px solid transparent; font-family:'Space Mono',monospace; }
+  .pill.on{ background:var(--accbg); color:var(--accl); border-color:var(--accbd); font-weight:700; }
+  .slider{ height:4px; border-radius:3px; background:var(--elev); position:relative; }
+  .slider::after{ content:''; position:absolute; left:0;top:0;bottom:0; width:62%; background:var(--acc); border-radius:3px; }
+  .knob{ position:absolute; left:60%; top:50%; transform:transl( -50%,-50%); width:9px;height:9px;border-radius:50%; background:var(--accl); top:-2.5px; }
+  .map{ flex:1; position:relative; background:var(--map); }
+  .legend{ position:absolute; left:9px; bottom:9px; background:var(--glass); backdrop-filter:blur(8px); border:1px solid var(--bd); border-radius:var(--rad); padding:6px 7px; display:flex; flex-direction:column; gap:4px; box-shadow:var(--shadow); }
+  .legend .lt{ font-size:7px; font-weight:700; color:var(--tx); }
+  .ramp{ display:flex; gap:0; }
+  .ramp span{ width:9px; height:7px; }
+  .chip{ position:absolute; right:9px; top:9px; background:var(--glass); backdrop-filter:blur(8px); border:1px solid var(--bd); border-radius:var(--radp); padding:3px 8px; font-size:8px; color:var(--tx); box-shadow:var(--shadow); }
+  .da-cap{ padding:11px 14px; background:#11151c; }
+  .da-name{ font-weight:700; font-size:14px; color:#eaf0f6; }
+  .da-desc{ font-size:11.5px; color:#9fb0c4; margin-top:2px; line-height:1.4; }
+</style>
+
+<h2>Pick a direction for "more modern"</h2>
+<p class="subtitle">Same dashboard chrome (nav · sidebar · map · legend) rendered four ways. <b>A</b> is today. B–D are distinct lanes — click whichever feels right (or mix). We refine from there.</p>
+
+<div class="da-grid">
+
+  <!-- A: CURRENT -->
+  <div class="da selected" data-choice="current" onclick="toggleSelect(this)">
+    <div class="da-shot" style="--bg:#161b22;--surf:#1e2530;--elev:#2c3545;--acc:#1a6faf;--acc2:#5aaee8;--accl:#5aaee8;--accbg:rgba(26,111,175,.15);--accbd:rgba(26,111,175,.3);--bd:#3a4558;--tx:#e8ecf0;--txd:#8a99b0;--rad:8px;--radp:20px;--glass:rgba(30,37,48,.82);--shadow:0 4px 18px rgba(0,0,0,.4);--map:radial-gradient(120% 90% at 70% 20%, #243244 0%, #1a2330 55%, #151c27 100%);">
+      <div class="app">
+        <div class="nav"><span class="logo">D<sup>3</sup></span><span class="navitem">Map</span><span class="navitem">Methods</span><span class="navspacer"></span><span class="dot" style="background:#5aaee8"></span><span class="dot" style="background:#3a4558"></span></div>
+        <div class="body">
+          <div class="side">
+            <div class="lab">Variable</div>
+            <div class="select">SPI <span style="color:var(--txd)">▾</span></div>
+            <div class="lab">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab">Opacity</div>
+            <div class="slider"><span class="knob"></span></div>
+          </div>
+          <div class="map">
+            <div class="chip">Rolling 30-Yr</div>
+            <div class="legend"><span class="lt">SPI</span><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="da-name">A · Current</div><div class="da-desc">Dark "glass" panels, mid-blue accent, soft shadows. Competent but a bit generic-dashboard.</div></div>
+  </div>
+
+  <!-- B: REFINED DARK -->
+  <div class="da" data-choice="refined-dark" onclick="toggleSelect(this)">
+    <div class="da-shot" style="--bg:#0c0f14;--surf:#12161d;--elev:#1b212b;--acc:#2e8fd6;--acc2:#56b6ff;--accl:#7cc6ff;--accbg:rgba(46,143,214,.18);--accbd:rgba(86,182,255,.45);--bd:#222a35;--tx:#f2f5f9;--txd:#74839a;--rad:7px;--radp:6px;--glass:rgba(14,18,24,.72);--shadow:0 6px 22px rgba(0,0,0,.55);--map:radial-gradient(120% 90% at 70% 18%, #1b2937 0%, #121a24 55%, #0b1019 100%);">
+      <div class="app">
+        <div class="nav" style="height:34px"><span class="logo">D<sup>3</sup></span><span class="navitem">MAP</span><span class="navitem">METHODS</span><span class="navspacer"></span><span class="dot" style="background:#56b6ff;box-shadow:0 0 8px #56b6ff"></span><span class="dot" style="background:#222a35"></span></div>
+        <div class="body">
+          <div class="side">
+            <div class="lab">Variable</div>
+            <div class="select">SPI <span style="color:var(--accl)">▾</span></div>
+            <div class="lab">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab">Opacity</div>
+            <div class="slider"><span class="knob"></span></div>
+          </div>
+          <div class="map">
+            <div class="chip">Rolling 30-Yr</div>
+            <div class="legend"><span class="lt">SPI</span><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="da-name">B · Refined Dark</div><div class="da-desc">Same identity, tightened: near-black base, brighter focused accent + subtle glow, hairline borders, crisper corners. Evolution, low risk.</div></div>
+  </div>
+
+  <!-- C: EDITORIAL LIGHT -->
+  <div class="da" data-choice="editorial-light" onclick="toggleSelect(this)">
+    <div class="da-shot" style="--bg:#f4f5f7;--surf:#ffffff;--elev:#eef1f4;--acc:#0f6fc4;--acc2:#0f6fc4;--accl:#0f6fc4;--accbg:rgba(15,111,196,.1);--accbd:rgba(15,111,196,.35);--bd:#e2e6ea;--tx:#16202c;--txd:#7d8794;--rad:6px;--radp:5px;--glass:rgba(255,255,255,.9);--shadow:0 6px 20px rgba(20,40,70,.1);--map:radial-gradient(120% 90% at 70% 18%, #eef3f7 0%, #e4ebf1 55%, #dbe4ec 100%);">
+      <div class="app">
+        <div class="nav" style="border-bottom:1px solid var(--bd)"><span class="logo">D<sup>3</sup></span><span class="navitem">Map</span><span class="navitem">Methods</span><span class="navspacer"></span><span class="dot" style="background:#0f6fc4"></span><span class="dot" style="background:#cfd6dd"></span></div>
+        <div class="body">
+          <div class="side">
+            <div class="lab">Variable</div>
+            <div class="select">SPI <span style="color:var(--txd)">▾</span></div>
+            <div class="lab">Timescale</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab">Opacity</div>
+            <div class="slider"><span class="knob"></span></div>
+          </div>
+          <div class="map">
+            <div class="chip">Rolling 30-Yr</div>
+            <div class="legend"><span class="lt">SPI</span><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="da-name">C · Editorial / Cartographic (light)</div><div class="da-desc">Light-first, map-forward, generous whitespace and type hierarchy. Reads like a modern data publication (FT / Datawrapper / modern USGS).</div></div>
+  </div>
+
+  <!-- D: TECHNICAL FLAT -->
+  <div class="da" data-choice="technical-flat" onclick="toggleSelect(this)">
+    <div class="da-shot" style="--bg:#10141a;--surf:#161b22;--elev:#1d242e;--acc:#3aa3a0;--acc2:#4fd1cd;--accl:#5fe0db;--accbg:rgba(58,163,160,.16);--accbd:rgba(79,209,205,.4);--bd:#28313d;--tx:#dfe6ee;--txd:#6e7d90;--rad:3px;--radp:3px;--glass:rgba(22,27,34,.92);--shadow:none;--map:linear-gradient(135deg, #1a2230 0%, #141b26 100%);">
+      <div class="app">
+        <div class="nav" style="border-bottom:1px solid var(--bd)"><span class="logo" style="font-family:'Space Mono',monospace">D3</span><span class="navitem" style="font-family:'Space Mono',monospace">MAP</span><span class="navitem" style="font-family:'Space Mono',monospace">DATA</span><span class="navspacer"></span><span class="dot" style="background:#4fd1cd;border-radius:2px"></span><span class="dot" style="background:#28313d;border-radius:2px"></span></div>
+        <div class="body">
+          <div class="side">
+            <div class="lab">VARIABLE</div>
+            <div class="select" style="font-family:'Space Mono',monospace">SPI <span style="color:var(--txd)">▾</span></div>
+            <div class="lab">TIMESCALE</div>
+            <div class="pills"><span class="pill">15d</span><span class="pill on">30d</span><span class="pill">90d</span></div>
+            <div class="lab">OPACITY</div>
+            <div class="slider" style="border-radius:1px"><span class="knob" style="border-radius:1px"></span></div>
+          </div>
+          <div class="map">
+            <div class="chip" style="font-family:'Space Mono',monospace">ROLL-30Y</div>
+            <div class="legend" style="border-radius:3px"><span class="lt" style="font-family:'Space Mono',monospace">SPI</span><div class="ramp"><span style="background:#730000"></span><span style="background:#e60000"></span><span style="background:#ffaa00"></span><span style="background:#ffff00"></span><span style="background:#fff"></span><span style="background:#82fcf9"></span><span style="background:#325cfe"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="da-cap"><div class="da-name">D · Technical / Instrument</div><div class="da-desc">Near-flat, hairline borders (no glass/shadow), monospace numerics, teal accent reserved for active state. Crisp "scientific instrument" feel.</div></div>
+  </div>
+
+</div>

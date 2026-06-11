@@ -1,0 +1,78 @@
+<style>
+  .lw{ --surf:#11151c; font-family:'Outfit',system-ui,sans-serif; }
+  .row{ border:2px solid transparent; border-radius:14px; cursor:pointer; transition:transform .15s,border-color .15s; margin-bottom:14px; overflow:hidden; }
+  .row:hover{ transform:translateY(-2px); } .row.selected{ border-color:#5aaee8; }
+  .nav{ position:relative; display:flex; align-items:center; height:56px; padding:0 16px; background:var(--surf); overflow:hidden;
+        border-bottom:2px solid; border-image:linear-gradient(90deg,#114f80,#1a6faf,#5aaee8,#1a6faf,#114f80) 1; }
+  .d3{ height:44px; width:auto; display:block; position:relative; z-index:1; }
+  .mco{ height:32px; width:auto; display:block; position:relative; z-index:1; }
+  .sep{ width:1px; height:20px; background:rgba(0,0,0,.18); position:relative; z-index:1; margin:0 12px; }
+  .brand{ display:flex; align-items:center; position:relative; }
+  .sp{ flex:1; }
+  .cap{ padding:9px 14px; background:#0a0d12; }
+  .nm{ font-weight:700; font-size:13.5px; color:#eaf0f6; } .ds{ font-size:11px; color:#9fb0c4; margin-top:2px; line-height:1.45; }
+  /* the wash sits behind the brand cluster */
+  .wash{ position:absolute; top:0; bottom:0; left:-16px; pointer-events:none; }
+</style>
+
+<div class="lw">
+<h2>White backing → wide gradient washes (original logos)</h2>
+<p class="subtitle">Same original logos, no per-logo card. Instead a wide light wash behind the whole brand cluster that dissolves into the dark bar. Four ways. Click your favorite.</p>
+
+<!-- A: full-height masthead, fades right -->
+<div class="row selected" data-choice="masthead" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-70px; background:linear-gradient(to right, #ffffff 0%, #ffffff 68%, rgba(255,255,255,0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">A · Masthead fade →</div><div class="ds">Full-height white band flush to the left edge, fading to transparent just past the logos. Reads like a light "masthead" the brand lives in, melting into the dark bar. Bold &amp; clean.</div></div>
+</div>
+
+<!-- B: soft elliptical pool -->
+<div class="row" data-choice="pool" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="left:-40px; right:-90px; background:radial-gradient(ellipse 70% 150% at 42% 50%, #ffffff 50%, rgba(255,255,255,0.0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">B · Soft light pool</div><div class="ds">A wide feathered ellipse of light the logos rest in — fades on every side into the dark. Softest, most organic; no straight edges anywhere.</div></div>
+</div>
+
+<!-- C: cool-tint masthead -->
+<div class="row" data-choice="cool" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="right:-80px; background:linear-gradient(105deg, #ffffff 0%, #ffffff 55%, #eaf1f8 70%, rgba(210,228,242,0) 100%);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">C · Cool-tint angled fade</div><div class="ds">Like A but the fade runs at a slight angle and passes through a cool off-white before transparent — softer than stark white, a touch more designed.</div></div>
+</div>
+
+<!-- D: white pill that bleeds right -->
+<div class="row" data-choice="bleed" onclick="toggleSelect(this)">
+  <div class="nav">
+    <div class="brand">
+      <div class="wash" style="left:-8px; right:-80px; border-radius:0 28px 28px 0; background:linear-gradient(to right, #ffffff 0%, #ffffff 60%, rgba(255,255,255,0) 100%); box-shadow:0 0 22px 4px rgba(255,255,255,.10);"></div>
+      <img class="d3" src="http://localhost:8000/logo/logo_full_v2.svg">
+      <span class="sep"></span>
+      <img class="mco" src="http://localhost:8000/logo/MCO_logo.svg">
+    </div>
+    <span class="sp"></span>
+  </div>
+  <div class="cap"><div class="nm">D · Rounded wash + glow</div><div class="ds">A white field with a softly rounded right end and a faint outer glow, bleeding into the bar. Keeps a hint of "plate" shape but with no hard border and a long fade.</div></div>
+</div>
+
+</div>

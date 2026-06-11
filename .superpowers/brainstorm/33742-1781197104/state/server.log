@@ -1,0 +1,5 @@
+{"type":"server-started","port":56849,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:56849","screen_dir":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/33742-1781197104/content","state_dir":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/33742-1781197104/state"}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/33742-1781197104/content/legend-horizontal.html"}
+{"source":"user-event","type":"click","text":"Legend\n      \n        SPI 30dD4→W4\n        USDMD0→D4\n        Streamflowlow→high\n        Soil Moist.dry→wet\n      \n    \n  \n  B · Single-row stripEverything on one line per module: title · timescale · mini-ramp · end-label. Shortest possible bar (~1 line tall). Densest; labels are minimal.","choice":"compact-strip","id":null,"timestamp":1781197335660}
+{"type":"screen-added","file":"/Users/zachary.hoylman/mco-drought-dashboard/.superpowers/brainstorm/33742-1781197104/content/waiting-2.html"}
+{"type":"server-stopped","reason":"idle timeout"}
