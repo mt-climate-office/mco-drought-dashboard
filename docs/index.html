@@ -50,7 +50,7 @@
   <!-- html2canvas loaded on demand when user exports -->
 
 
-  <link rel="stylesheet" href="styles.css?v=refine-c21">
+  <link rel="stylesheet" href="styles.css?v=refine-c22">
 </head>
 <body>
 
@@ -7461,7 +7461,7 @@ function saveState() {
 
 function buildShareUrl() {
   const qp = new URLSearchParams();
-  if (activeTheme && activeTheme !== 'light') qp.set('theme', activeTheme);
+  if (activeTheme && activeTheme !== 'dark') qp.set('theme', activeTheme);
   if (activeBasemap && activeBasemap !== 'natgeo') qp.set('basemap', activeBasemap);
 
   let hash;
@@ -7633,7 +7633,7 @@ function loadState() {
   const lat = parts[5] ? parseFloat(parts[5]) : null;
   const lng = parts[6] ? parseFloat(parts[6]) : null;
   const params = new URLSearchParams(window.location.search);
-  const theme = params.get('theme') || 'light';
+  const theme = params.get('theme') || 'dark';
   if (!['dark','light','high-contrast'].includes(theme)) return null;
   const basemap = params.get('basemap') || 'natgeo';
   if (!BASEMAPS[basemap]) return null;
@@ -7890,8 +7890,9 @@ if (savedState) {
     setSmDepthVisible(true);
   }
 
-  // Restore theme
-  if (savedState.theme && savedState.theme !== 'light') {
+  // Restore theme (dark is the default, so a light/high-contrast link must apply
+  // explicitly — apply unconditionally rather than skipping the default).
+  if (savedState.theme) {
     activeTheme = savedState.theme;
     if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
     else document.documentElement.setAttribute("data-theme", activeTheme);
@@ -8005,7 +8006,7 @@ window.addEventListener('popstate', function() {
   renderTimescaleStrip(activeVar);
   setSmDepthVisible(!!isSm);
   // Restore theme
-  activeTheme = st.theme || 'light';
+  activeTheme = st.theme || 'dark';
   if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", activeTheme);
   document.querySelectorAll("#theme-strip .basemap-btn").forEach(b => {

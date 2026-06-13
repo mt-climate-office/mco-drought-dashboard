@@ -102,20 +102,20 @@
     /* ── High Contrast Theme ─────────────────────────────────────── */
     [data-theme="high-contrast"] {
       --bg-deep: #000000;
-      --bg-surface: #0a0a0a;
-      --bg-elevated: #1a1a1a;
-      --accent: #3b9ede;
-      --accent-light: #6ec0ff;
+      --bg-surface: #000000;
+      --bg-elevated: #121212;
+      --accent: #5bb4ff;
+      --accent-light: #93d0ff;
       --accent-dk: #2070a8;
-      --border: #555;
-      --border-glass: rgba(255,255,255,0.15);
+      --border: #8a8a8a;
+      --border-glass: rgba(255,255,255,0.28);
       --text-primary: #ffffff;
-      --text-secondary: #e0e0e0;
-      --text-muted: #b0b0b0;
-      --text-dim: #909090;
-      --text-body: #d0d0d0;
-      --text-on-accent: #fff;
-      --glass: rgba(10,10,10,0.92);
+      --text-secondary: #f5f5f5;
+      --text-muted: #dcdcdc;
+      --text-dim: #bcbcbc;
+      --text-body: #f2f2f2;
+      --text-on-accent: #000;
+      --glass: rgba(0,0,0,0.96);
       --shadow: 0 4px 24px rgba(0,0,0,0.7);
       --shadow-lg: 0 8px 40px rgba(0,0,0,0.8);
       --accent-hover: rgba(59,158,222,0.15);
@@ -127,14 +127,14 @@
       --overlay-hover-sm: rgba(255,255,255,0.05);
       --overlay-hover-md: rgba(255,255,255,0.07);
       --overlay-hover-lg: rgba(255,255,255,0.12);
-      --overlay-divider: rgba(255,255,255,0.08);
-      --overlay-dark: rgba(0,0,0,0.7);
-      --overlay-spinner: rgba(0,0,0,0.65);
-      --spinner-ring: rgba(255,255,255,0.15);
+      --overlay-divider: rgba(255,255,255,0.18);
+      --overlay-dark: rgba(0,0,0,0.8);
+      --overlay-spinner: rgba(0,0,0,0.8);
+      --spinner-ring: rgba(255,255,255,0.25);
       --error: #ff7777;
       --error-bg: rgba(255, 80, 80, 0.2);
       --error-border: rgba(255, 80, 80, 0.5);
-      --scrollbar-hover: #666;
+      --scrollbar-hover: #aaa;
       --brand-gradient: linear-gradient(135deg, #2a9aff, #6ec0ff, #a0d8ff, #6ec0ff, #2a9aff);
     }
 
