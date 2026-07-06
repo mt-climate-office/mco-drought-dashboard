@@ -7195,19 +7195,67 @@ async function takeScreenshot(exportScale) {
     titleLine2 = (titleLine2 || '') + overlayText;
 
     const textX = bx;
-    const line1FS = Math.round(22 * SCALE);
-    const line2FS = Math.round(14 * SCALE);
+    const baseLine1FS = Math.round(22 * SCALE);
+    const baseLine2FS = Math.round(14 * SCALE);
+
+    // Predict where the MCO logo will be so title text can be:
+    //   1. shrunk proportionally to try to fit before it, AND
+    //   2. hard-clipped so no glyph can ever cross into the logo area.
+    // Belt + suspenders: even if the shrink calc is off by a hair (font
+    // measurement rounding, missing metrics for an SVG logo), the clip
+    // guarantees the export stays clean.
+    const _logoW_max_est = Math.round(180 * SCALE); // upper-bound estimate — MCO wordmark is wider than icon
+    const _logoW_from_img = (_logoCache && _logoCache.width && _logoCache.height)
+      ? Math.round(_logoCache.width * Math.round(42 * SCALE) / _logoCache.height)
+      : _logoW_max_est;
+    const _logoW_pre = Math.max(_logoW_from_img, 100 * SCALE); // never underestimate
+    const _logoPad_pre = Math.round(4 * SCALE);
+    const _logoLeft_pre = mapW_px - logoMargin - _logoW_pre - _logoPad_pre * 2;
+    const _titleGap = Math.round(20 * SCALE);
+    const titleClipRight = Math.max(textX + 40 * SCALE, _logoLeft_pre - _titleGap);
+    const titleAvailW = titleClipRight - textX;
 
     ctx.textBaseline = "middle";
     ctx.textAlign    = "left";
 
+    ctx.font = 'bold ' + baseLine1FS + 'px "Segoe UI", sans-serif';
+    const _w1 = ctx.measureText(titleLine1).width;
+    ctx.font = baseLine2FS + 'px "Segoe UI", sans-serif';
+    const _w2 = ctx.measureText(titleLine2).width;
+    const _maxW = Math.max(_w1, _w2);
+    // Try to fit by shrinking (floor 0.5× so type stays legible). If either
+    // line STILL exceeds the available width at the shrunken size, an
+    // ellipsis truncation kicks in below so nothing ever gets chopped
+    // mid-character by the MCO logo box.
+    const titleShrink = _maxW > titleAvailW
+      ? Math.max(0.5, titleAvailW / _maxW)
+      : 1;
+    const line1FS = Math.max(1, Math.round(baseLine1FS * titleShrink));
+    const line2FS = Math.max(1, Math.round(baseLine2FS * titleShrink));
+
+    // Binary-search-based ellipsis: given a max width and font, return the
+    // longest prefix that fits, ending with "…" if truncation happened.
+    function _fitText(text, maxW) {
+      if (ctx.measureText(text).width <= maxW) return text;
+      const ell = '…';
+      const ellW = ctx.measureText(ell).width;
+      const room = Math.max(0, maxW - ellW);
+      let lo = 0, hi = text.length;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (ctx.measureText(text.slice(0, mid)).width <= room) lo = mid;
+        else hi = mid - 1;
+      }
+      return (text.slice(0, lo).replace(/\s+$/, '')) + ell;
+    }
+
     ctx.fillStyle = et.title;
     ctx.font = 'bold ' + line1FS + 'px "Segoe UI", sans-serif';
-    ctx.fillText(titleLine1, textX, TITLE_H * 0.28);
+    ctx.fillText(_fitText(titleLine1, titleAvailW), textX, TITLE_H * 0.28);
 
     ctx.fillStyle = et.subtitle;
     ctx.font = line2FS + 'px "Segoe UI", sans-serif';
-    ctx.fillText(titleLine2, textX, TITLE_H * 0.53);
+    ctx.fillText(_fitText(titleLine2, titleAvailW), textX, TITLE_H * 0.53);
 
     const srcFS = Math.round(12 * SCALE);
     const srcSupFS = Math.round(8 * SCALE);
