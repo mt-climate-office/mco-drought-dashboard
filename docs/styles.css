@@ -2532,14 +2532,27 @@
       transform: translate(-50%, -100%);
       margin-top: -12px;
     }
+    /* Larger, solid tail with a thin outline so the pointer stays visible
+       on top of any basemap (was a translucent 8px triangle in glass color
+       that vanished on light imagery). */
     .ol-popup::after {
       content: '';
       position: absolute;
-      bottom: -8px;
+      bottom: -10px;
       left: 50%;
       transform: translateX(-50%);
-      border: 8px solid transparent;
-      border-top-color: var(--glass);
+      border: 10px solid transparent;
+      border-top-color: var(--bg-surface);
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+    }
+    .ol-popup::before {
+      content: '';
+      position: absolute;
+      bottom: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 11px solid transparent;
+      border-top-color: var(--border);
     }
 
     /* ================================================================

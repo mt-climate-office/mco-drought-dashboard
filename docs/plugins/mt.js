@@ -22,7 +22,6 @@ const TIP_TEXT = 'Soil moisture anomaly from the Montana Mesonet network. ' +
 // Module state
 let activeDepth = 'shallow';
 let markerLayer = null;
-let sectionLabelEl = null;
 let sectionBodyEl = null;
 let dataCache = {};
 let _fgbLoaded = false;
@@ -173,23 +172,33 @@ function _onMarkerClick(e) {
 
 // ── Sidebar injection ────────────────────────────────────────────
 function injectSidebar(sidebar) {
-  const overlaysLabel = sidebar.querySelector('[data-sec="sec-overlays"]');
-  if (!overlaysLabel) return;
+  // The plugin lives INSIDE the Station Data section as a state-specific
+  // sub-block, right below the CONUS-scale GHCN and USGS controls. This
+  // keeps station-related data co-located instead of scattering it across
+  // its own top-level section.
+  const stationBody = sidebar.querySelector('#sec-station');
+  if (!stationBody) return;
 
-  // Section label
-  sectionLabelEl = document.createElement('div');
-  sectionLabelEl.className = 'section-label sec-collapsed plugin-highlight';
-  sectionLabelEl.setAttribute('data-sec', 'sec-mt-soil');
-  sectionLabelEl.style.cssText = '--i:3.5';
-  sectionLabelEl.innerHTML =
-    'Montana Mesonet ' +
-    '<span class="info-tip" tabindex="0" data-tip="mt-soil">&#9432;</span>' +
-    '<span class="caret">&#9660;</span>';
-
-  // Section body
+  // Container — one node so deactivate can remove it atomically. Retains
+  // `data-sec="sec-mt-soil"` so the activation toast anchor still works.
   sectionBodyEl = document.createElement('div');
-  sectionBodyEl.className = 'section-body sec-collapsed';
   sectionBodyEl.id = 'sec-mt-soil';
+  sectionBodyEl.className = 'plugin-highlight';
+  sectionBodyEl.setAttribute('data-sec', 'sec-mt-soil');
+  sectionBodyEl.style.cssText =
+    'margin-top:12px;padding-top:10px;border-top:1px solid var(--border);';
+
+  // Sub-heading styled like the "Meteorological Drought Metrics" and
+  // "Streamflow" sub-labels already inside #sec-station.
+  const subLabel = document.createElement('div');
+  subLabel.style.cssText =
+    'font-size:0.62rem;font-weight:600;text-transform:uppercase;' +
+    'letter-spacing:0.06em;color:var(--text-dim);margin-bottom:4px;' +
+    'display:flex;align-items:center;gap:6px;';
+  subLabel.innerHTML =
+    'Montana Mesonet ' +
+    '<span class="info-tip" tabindex="0" data-tip="mt-soil">&#9432;</span>';
+  sectionBodyEl.appendChild(subLabel);
 
   // Add/Remove toggle button — styled to match #ghcn-btn / #usgs-btn
   const btnRow = document.createElement('div');
@@ -257,35 +266,11 @@ function injectSidebar(sidebar) {
   });
   sectionBodyEl.appendChild(removeBtn);
 
-  // CONUS revert button
-  const revertBtn = document.createElement('button');
-  revertBtn.textContent = '\u2190 Back to CONUS';
-  revertBtn.style.cssText = 'margin-top:4px;width:100%;padding:6px 10px;font-size:0.7rem;font-family:var(--font-display);background:var(--overlay-hover-sm);color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:var(--transition);';
-  revertBtn.addEventListener('mouseenter', () => { revertBtn.style.background = 'var(--accent-hover)'; revertBtn.style.color = 'var(--text-primary)'; });
-  revertBtn.addEventListener('mouseleave', () => { revertBtn.style.background = 'var(--overlay-hover-sm)'; revertBtn.style.color = 'var(--text-muted)'; });
-  revertBtn.addEventListener('click', () => {
-    if (_helpers.removePlugin) _helpers.removePlugin();
-    const sel = document.getElementById('state-select');
-    const label = sel.parentElement.querySelector('div');
-    if (label) label.textContent = 'CONUS (default)';
-    sel.value = '';
-    sel.dispatchEvent(new Event('change'));
-  });
-  sectionBodyEl.appendChild(revertBtn);
+  // Insert as the last child of Station Data (below the CONUS-scale toggles)
+  stationBody.appendChild(sectionBodyEl);
 
-  // Insert before overlays
-  overlaysLabel.parentNode.insertBefore(sectionLabelEl, overlaysLabel);
-  overlaysLabel.parentNode.insertBefore(sectionBodyEl, overlaysLabel);
-
-  // Wire collapsible
-  sectionLabelEl.addEventListener('click', (e) => {
-    if (e.target.closest('.info-tip')) return;
-    const collapsed = sectionBodyEl.classList.toggle('sec-collapsed');
-    sectionLabelEl.classList.toggle('sec-collapsed', collapsed);
-  });
-
-  // Wire info-tip to portal
-  const tipEl = sectionLabelEl.querySelector('.info-tip');
+  // Wire info-tip on the sub-label to the shared portal
+  const tipEl = subLabel.querySelector('.info-tip');
   const portal = document.getElementById('info-tip-portal');
   if (tipEl && portal) {
     const show = () => {
@@ -305,8 +290,8 @@ function injectSidebar(sidebar) {
   }
 
   // Remove pulse after animation
-  sectionLabelEl.addEventListener('animationend', () => {
-    sectionLabelEl.classList.remove('plugin-highlight');
+  sectionBodyEl.addEventListener('animationend', () => {
+    sectionBodyEl.classList.remove('plugin-highlight');
   });
 }
 
@@ -316,6 +301,30 @@ export async function activate(map, sidebar, helpers) {
   _helpers = helpers || {};
   await ensureFGB();
   injectSidebar(sidebar);
+  // Expand the Station Data section so the newly-added plugin sub-block is
+  // visible without the user having to hunt for it.
+  const stationLabel = sidebar.querySelector('[data-sec="sec-station"]');
+  const stationBody = sidebar.querySelector('#sec-station');
+  if (stationLabel && stationLabel.classList.contains('sec-collapsed')) {
+    stationLabel.classList.remove('sec-collapsed');
+    if (stationBody) stationBody.classList.remove('sec-collapsed');
+  }
+  // Smooth-scroll the sidebar so the newly-added Mesonet sub-block is in view.
+  // Wait a frame so the just-applied expand/insert has laid out and the
+  // element's offsetTop is accurate.
+  requestAnimationFrame(() => {
+    const scroller = sidebar.classList.contains('sidebar-inner')
+      ? sidebar
+      : sidebar.querySelector('.sidebar-inner') || sidebar;
+    if (sectionBodyEl && scroller) {
+      const targetTop = Math.max(0, sectionBodyEl.offsetTop - 12);
+      if (typeof scroller.scrollTo === 'function') {
+        scroller.scrollTo({ top: targetTop, behavior: 'smooth' });
+      } else {
+        scroller.scrollTop = targetTop;
+      }
+    }
+  });
 }
 
 export function deactivate(map, sidebar) {
@@ -332,9 +341,7 @@ export function deactivate(map, sidebar) {
   const mesoLeg = document.getElementById('mesonet-legend');
   if (mesoLeg) mesoLeg.style.display = 'none';
   if (_helpers.stackRightLegends) _helpers.stackRightLegends();
-  if (sectionLabelEl && sectionLabelEl.parentNode) sectionLabelEl.remove();
   if (sectionBodyEl && sectionBodyEl.parentNode) sectionBodyEl.remove();
-  sectionLabelEl = null;
   sectionBodyEl = null;
   dataCache = {};
   activeDepth = 'shallow';
