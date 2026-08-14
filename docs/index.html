@@ -299,6 +299,20 @@
             <span>Current USGS Percentiles</span>
           </button>
         </div>
+        <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:10px;margin-bottom:4px;">Soil Moisture <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0;">— prototype</span></div>
+        <div id="sm-btn-row">
+          <button id="sm-btn" type="button">
+            <span>CONUS Soil Moisture Stations (Beta SMI)</span>
+          </button>
+        </div>
+        <div id="sm-depth-row" style="display:none;margin-top:6px;">
+          <div class="depth-strip" data-sm-depth>
+            <button type="button" class="depth-btn active" data-depth="shallow">Shallow<br><span class="ts-btn-sub">0&ndash;10 cm</span></button>
+            <button type="button" class="depth-btn" data-depth="middle">Middle<br><span class="ts-btn-sub">10&ndash;50 cm</span></button>
+            <button type="button" class="depth-btn" data-depth="deep">Deep<br><span class="ts-btn-sub">50&ndash;100 cm</span></button>
+            <button type="button" class="depth-btn" data-depth="all">All<br><span class="ts-btn-sub">weighted</span></button>
+          </div>
+        </div>
       </div>
 
       <!-- Convergence of Evidence — section index 2.5 -->
@@ -3929,6 +3943,154 @@ document.getElementById("ghcn-btn").addEventListener("click", async function() {
   map.addLayer(ghcnLayer);
   this.classList.add("is-on");
   ensureLayerStack();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   CONUS SOIL MOISTURE STATIONS (PROTOTYPE)
+   Minimal viable ingestion of the new soil-moisture point dataset.
+   Mirrors the GHCNd slice architecture: stations_base.geojson.gz +
+   slices/<var>_<layer>_<period>.json.gz + manifest.json.gz. For this
+   prototype we hardcode a single slice (SMI · shallow · full) so the
+   basic look/feel is testable end-to-end before wiring depth/period
+   selectors.
+   ════════════════════════════════════════════════════════════════ */
+const SM_BASE_URL      = './soil-moisture-data/';
+const SM_STATIONS_URL  = SM_BASE_URL + 'stations_base.geojson.gz';
+const SM_DEFAULT_VAR   = 'smi';       // z-score standardized anomaly (SPI-like, beta-distribution)
+const SM_DEFAULT_PERIOD = 'full';     // "current" or "full"
+function smSliceUrl(v, layer, period) {
+  return SM_BASE_URL + 'slices/' + v + '_' + layer + '_' + period + '.json.gz';
+}
+
+let smLayer = null;
+let smLoaded = false;
+let smActive = false;
+let smActiveDepth = 'shallow';  // shallow | middle | deep | all
+let _smScaleFn = null;
+let _smValues = null; // Map<stationId, value> for the currently loaded depth
+const _smSliceCache = new Map(); // 'var|layer|period' -> Map<id,value>
+const smStyleCache = {};
+
+async function _fetchGz(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('HTTP ' + resp.status + ' fetching ' + url);
+  const ds = new DecompressionStream('gzip');
+  const text = await new Response(resp.body.pipeThrough(ds)).text();
+  return JSON.parse(text);
+}
+
+async function loadSmSlice(v, layer, period) {
+  const key = v + '|' + layer + '|' + period;
+  if (_smSliceCache.has(key)) return _smSliceCache.get(key);
+  const obj = await _fetchGz(smSliceUrl(v, layer, period));
+  const m = new Map();
+  const vals = (obj && obj.values) || {};
+  for (const id in vals) m.set(id, vals[id]);
+  _smSliceCache.set(key, m);
+  return m;
+}
+
+async function loadSmStations() {
+  const [base, initialSlice] = await Promise.all([
+    _fetchGz(SM_STATIONS_URL),
+    loadSmSlice(SM_DEFAULT_VAR, smActiveDepth, SM_DEFAULT_PERIOD)
+  ]);
+  _smValues = initialSlice;
+
+  base.features.forEach(f => {
+    const p = f.properties || {};
+    f.properties._smId = p.id || '';
+    f.properties._smName = p.name || p.id || 'Soil Moisture Station';
+    f.properties._smState = p.state || '';
+    f.properties._smElev = p.elev_m;
+    f.properties._smDate = p.data_date || '';
+  });
+
+  const features = new ol.format.GeoJSON().readFeatures(base, { featureProjection: 'EPSG:3857' });
+  smLayer = new ol.layer.Vector({
+    source: new ol.source.Vector({ features }),
+    style: smFeatureStyle,
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
+    zIndex: 13
+  });
+  smLoaded = true;
+}
+
+function smFeatureStyle(feature) {
+  if (!_smValues) return null;
+  const id = feature.get('_smId') || feature.get('id');
+  const v = _smValues.get(id);
+  if (v == null || isNaN(v)) return null;
+  const qKey = Math.round(v * 100);
+  if (smStyleCache[qKey]) return smStyleCache[qKey];
+  const color = _smScaleFn ? _smScaleFn(v) : null;
+  const hex = color ? color.hex() : '#888';
+  smStyleCache[qKey] = new ol.style.Style({
+    image: new ol.style.Circle({
+      radius: 5,
+      fill: new ol.style.Fill({ color: hex }),
+      stroke: new ol.style.Stroke({ color: '#000', width: 0.9 })
+    })
+  });
+  return smStyleCache[qKey];
+}
+
+function _rebuildSmScale() {
+  // Prototype: always use SPI USDM diverging palette. When we add pctile /
+  // pon slices later, switch to the appropriate scale per var.
+  const result = buildScale('spi', 'usdm', null, null);
+  _smScaleFn = result.scaleFn;
+  Object.keys(smStyleCache).forEach(k => delete smStyleCache[k]);
+  if (smLayer) smLayer.changed();
+}
+
+/* ── Soil Moisture prototype button ─────────────────────────── */
+document.getElementById('sm-btn').addEventListener('click', async function() {
+  const isOn = smLayer && map.getLayers().getArray().includes(smLayer);
+  const depthRow = document.getElementById('sm-depth-row');
+  if (isOn) {
+    map.removeLayer(smLayer);
+    smActive = false;
+    this.classList.remove('is-on');
+    if (depthRow) depthRow.style.display = 'none';
+    return;
+  }
+  if (!smLoaded) {
+    showSpinner('Loading soil moisture stations…');
+    try { await loadSmStations(); }
+    catch (e) { console.error('SM load failed:', e); hideSpinner(); alert('Soil moisture load failed — check console. (Prototype)'); return; }
+    finally { hideSpinner(); }
+  }
+  smActive = true;
+  _rebuildSmScale();
+  map.addLayer(smLayer);
+  this.classList.add('is-on');
+  if (depthRow) depthRow.style.display = '';
+  ensureLayerStack();
+});
+
+/* ── Soil Moisture depth selector ────────────────────────────── */
+document.querySelectorAll('[data-sm-depth] .depth-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const depth = this.dataset.depth;
+    if (depth === smActiveDepth) return;
+    document.querySelectorAll('[data-sm-depth] .depth-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.depth === depth));
+    smActiveDepth = depth;
+    if (!smLayer) return;
+    showSpinner('Loading ' + depth + ' soil moisture…');
+    try {
+      _smValues = await loadSmSlice(SM_DEFAULT_VAR, depth, SM_DEFAULT_PERIOD);
+    } catch (e) {
+      console.error('SM depth swap failed:', e);
+    } finally {
+      hideSpinner();
+    }
+    // Force a fresh style pass so the new depth's values paint.
+    Object.keys(smStyleCache).forEach(k => delete smStyleCache[k]);
+    if (smLayer) smLayer.changed();
+  });
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -8171,6 +8333,10 @@ if (activeVar === 'hhp') {
   if (convLabel) convLabel.classList.remove('sec-collapsed');
   if (convBody) convBody.classList.remove('sec-collapsed');
   convActive = true;
+  // Update dropdown label to show convergence is active (mirrors conv-apply-btn handler)
+  var convCsTrigger = document.querySelector('#custom-var-select .cs-label');
+  if (convCsTrigger) convCsTrigger.textContent = 'Convergence of Evidence';
+  document.querySelectorAll('#custom-var-select .cs-item').forEach(function(i) { i.classList.remove('active'); });
   // Use requestAnimationFrame to ensure the map has rendered at least once
   requestAnimationFrame(function() {
     document.getElementById('map-skeleton')?.remove();

@@ -157,7 +157,7 @@
        ================================================================ */
     .ts-btn:focus-visible, .depth-btn:focus-visible, .period-btn:focus-visible,
     .basemap-btn:focus-visible, .nav-action-item:focus-visible, #nav-more-btn:focus-visible,
-    #usgs-btn:focus-visible, #ghcn-btn:focus-visible, #mesonet-btn:focus-visible,
+    #usgs-btn:focus-visible, #ghcn-btn:focus-visible, #mesonet-btn:focus-visible, #sm-btn:focus-visible,
     .ov-row-btn:focus-visible, .custom-check input[type="checkbox"]:focus-visible,
     .cs-item:focus-visible, .legend-mod:focus-visible,
     .map-legend:focus-visible, .partner-row:focus-visible, .range-input:focus-visible,
@@ -2283,6 +2283,7 @@
        ================================================================ */
     #usgs-btn,
     #ghcn-btn,
+    #sm-btn,
     #mesonet-btn {
       width: 100%;
       background: var(--bg-elevated);
@@ -2303,12 +2304,14 @@
 
     #usgs-btn:hover,
     #ghcn-btn:hover,
+    #sm-btn:hover,
     #mesonet-btn:hover {
       background: var(--overlay-hover-md);
     }
 
     #usgs-btn.is-on,
     #ghcn-btn.is-on,
+    #sm-btn.is-on,
     #mesonet-btn.is-on {
       background: var(--accent-active);
       color: var(--accent-light);
