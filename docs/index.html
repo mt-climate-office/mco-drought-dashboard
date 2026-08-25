@@ -299,6 +299,10 @@
             <span>Current USGS Percentiles</span>
           </button>
         </div>
+        <!-- CONUS Soil Moisture Stations (Beta SMI) — temporarily removed;
+             underlying point dataset is not yet deployable. Re-enable by
+             removing this display:none wrapper. -->
+        <div style="display:none;">
         <div style="font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:10px;margin-bottom:4px;">Soil Moisture <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0;">— prototype</span></div>
         <div id="sm-btn-row">
           <button id="sm-btn" type="button">
@@ -312,6 +316,7 @@
             <button type="button" class="depth-btn" data-depth="deep">Deep<br><span class="ts-btn-sub">50&ndash;100 cm</span></button>
             <button type="button" class="depth-btn" data-depth="all">All<br><span class="ts-btn-sub">weighted</span></button>
           </div>
+        </div>
         </div>
       </div>
 
