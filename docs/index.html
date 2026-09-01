@@ -108,6 +108,7 @@
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Source Code</div>
         <a href="https://github.com/mt-climate-office/mco-drought-dashboard" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Dashboard (Front End)</a>
         <a href="https://github.com/mt-climate-office/mco-drought-conus" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Data Pipeline (Back End)</a>
+        <a href="https://github.com/mt-climate-office/mco-GHCNd" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">GHCNd Pipeline</a>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Help</div>
         <button id="resources-tips-link" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);cursor:pointer;white-space:nowrap;transition:var(--transition);text-align:left;" onclick="document.getElementById('resources-dropdown').style.display='none';document.getElementById('tips-modal-overlay').classList.add('active');">Tips &amp; Shortcuts</button>
@@ -1417,8 +1418,9 @@ document.getElementById('map').classList.add('basemap-grey');
   map.addControl(new ol.control.Control({ element: locContainer }));
 })();
 
-// Legend toggle control
-var legendsHidden = false;
+// Legend toggle control — starts hidden on small/touch viewports so it
+// doesn't clutter the map by default; the eye-icon toggle still reveals it (feedback #33).
+var legendsHidden = isMobileView();
 function showLegendEl(el) {
   el.style.display = 'block';   // module becomes active; dock visibility handled centrally
   stackRightLegends();
@@ -1722,8 +1724,28 @@ function autoEnableLayerForZoom(code) {
   }
 }
 
+// A tribal-nation zoom code ("LAR:<id>") has no entry in STATE_PLUGINS (which
+// is keyed by 2-letter state code), so selecting a MT tribal nation used to
+// tear down the MT Mesonet plugin with nothing replacing it (feedback #53).
+// Resolve such codes to the state plugin whose bounds they overlap.
+function resolvePluginCodeForZoom(code) {
+  if (!code || STATE_PLUGINS[code]) return code;
+  if (!code.startsWith('LAR:') || !tribalBounds[code]) return code;
+  var tb = tribalBounds[code]; // [west, south, east, north]
+  for (var stateCode in STATE_PLUGINS) {
+    var sb = STATE_BOUNDS[stateCode]; // [[south, west], [north, east]]
+    if (!sb) continue;
+    var s = sb[0][0], w = sb[0][1], n = sb[1][0], e = sb[1][1];
+    var iW = Math.max(tb[0], w), iS = Math.max(tb[1], s);
+    var iE = Math.min(tb[2], e), iN = Math.min(tb[3], n);
+    if (iE > iW && iN > iS) return stateCode; // bounds overlap
+  }
+  return code;
+}
+
 // State plugin loader — activates/deactivates plugins when zoom state changes
-async function handleStatePlugin(newCode) {
+async function handleStatePlugin(rawCode) {
+  const newCode = resolvePluginCodeForZoom(rawCode);
   if (_activePlugin && _activePluginCode !== newCode) {
     _activePlugin.deactivate(map, document.querySelector('.sidebar-inner'));
     _activePlugin = null;
@@ -2358,6 +2380,13 @@ async function _computeZonalAveragesInner(srcLayer, type, zIdx, myGen) {
     var colMax = Math.min(w - 1, Math.ceil((ext4326[2] - bbox[0]) / resX));
     var rowMin = Math.max(0, Math.floor((bbox[3] - ext4326[3]) / resY));
     var rowMax = Math.min(h - 1, Math.ceil((bbox[3] - ext4326[1]) / resY));
+    // Feature extent falls entirely outside the raster's bbox (e.g. a HUC
+    // basin or tribal nation outside CONUS gridMET coverage) — Math.max/min
+    // only clamp one side each, so colMax/rowMax can end up negative here.
+    // Skip it instead of allocating a negative-length typed array below,
+    // which threw uncaught and aborted the whole forEach (blank map for
+    // every polygon, not just the out-of-bounds one).
+    if (colMax < colMin || rowMax < rowMin) return;
 
     // Web Mercator is separable (X←lon, Y←lat): precompute the 3857 X per column
     // and Y per row so fromLonLat() runs O(cols+rows) times, not once per pixel.
@@ -4347,6 +4376,48 @@ function stackRightLegends() {
   dock.style.display = (!legendsHidden && anyVisible) ? "flex" : "none";
 }
 
+// Draggable legend dock (feedback #76) — drag by its label to reposition,
+// clamped so it can't be dragged off-screen. Switches from the default
+// bottom/left anchor to explicit top/left once dragged.
+(function() {
+  var dock = document.getElementById('legend-dock');
+  var handle = document.getElementById('legend-dock-label');
+  if (!dock || !handle) return;
+  var dragging = false, startX, startY, startLeft, startTop;
+  handle.style.cursor = 'grab';
+  handle.addEventListener('pointerdown', function(e) {
+    dragging = true;
+    handle.style.cursor = 'grabbing';
+    var rect = dock.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    // getBoundingClientRect() is viewport-relative, but this element was
+    // position:absolute (relative to its offset parent, NOT the viewport) —
+    // assigning the rect straight to left/top jumped it on grab. Switch to
+    // position:fixed so the coordinate spaces actually match.
+    dock.style.position = 'fixed';
+    dock.style.left = rect.left + 'px';
+    dock.style.top = rect.top + 'px';
+    dock.style.bottom = 'auto';
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
+    var rect = dock.getBoundingClientRect();
+    var maxLeft = Math.max(0, window.innerWidth - rect.width);
+    var maxTop = Math.max(0, window.innerHeight - rect.height);
+    dock.style.left = Math.min(Math.max(0, startLeft + dx), maxLeft) + 'px';
+    dock.style.top = Math.min(Math.max(0, startTop + dy), maxTop) + 'px';
+  });
+  handle.addEventListener('pointerup', function(e) {
+    dragging = false;
+    handle.style.cursor = 'grab';
+    try { handle.releasePointerCapture(e.pointerId); } catch (err) {}
+  });
+})();
+
 document.getElementById("usdm-chk").addEventListener("change", async function () {
   const usdmInline = document.getElementById("usdm-inline");
   if (!this.checked) {
@@ -4785,6 +4856,10 @@ function buildOLColorExpression(varKey, paletteKey, rangeOverride) {
    RENDER LAYER  (OpenLayers GeoTIFF via WebGLTile)
    ════════════════════════════════════════════════════════════════ */
 let _renderGen = 0; // generation counter to cancel stale rendercomplete handlers
+// Last auto-scaled {min,max} actually baked into the on-screen colorExpr for
+// activeVar — export's legend must reuse this instead of resampling the
+// viewport fresh (which can differ from what's rendered; feedback #40/#71).
+let lastAppliedRange = null;
 function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
   // Load ZSTD-compressed SNODAS COG using geotiff.js v3 ESM (has native ZSTD support)
   // OL bundles geotiff.js v2 which lacks ZSTD, so we dynamically import v3 for this
@@ -4920,6 +4995,7 @@ function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
 async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverride) {
   _renderGen++;
   const myGen = _renderGen;
+  lastAppliedRange = null; // new render in flight — stale until its own retryAutoScale lands
   // Remove previous COG layer
   if (cogLayer) { map.removeLayer(cogLayer); cogLayer = null; }
 
@@ -4995,6 +5071,7 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
         const vis = getVisibleRange();
         if (vis && vis.min !== vis.max) {
           const sym = symmetrizeRange(cfg2, vis.min, vis.max);
+          lastAppliedRange = sym; // this is the range actually baked into colorExpr below
           document.getElementById("range-min").placeholder = sym.min.toFixed(2);
           document.getElementById("range-max").placeholder = sym.max.toFixed(2);
           const colorExpr = buildOLColorExpression(varKey, paletteKey, sym);
@@ -5983,6 +6060,19 @@ function fadeOutHint(el) {
   setTimeout(function() { if (el.parentNode) el.remove(); }, 500);
 }
 let sidebarOpen = !isMobileView();
+// If the welcome modal is about to show (first-time visitor, no share hash),
+// defer the hint fade-out timers until it's dismissed — otherwise the hints
+// finish fading while the modal still covers the screen (feedback #36).
+var _willShowWelcome = !localStorage.getItem('d3-welcome-seen') &&
+  !(window.location.hash && window.location.hash.length > 1);
+window._deferredHintFades = [];
+function scheduleHintFade(el, delay) {
+  if (_willShowWelcome) {
+    window._deferredHintFades.push(function() { setTimeout(function() { fadeOutHint(el); }, delay); });
+  } else {
+    setTimeout(function() { fadeOutHint(el); }, delay);
+  }
+}
 if (!sidebarOpen) {
   document.getElementById('sidebar').classList.add('sidebar-ready');
   // Show "Open Controls" hint next to hamburger
@@ -5995,7 +6085,7 @@ if (!sidebarOpen) {
   // Show sidebar hint immediately
   document.body.appendChild(hint);
   document.getElementById('hamburger').classList.add('pulse-hint');
-  setTimeout(function() { fadeOutHint(hint); }, 5000);
+  scheduleHintFade(hint, 5000);
 
   // Legend hint — attach directly to the eye button's OL control container so it moves with it
   var legHint = document.createElement('span');
@@ -6008,7 +6098,7 @@ if (!sidebarOpen) {
   });
   var togContainer = document.querySelector('.legend-toggle-control');
   if (togContainer) togContainer.appendChild(legHint);
-  setTimeout(function() { fadeOutHint(legHint); }, 5000);
+  scheduleHintFade(legHint, 5000);
 
   // Location hint — attach to the loc control container
   var locHint = document.createElement('span');
@@ -6021,7 +6111,7 @@ if (!sidebarOpen) {
   });
   var locContainer = document.querySelector('.loc-control');
   if (locContainer) locContainer.appendChild(locHint);
-  setTimeout(function() { fadeOutHint(locHint); }, 5000);
+  scheduleHintFade(locHint, 5000);
 }
 const sidebar     = document.getElementById("sidebar");
 const collapseBtn = document.getElementById("collapse-btn");
@@ -6249,7 +6339,10 @@ function drawConvergenceFooterLegend(ctx, footerY, sc) {
 function drawFooterLegend(ctx, footerY, sc) {
   const et = getExportTheme();
 
-  const rangeOv = getRangeOverride();
+  // Prefer a manual override, then whatever range is actually baked into the
+  // on-screen colorExpr — resampling the viewport fresh here can disagree with
+  // what's rendered (feedback #40/#71: map shading unchanged, legend range off).
+  const rangeOv = getRangeOverride() || lastAppliedRange;
   const { legendRows } = buildScale(activeVar, VAR_CONFIG[activeVar].defaultPalette, null, rangeOv);
   if (!legendRows || !legendRows.length) return 0;
 
@@ -7991,12 +8084,21 @@ const PARTNERS = [
   if (!seen && !hasHash) {
     document.getElementById('welcome-modal-overlay').classList.add('active');
   }
+  // Start any hint fade timers that were deferred pending this modal's dismissal (feedback #36).
+  function flushDeferredHints() {
+    (window._deferredHintFades || []).forEach(function(fn) { fn(); });
+    window._deferredHintFades = [];
+  }
   document.getElementById('welcome-close-btn').addEventListener('click', function() {
     localStorage.setItem('d3-welcome-seen', '1');
+    flushDeferredHints();
   });
   // Also mark as seen if they click the overlay background to dismiss
   document.getElementById('welcome-modal-overlay').addEventListener('click', function(e) {
-    if (e.target === this) localStorage.setItem('d3-welcome-seen', '1');
+    if (e.target === this) {
+      localStorage.setItem('d3-welcome-seen', '1');
+      flushDeferredHints();
+    }
   });
 })();
 window.buildShareUrl = buildShareUrl;

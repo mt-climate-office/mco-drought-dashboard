@@ -212,13 +212,7 @@
        --text-on-accent inherit unchanged, keeping the blue accent line + Share toast. */
     html:not([data-theme="light"]) #navbar {
       --glass: rgba(226,230,236,0.92);
-      /* White under the logos (left), easing to a soft neutral grey on the right.
-         Neutral stays out of the way of two clashing logo palettes (cool MCO blue
-         vs warm D³) — a blue fade would flatten the MCO mark. */
-      background: linear-gradient(90deg,
-        rgba(255,255,255,0.95) 0%,
-        rgba(255,255,255,0.94) 28%,
-        rgba(226,230,236,0.93) 100%);
+      background: rgba(255,255,255,0.95);
       --text-primary: #1a1a2e;
       --text-secondary: #3a3f4b;
       --text-muted: #5a6070;
