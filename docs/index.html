@@ -1306,9 +1306,13 @@ const usdmLayerCache = {};   // dateStr → ol.layer.Vector, avoids re-parsing p
    MAP INIT (OpenLayers)
    ════════════════════════════════════════════════════════════════ */
 const BASEMAPS = {
-  light:     { url: "https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png" },
-  dark:      { url: "https://{a-d}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png" },
-  voyager:   { url: "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png" },
+  // CARTO's anonymous basemap tiles now require an API key (watermarked
+  // "API KEY REQUIRED" otherwise), so light/dark/voyager use Esri's free,
+  // no-key ArcGIS services instead — same provider already used below for
+  // satellite/natgeo.
+  light:     { url: "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}" },
+  dark:      { url: "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}" },
+  voyager:   { url: "https://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", grey: true },
   satellite: { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" },
   natgeo:    { url: "https://services.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", grey: true },
 };
