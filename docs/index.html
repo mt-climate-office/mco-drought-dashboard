@@ -740,6 +740,12 @@ const ARCHIVE_BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_dr
 const ARCHIVE_MAX_DAYS = 14;
 const _layerUrlCache = {};
 
+// TEMPORARY: today's gridMET-derived output is bad upstream — pin every
+// gridMET-derived layer to the last known-good archived date instead of
+// "latest" until the pipeline is fixed. Set back to null to resume normal
+// latest/-with-archive-fallback behavior.
+const FORCE_ARCHIVE_DATE = "2026-09-14";
+
 // The gridMET COG server (data2) sends no Cache-Control, so browsers heuristically
 // cache the COGs and serve a stale file (and its embedded "Data Valid" date) for a
 // while after the pipeline updates. Until the server sends no-cache/no-store, append
@@ -753,6 +759,13 @@ function withBust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + CACH
 async function resolveLayerUrl(prefix, ts, period) {
   const fileBase = prefix + ts + '_' + period;
   if (_layerUrlCache[fileBase] !== undefined) return _layerUrlCache[fileBase];
+
+  if (FORCE_ARCHIVE_DATE) {
+    const forcedUrl = withBust(`${ARCHIVE_BASE_URL}/${FORCE_ARCHIVE_DATE}/${fileBase}_${FORCE_ARCHIVE_DATE}.tif`);
+    console.warn(`[D3] FORCE_ARCHIVE_DATE active — serving ${fileBase} from ${FORCE_ARCHIVE_DATE} instead of latest/`);
+    _layerUrlCache[fileBase] = forcedUrl;
+    return forcedUrl;
+  }
 
   const latestUrl = withBust(BASE_URL + '/' + fileBase + '.tif');
   try {
@@ -7140,7 +7153,11 @@ async function downloadGeoTIFF() {
     filename = 'hhp_smi_' + activeSmDepth + '_' + activeSmTS + '_' + dateStr + '.tif';
   } else {
     var fileBase = cfg.prefix + activeTS + '_' + activePeriod;
-    sourceUrl = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + fileBase + '.tif';
+    // Keep the downloaded file consistent with what's on screen while
+    // FORCE_ARCHIVE_DATE is active (see resolveLayerUrl).
+    sourceUrl = FORCE_ARCHIVE_DATE
+      ? 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/' + FORCE_ARCHIVE_DATE + '/' + fileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
+      : 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + fileBase + '.tif';
     filename = fileBase + '_' + dateStr + '.tif';
   }
 
