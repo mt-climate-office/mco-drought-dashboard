@@ -740,11 +740,10 @@ const ARCHIVE_BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_dr
 const ARCHIVE_MAX_DAYS = 14;
 const _layerUrlCache = {};
 
-// TEMPORARY: today's gridMET-derived output is bad upstream — pin every
-// gridMET-derived layer to the last known-good archived date instead of
-// "latest" until the pipeline is fixed. Set back to null to resume normal
-// latest/-with-archive-fallback behavior.
-const FORCE_ARCHIVE_DATE = "2026-09-14";
+// TEMPORARY pin point (see resolveLayerUrl / downloadGeoTIFF) — set to a
+// "YYYY-MM-DD" string to force every gridMET-derived layer to that archived
+// date instead of "latest" if the pipeline output is ever bad again.
+const FORCE_ARCHIVE_DATE = null;
 
 // The gridMET COG server (data2) sends no Cache-Control, so browsers heuristically
 // cache the COGs and serve a stale file (and its embedded "Data Valid" date) for a
