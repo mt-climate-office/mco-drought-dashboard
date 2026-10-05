@@ -176,6 +176,10 @@
             <option value="spei">SPEI — Standardized Precipitation Evapotranspiration Index</option>
             <option value="eddi">EDDI — Evaporative Demand Drought Index</option>
             <option value="svpdi">SVPDI — Standardized Vapor Pressure Deficit Index</option>
+            <!-- SCDD is fully wired (VAR_CONFIG.scdd, resolveCddUrl, threshold strip,
+                 share-link + point-query handling) but not yet public. Uncomment to go live.
+            <option value="scdd">SCDD — Standardized Consecutive Dry Days</option>
+            -->
           </optgroup>
           <optgroup label="── Soil Moisture ──">
             <option value="hhp-sm-shallow" data-flag="In Review" data-flag-tip="Headwaters Hydrology Project (HHP) KGML soil moisture is a knowledge-guided machine learning model that predicts daily soil moisture for the conterminous US, reported here as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Negative values indicate drier-than-normal soils; positive values wetter-than-normal. This shallow (0–10 cm) product (1/7/15/30-day timescales) is in the review pipeline and not yet officially published. Values are provisional. Please contact zachary.hoylman@umontana.edu for details.">HHP Soil Moisture — SMI (Soil Moisture Index)</option>
@@ -273,6 +277,12 @@
       <div class="section-label" data-sec="sec-sm-depth" id="sm-depth-label" style="--i:1; display:none;">Depth <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-sm-depth" style="display:none;">
         <div id="sm-depth-strip"></div>
+      </div>
+
+      <!-- CDD/SCDD Threshold — shown only for SCDD -->
+      <div class="section-label" data-sec="sec-cdd-threshold" id="cdd-threshold-label" style="--i:1; display:none;">Threshold <span class="caret">&#9660;</span></div>
+      <div class="section-body" id="sec-cdd-threshold" style="display:none;">
+        <div id="cdd-threshold-strip"></div>
       </div>
 
       <!-- Reference Period — section index 2 -->
@@ -755,8 +765,10 @@ const FORCE_ARCHIVE_DATE = null;
 const CACHE_BUST = "v=" + Math.floor(Date.now() / 3600000);  // hourly bucket — fresh ≤1h, but revisits reuse cached COG tiles
 function withBust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + CACHE_BUST; }
 
-async function resolveLayerUrl(prefix, ts, period) {
-  const fileBase = prefix + ts + '_' + period;
+// Shared by resolveLayerUrl and resolveCddUrl: HEAD-check latest/, walk the
+// dated archive backward on miss, honor FORCE_ARCHIVE_DATE. Callers only
+// differ in how they build fileBase.
+async function _resolveFileBaseUrl(fileBase) {
   if (_layerUrlCache[fileBase] !== undefined) return _layerUrlCache[fileBase];
 
   if (FORCE_ARCHIVE_DATE) {
@@ -789,6 +801,16 @@ async function resolveLayerUrl(prefix, ts, period) {
   // Exhausted — return the latest URL so the existing error path fires once.
   _layerUrlCache[fileBase] = latestUrl;
   return latestUrl;
+}
+async function resolveLayerUrl(prefix, ts, period) {
+  return _resolveFileBaseUrl(prefix + ts + '_' + period);
+}
+// CDD/SCDD file names have no timescale token and an extra literal cap
+// segment: <metric>-<threshold>_cap2557_<climatology>.tif (see
+// ~/temp/CDD-handoff.md). metric is 'cdd' (raw days) or 'scdd' (standardized).
+const CDD_CAP = "cap2557";
+async function resolveCddUrl(metric, threshold, period) {
+  return _resolveFileBaseUrl(`${metric}-${threshold}_${CDD_CAP}_${period}`);
 }
 function isMobileView() {
   return window.innerWidth <= 640 || (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024);
@@ -866,6 +888,23 @@ let activeSmTS = HHP_SM_DEFAULT_TS;
 function smTsLabel(v) {
   var t = HHP_SM_TIMESCALES.find(function(o) { return o.value === v; });
   return t ? t.label : v;
+}
+
+// CDD/SCDD threshold options (inches of daily precip below which a day
+// counts as "dry"). Shown in the Threshold section when SCDD is active.
+const CDD_THRESHOLDS = [
+  { value: "005", label: "0.05 in" },
+  { value: "010", label: "0.10 in" },
+  { value: "025", label: "0.25 in" }
+];
+const CDD_DEFAULT_THRESHOLD = "010";
+let activeCddThreshold = CDD_DEFAULT_THRESHOLD;
+function cddThresholdLabel(v) {
+  var t = CDD_THRESHOLDS.find(function(o) { return o.value === v; });
+  return t ? t.label : v;
+}
+function validCddThreshold(v) {
+  return CDD_THRESHOLDS.some(function(o) { return o.value === v; }) ? v : null;
 }
 function hhpSmUrl() {
   // Active depth + active timescale → COG URL (falls back to default timescale).
@@ -1046,6 +1085,7 @@ const VAR_CONFIG = {
   spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
   eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
+  scdd:         { label: "SCDD",                            prefix: null,            isCdd: true,                    paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Standardized Consecutive Dry Days (SCDD) measures how anomalous the current dry-day streak is relative to the same calendar day's climatology (Stagge et al. 2015 mixed Weibull/gamma estimator — the same method SPI uses, applied to streak length instead of precipitation totals). Positive values indicate a longer-than-normal dry streak (drought); this is inverted relative to SPI/SPEI, matching EDDI/SVPDI convention. Note: 2026-05-27 is a known zeroed artifact in the upstream gridMET record; any streak spanning that date is inflated by one day." },
   'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
   'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, attribution: "gridMET", description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
   'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
@@ -1617,6 +1657,35 @@ function setSmDepthVisible(show) {
   if (show) renderDepthStrip();
 }
 
+// Threshold selector for SCDD/CDD (timescale-strip-style).
+function renderCddThresholdStrip() {
+  const strip = document.getElementById("cdd-threshold-strip");
+  if (!strip) return;
+  strip.innerHTML = "";
+  CDD_THRESHOLDS.forEach(function(t) {
+    const btn = document.createElement("button");
+    btn.className = "ts-btn ts-third" + (t.value === activeCddThreshold ? " active" : "");
+    btn.textContent = t.label;
+    btn.dataset.threshold = t.value;
+    btn.addEventListener("click", function() {
+      if (t.value === activeCddThreshold) return;
+      strip.querySelectorAll(".ts-btn").forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      activeCddThreshold = t.value;
+      updateVarInfo(activeVar);
+      loadLayer(activeVar, activeTS, activePeriod);
+      if (ghcnActive) restyleGhcnLayer();
+    });
+    strip.appendChild(btn);
+  });
+}
+// Show/hide the Threshold section (only relevant for SCDD/CDD layers).
+function setCddThresholdVisible(show) {
+  document.getElementById("cdd-threshold-label").style.display = show ? "" : "none";
+  document.getElementById("sec-cdd-threshold").style.display   = show ? "" : "none";
+  if (show) renderCddThresholdStrip();
+}
+
 /* ════════════════════════════════════════════════════════════════
    PERIOD TOGGLE
    ════════════════════════════════════════════════════════════════ */
@@ -1666,7 +1735,7 @@ function zoomToState(code) {
   customMapView = false;
   _programmaticMove = true;
   let extent;
-  if (code && code.startsWith("LAR:") && tribalBounds[code]) {
+  if (code && code.startsWith("AIANNH:") && tribalBounds[code]) {
     extent = tribalBounds[code]; // [minLon, minLat, maxLon, maxLat]
   } else if (code && STATE_BOUNDS[code]) {
     const [[s, w], [n, e]] = STATE_BOUNDS[code];
@@ -1692,6 +1761,11 @@ map.on('moveend', function() {
 
     if (matchedState) {
       if (matchedState === _userDismissedPlugin) return;
+      // The explicit selection already resolves to this state — either the state
+      // itself or a tribal nation inside it (e.g. a MT reservation). Don't clobber
+      // it with the coarser state label. Checked against activeZoomState rather
+      // than _activePluginCode, which lags behind the async plugin import.
+      if (resolvePluginCodeForZoom(activeZoomState) === matchedState) return;
 
       if (_activePluginCode !== matchedState) {
         _autoActivatedPlugin = true;
@@ -1727,7 +1801,7 @@ map.on('moveend', function() {
 });
 
 function autoEnableLayerForZoom(code) {
-  if (code && code.startsWith("LAR:")) {
+  if (code && code.startsWith("AIANNH:")) {
     var chk = document.getElementById("tribal-chk");
     if (!chk.checked) { chk.checked = true; chk.dispatchEvent(new Event("change")); }
   } else if (code) {
@@ -1736,13 +1810,13 @@ function autoEnableLayerForZoom(code) {
   }
 }
 
-// A tribal-nation zoom code ("LAR:<id>") has no entry in STATE_PLUGINS (which
+// A tribal-nation zoom code ("AIANNH:<id>") has no entry in STATE_PLUGINS (which
 // is keyed by 2-letter state code), so selecting a MT tribal nation used to
 // tear down the MT Mesonet plugin with nothing replacing it (feedback #53).
 // Resolve such codes to the state plugin whose bounds they overlap.
 function resolvePluginCodeForZoom(code) {
   if (!code || STATE_PLUGINS[code]) return code;
-  if (!code.startsWith('LAR:') || !tribalBounds[code]) return code;
+  if (!code.startsWith('AIANNH:') || !tribalBounds[code]) return code;
   var tb = tribalBounds[code]; // [west, south, east, north]
   for (var stateCode in STATE_PLUGINS) {
     var sb = STATE_BOUNDS[stateCode]; // [[south, west], [north, east]]
@@ -1912,6 +1986,7 @@ document.getElementById("var-select").addEventListener("change", function() {
   activeVar = this.value;
   saveState();
   setSmDepthVisible(!!VAR_CONFIG[activeVar].isHhpSm);
+  setCddThresholdVisible(!!VAR_CONFIG[activeVar].isCdd);
 
   // Repopulate counties if they were toggled off when entering HHP. Done here (before
   // the per-variable branches) so it fires on EVERY switch-away path, including the
@@ -1974,6 +2049,18 @@ document.getElementById("var-select").addEventListener("change", function() {
     prLabel.style.display = "none";
     prBody.style.display  = "none";
     if (HHP_SM_SHOW_TIMESCALES) renderTimescaleStrip(activeVar);
+    loadLayer(activeVar, activeTS, activePeriod);
+    if (ghcnActive) restyleGhcnLayer();
+    return;
+  }
+
+  if (VAR_CONFIG[activeVar].isCdd) {
+    // SCDD: no timescale dimension (threshold section covers that instead);
+    // reference period stays visible — climatology reuses it as-is.
+    tsLabel.style.display = "none";
+    tsBody.style.display  = "none";
+    prLabel.style.display = "";
+    prBody.style.display  = "";
     loadLayer(activeVar, activeTS, activePeriod);
     if (ghcnActive) restyleGhcnLayer();
     return;
@@ -2819,11 +2906,15 @@ map.on('pointermove', function(e) {
   var tooltipText = '';
   map.forEachFeatureAtPixel(pixel, function(feature, layer) {
     if (tooltipText) return; // already found a match
-    if (layer === countiesLayer || layer === tribalLayer) {
+    if (layer === countiesLayer) {
       const name = feature.get('name') || feature.get('_name') || '';
       if (name && map.getView().getZoom() >= COUNTY_MIN_ZOOM) {
         tooltipText = name;
       }
+    } else if (layer === tribalLayer) {
+      // Reservations are large polygons viewed zoomed out — no county zoom gate.
+      const name = feature.get('_name') || '';
+      if (name) tooltipText = name;
     } else if (layer === hucLayer) {
       const name = feature.get('name') || feature.get('_name') || '';
       if (name) tooltipText = name;
@@ -2877,34 +2968,46 @@ let tribalLayer = null, tribalLoaded = false;
 let tribalBounds = {};
 let pendingTribalZoom = null;
 
-// Lazy-loaded (off by default, external BIA WFS). Shared-promise guard prevents a
-// double fetch / duplicate dropdown options if both a LAR share-link restore and the
+// Lazy-loaded (off by default, external). Shared-promise guard prevents a
+// double fetch / duplicate dropdown options if both an AIANNH share-link restore and the
 // tribal toggle request it.
 let _tribalPromise = null;
 function loadTribalNations() {
   if (_tribalPromise) return _tribalPromise;
-  _tribalPromise = _loadTribalNationsImpl();
+  _tribalPromise = _loadTribalNationsImpl().catch(function(e) {
+    _tribalPromise = null; // don't cache a transient failure for the whole session
+    throw e;
+  });
   return _tribalPromise;
 }
 async function _loadTribalNationsImpl() {
-  const url = "https://biamaps.geoplatform.gov/server/rest/services/DivLTR/BIA_AIAN_National_LAR/MapServer/0/query?where=1%3D1&outFields=*&f=geojson&outSR=4326";
+  // Census AIANNH boundaries (TopoJSON, via sustainable-fsa). Replaces the BIA
+  // LAR service, which carried no Oklahoma Tribal Statistical Areas.
+  const url = "https://data.sustainable-fsa.com/census-aiannh/census-aiannh_simple.topojson";
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const geojson = await resp.json();
+  const topo = await resp.json();
+  const objName = Object.keys(topo.objects)[0];
+  const geojson = topojson.feature(topo, topo.objects[objName]);
+  // Reservations only (COMPTYP "R"); drop off-reservation trust lands ("T").
+  geojson.features = geojson.features.filter(function(f) {
+    return (f.properties || {}).COMPTYP === 'R';
+  });
 
-  // Add _name property and compute bounds for each feature
+  // Add _name property and compute bounds for each feature. Zoom codes are
+  // "AIANNH:" + Census GEOID.
   const group = document.getElementById("tribal-zoom-group");
   const entries = [];
   geojson.features.forEach(function(f) {
     const p = f.properties;
-    const id = p.LARID || p.OBJECTID;
-    const name = p.LARNAME || p.NAMELSAD || p.Name || p.NAME || "Unknown";
+    const id = p.GEOID;
+    const name = p.NameLSAD || p.Name || "Unknown";
     f.properties._name = name;
     if (!id) return;
     // Compute bounds from geometry coordinates
     const olFeat = new ol.format.GeoJSON().readFeature(f, { featureProjection: 'EPSG:3857' });
     const ext3857 = olFeat.getGeometry().getExtent();
-    tribalBounds["LAR:" + id] = ol.proj.transformExtent(ext3857, 'EPSG:3857', 'EPSG:4326');
+    tribalBounds["AIANNH:" + id] = ol.proj.transformExtent(ext3857, 'EPSG:3857', 'EPSG:4326');
     entries.push({ id: id, name: name });
   });
 
@@ -2926,7 +3029,7 @@ async function _loadTribalNationsImpl() {
   entries.sort(function(a, b) { return a.name.localeCompare(b.name); });
   entries.forEach(function(e) {
     const opt = document.createElement("option");
-    opt.value = "LAR:" + e.id;
+    opt.value = "AIANNH:" + e.id;
     opt.textContent = e.name;
     group.appendChild(opt);
   });
@@ -3228,14 +3331,56 @@ function queryRasterAt(coord) {
         '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + hex + ';vertical-align:middle;margin-right:4px;border:1px solid var(--border-glass)"></span>' +
         displayVal +
       '</div>' +
-      '<div class="query-label">' + cfg.label + (cfg.isSnodas ? '' : cfg.isHhpSm ? (' &middot; ' + smDepthLabel(activeSmDepth) + (HHP_SM_SHOW_TIMESCALES ? ' &middot; ' + smTsLabel(activeSmTS) : '')) : ' &middot; ' + activeTS) + '</div>' +
+      '<div class="query-label">' + cfg.label + (cfg.isSnodas ? '' : cfg.isHhpSm ? (' &middot; ' + smDepthLabel(activeSmDepth) + (HHP_SM_SHOW_TIMESCALES ? ' &middot; ' + smTsLabel(activeSmTS) : '')) : cfg.isCdd ? (' &middot; ' + cddThresholdLabel(activeCddThreshold)) : ' &middot; ' + activeTS) + '</div>' +
       '<div class="query-coords">' + coordStr + '</div>' +
+      (cfg.isCdd ? '<div class="query-label cdd-raw-days">Looking up raw days…</div>' : '') +
     '</div>';
   }
 
   const popupContent = popupEl.querySelector('.ol-popup-content');
   popupContent.innerHTML = html;
   popupOverlay.setPosition(ol.proj.fromLonLat(coord));
+
+  // SCDD popup: fetch the paired raw-CDD companion COG (same threshold +
+  // climatology) and report the actual day count, per ~/temp/CDD-handoff.md
+  // ("Return raw CDD in the point query so a click reports something
+  // physical"). Doesn't block the popup — patches in once resolved.
+  if (cfg.isCdd) {
+    const queryToken = { var: activeVar, threshold: activeCddThreshold, period: activePeriod, coord: coord };
+    resolveCddUrl('cdd', activeCddThreshold, activePeriod)
+      .then(function(cddUrl) { return loadZonalRaster(cddUrl, false); })
+      .then(function(raster) {
+        // Bail if the user has since clicked elsewhere / switched variable/threshold/period.
+        if (activeVar !== queryToken.var || activeCddThreshold !== queryToken.threshold ||
+            activePeriod !== queryToken.period || queryLastLatLng !== queryToken.coord) return;
+        const lineEl = popupEl.querySelector('.cdd-raw-days');
+        if (!lineEl) return;
+        const bbox = raster.bbox, w = raster.w, h = raster.h;
+        const lng = coord[0], lat = coord[1];
+        if (lng < bbox[0] || lng > bbox[2] || lat < bbox[1] || lat > bbox[3]) {
+          lineEl.textContent = 'No data at this location';
+          return;
+        }
+        const col = Math.floor((lng - bbox[0]) / (bbox[2] - bbox[0]) * w);
+        const row = Math.floor((bbox[3] - lat) / (bbox[3] - bbox[1]) * h);
+        if (col < 0 || col >= w || row < 0 || row >= h) {
+          lineEl.textContent = 'No data at this location';
+          return;
+        }
+        const raw = raster.data[row * w + col];
+        if (raw === -9999 || raw == null || isNaN(raw)) {
+          lineEl.textContent = 'No data at this location';
+          return;
+        }
+        const days = Math.round(raw * 0.01);
+        lineEl.textContent = days + ' consecutive day' + (days === 1 ? '' : 's') +
+          ' below ' + cddThresholdLabel(activeCddThreshold);
+      })
+      .catch(function() {
+        const lineEl = popupEl.querySelector('.cdd-raw-days');
+        if (lineEl) lineEl.textContent = '';
+      });
+  }
 }
 
 map.on("click", function(e) {
@@ -5040,6 +5185,9 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
       // (OL's GeoTIFF source can't handle ZSTD in web workers)
       _loadSnodasLayer(varKey, paletteKey, rangeOverride);
       return;
+    } else if (cfg.isCdd) {
+      url = await resolveCddUrl('scdd', activeCddThreshold, period);
+      if (myGen !== _renderGen) return; // stale
     } else {
       url = await resolveLayerUrl(cfg.prefix, ts, period);
       if (myGen !== _renderGen) return; // stale
@@ -5136,7 +5284,7 @@ async function renderLayer(georaster, varKey, ts, period, paletteKey, rangeOverr
    ════════════════════════════════════════════════════════════════ */
 async function prefetch(varKey, ts, period) {
   const cfg = VAR_CONFIG[varKey];
-  if (!cfg || cfg.noRaster || cfg.isHhpSm || cfg.isSnodas) return; // no prefix / fixed URL
+  if (!cfg || cfg.noRaster || cfg.isHhpSm || cfg.isSnodas || cfg.isCdd) return; // no prefix / fixed URL / no timescale neighbors
   // resolveLayerUrl itself HEAD-probes, which also warms the browser cache.
   try { await resolveLayerUrl(cfg.prefix, ts, period); } catch (e) {}
 }
@@ -5153,6 +5301,8 @@ async function loadLayer(varKey, ts, period) {
     url = hhpSmUrl();
   } else if (cfg.isSnodas) {
     url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+  } else if (cfg.isCdd) {
+    url = await resolveCddUrl('scdd', activeCddThreshold, period);
   } else {
     url = await resolveLayerUrl(cfg.prefix, ts, period);
   }
@@ -5191,8 +5341,8 @@ async function loadLayer(varKey, ts, period) {
     renderLayer(null, varKey, ts, period, cfg.defaultPalette, getRangeOverride());
     hideSpinner();
 
-    // Prefetch neighbor timescales (skip for SNODAS and single-URL SMI)
-    if (!cfg.isSnodas && !cfg.isHhpSm) {
+    // Prefetch neighbor timescales (skip for SNODAS, single-URL SMI, and no-timescale CDD)
+    if (!cfg.isSnodas && !cfg.isHhpSm && !cfg.isCdd) {
       var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
       var idx = TIMESCALES.indexOf(ts);
       [-1, 1].forEach(function(offset) {
@@ -7150,6 +7300,12 @@ async function downloadGeoTIFF() {
   } else if (cfg.isHhpSm) {
     sourceUrl = hhpSmUrl();
     filename = 'hhp_smi_' + activeSmDepth + '_' + activeSmTS + '_' + dateStr + '.tif';
+  } else if (cfg.isCdd) {
+    var cddFileBase = 'scdd-' + activeCddThreshold + '_' + CDD_CAP + '_' + activePeriod;
+    sourceUrl = FORCE_ARCHIVE_DATE
+      ? 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/' + FORCE_ARCHIVE_DATE + '/' + cddFileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
+      : 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + cddFileBase + '.tif';
+    filename = cddFileBase + '_' + dateStr + '.tif';
   } else {
     var fileBase = cfg.prefix + activeTS + '_' + activePeriod;
     // Keep the downloaded file consistent with what's on screen while
@@ -7455,6 +7611,10 @@ async function takeScreenshot(exportScale) {
         // SMI: show depth; no reference period; timescale only when the picker is enabled.
         titleLine1 = getFullVarName(activeVar) + (HHP_SM_SHOW_TIMESCALES ? ' \u2014 ' + smTsLabel(activeSmTS) : '');
         titleLine2 = smDepthLabel(activeSmDepth) + '  |  Data Valid: ' + dateTxt;
+      } else if (cfg && cfg.isCdd) {
+        // SCDD: show threshold instead of timescale; reference period stays.
+        titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + cddThresholdLabel(activeCddThreshold);
+        titleLine2 = 'Ref. Period: ' + periodLabel + '  |  Data Valid: ' + dateTxt;
       } else if (cfg && cfg.tileLayer) {
         // External tile layers (e.g. VHI) have no timescale or reference period;
         // surface the relevant temporal scope instead (composite week for VHI).
@@ -7719,6 +7879,8 @@ document.getElementById("copy-cog-url-btn").addEventListener("click", function()
     url = 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif';
   } else if (cfg.isSnodas) {
     url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+  } else if (cfg.isCdd) {
+    url = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/scdd-' + activeCddThreshold + '_' + CDD_CAP + '_' + activePeriod + '.tif';
   } else {
     url = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
   }
@@ -7975,6 +8137,8 @@ function buildShareUrl() {
     hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
     // SMI depth isn't part of the var key, so carry it as a query param.
     if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm) qp.set('smd', activeSmDepth);
+    // Same for the CDD/SCDD threshold.
+    if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isCdd) qp.set('cddt', activeCddThreshold);
   }
 
   hash += '/' + (activeZoomState || '');
@@ -8020,7 +8184,7 @@ setupModal("partners-modal-overlay", "partners-close-btn");
 
 /* Regional partners — keyed by activeZoomState code. Add an entry here to
    surface a partner logo in the sidebar's "Regional Partners" sub-row when
-   the user zooms into that state (or tribal area, e.g. "LAR:..." codes). */
+   the user zooms into that state (or tribal area, e.g. "AIANNH:..." codes). */
 const STATE_PARTNERS = {
   MT: [
     { name: 'Montana Mesonet', href: 'https://climate.umt.edu/mesonet/', img: 'logo/mt_mesonet_logo.jpg' }
@@ -8061,7 +8225,7 @@ const PARTNERS = [
     { name: 'NOAA GHCNd', short: 'GHC', href: 'https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily', note: 'Global Historical Climatology Network Daily — in-situ station data.' },
     { name: 'USGS NWIS', short: 'USG', href: 'https://waterdata.usgs.gov/nwis', note: 'U.S. Geological Survey — streamflow percentiles.' },
     { name: 'U.S. Drought Monitor', short: 'DM', href: 'https://droughtmonitor.unl.edu/', note: 'NDMC / USDA / NOAA — weekly drought classifications.' },
-    { name: 'BIA AIAN', short: 'BIA', href: 'https://biamaps.geoplatform.gov/', note: 'Bureau of Indian Affairs — tribal land boundaries.' },
+    { name: 'Census AIANNH', short: 'CEN', href: 'https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html', note: 'U.S. Census Bureau TIGER/Line — reservation and tribal statistical area boundaries.' },
     { name: 'USGS WBD', short: 'WBD', href: 'https://www.usgs.gov/national-hydrography/watershed-boundary-dataset', note: 'Watershed Boundary Dataset (HUC).' },
   ]},
 ];
@@ -8177,9 +8341,10 @@ function loadState() {
   // SMI layers use a fixed daily timescale + their own depth — skip the gridMET ts check.
   if (ts && !VAR_CONFIG[v].isHhpSm && !TIMESCALES.includes(ts)) return null;
   if (period && !['rolling-30','fixed-1991-2020','full'].includes(period)) return null;
-  if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("LAR:")) return null;
+  if (zoomSt && !STATE_BOUNDS[zoomSt] && !zoomSt.startsWith("AIANNH:")) return null;
   const smDepth = VAR_CONFIG[v].isHhpSm ? validSmDepth(params.get('smd')) : null;
-  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView, smDepth: smDepth };
+  const cddThreshold = VAR_CONFIG[v].isCdd ? (validCddThreshold(params.get('cddt')) || CDD_DEFAULT_THRESHOLD) : null;
+  return { var: v, ts: ts || DEFAULT_TS, period: period || 'rolling-30', zoomState: zoomSt, theme: theme, basemap: basemap, mapView: mapView, smDepth: smDepth, cddThreshold: cddThreshold };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -8319,8 +8484,12 @@ loadStates();
 // Counties are default-on but ~200KB topojson + ~3k-feature parse — defer off the
 // critical path so the map + raster paint first, then counties populate.
 (window.requestIdleCallback || function(cb){ setTimeout(cb, 200); })(function(){ loadCounties(); });
-// Tribal (BIA WFS) is off by default and external/slow — lazy-loaded on first toggle
-// (tribal-chk handler) or on a LAR: share-link restore (below). Not loaded at boot.
+// Tribal (Census AIANNH TopoJSON, ~900KB) is off by default, but its boundaries feed the
+// Zoom-to-Location dropdown, so load it at boot off the critical path like counties.
+// Builds the layer without adding it to the map; the tribal-chk toggle adds it.
+(window.requestIdleCallback || function(cb){ setTimeout(cb, 200); })(function(){
+  loadTribalNations().catch(function(e) { console.warn('Tribal nations load failed:', e); });
+});
 
 // Restore URL state
 const savedState = loadState();
@@ -8330,6 +8499,7 @@ if (savedState) {
   activePeriod = savedState.period;
   activeZoomState = savedState.zoomState || '';
   if (savedState.smDepth) activeSmDepth = savedState.smDepth;
+  if (savedState.cddThreshold) activeCddThreshold = savedState.cddThreshold;
   // Update UI
   document.getElementById('var-select').value = activeVar;
   // Update custom dropdown
@@ -8348,9 +8518,9 @@ if (savedState) {
   document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
   // Update state/tribal dropdown and zoom
   if (activeZoomState) {
-    if (activeZoomState.startsWith("LAR:") && !tribalBounds[activeZoomState]) {
+    if (activeZoomState.startsWith("AIANNH:") && !tribalBounds[activeZoomState]) {
       pendingTribalZoom = activeZoomState;
-      loadTribalNations();   // tribal no longer loads at boot — trigger it for the LAR restore
+      loadTribalNations();   // tribal no longer loads at boot — trigger it for the AIANNH restore
     } else {
       document.getElementById('state-select').value = activeZoomState;
       autoEnableLayerForZoom(activeZoomState);
@@ -8394,6 +8564,11 @@ if (savedState) {
       document.getElementById("sec-timescale").style.display = "none";
     }
     setSmDepthVisible(true);
+  } else if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isCdd) {
+    // SCDD: no timescale dimension; reference period stays visible.
+    document.querySelector(".section-label[data-sec='sec-timescale']").style.display = "none";
+    document.getElementById("sec-timescale").style.display = "none";
+    setCddThresholdVisible(true);
   }
 
   // Restore theme (dark is the default, so a light/high-contrast link must apply
@@ -8487,12 +8662,13 @@ window.addEventListener('popstate', function() {
   activePeriod = st.period;
   activeZoomState = st.zoomState || '';
   if (st.smDepth) activeSmDepth = st.smDepth;
+  if (st.cddThreshold) activeCddThreshold = st.cddThreshold;
   document.getElementById('var-select').value = activeVar;
   document.querySelectorAll('.ts-btn').forEach(b => b.classList.toggle('active', b.dataset.ts === activeTS));
   document.querySelectorAll('.period-btn[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === activePeriod));
-  if (activeZoomState.startsWith("LAR:") && !tribalBounds[activeZoomState]) {
+  if (activeZoomState.startsWith("AIANNH:") && !tribalBounds[activeZoomState]) {
     pendingTribalZoom = activeZoomState;
-    loadTribalNations();   // tribal no longer loads at boot — trigger it for the LAR restore
+    loadTribalNations();   // tribal no longer loads at boot — trigger it for the AIANNH restore
   } else {
     document.getElementById('state-select').value = activeZoomState;
     autoEnableLayerForZoom(activeZoomState);
@@ -8517,14 +8693,16 @@ window.addEventListener('popstate', function() {
   const tsBody = document.getElementById("sec-timescale");
   const isHhp = activeVar === 'hhp';
   const isSm = VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm;
+  const isCdd = VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isCdd;
   const hideSmTs = isSm && !HHP_SM_SHOW_TIMESCALES;
   if (hideSmTs) activeSmTS = HHP_SM_DEFAULT_TS;
   prLabel.style.display = (isHhp || isSm) ? "none" : "";
   prBody.style.display  = (isHhp || isSm) ? "none" : "";
-  tsLabel.style.display = (isHhp || hideSmTs) ? "none" : "";
-  tsBody.style.display  = (isHhp || hideSmTs) ? "none" : "";
+  tsLabel.style.display = (isHhp || hideSmTs || isCdd) ? "none" : "";
+  tsBody.style.display  = (isHhp || hideSmTs || isCdd) ? "none" : "";
   renderTimescaleStrip(activeVar);
   setSmDepthVisible(!!isSm);
+  setCddThresholdVisible(!!isCdd);
   // Restore theme
   activeTheme = st.theme || 'dark';
   if (activeTheme === 'dark') document.documentElement.removeAttribute("data-theme");

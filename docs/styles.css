@@ -1532,7 +1532,8 @@
        Timescale Grid
        ================================================================ */
     #timescale-strip,
-    #sm-depth-strip {
+    #sm-depth-strip,
+    #cdd-threshold-strip {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 4px;
@@ -1568,6 +1569,7 @@
     }
 
     .ts-btn.ts-wide { grid-column: span 3; }
+    .ts-btn.ts-third { grid-column: span 2; }
 
     .ts-btn-sub {
       display: block;
