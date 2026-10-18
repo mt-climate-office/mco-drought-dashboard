@@ -102,8 +102,8 @@
         <a href="https://mt-climate-office.github.io/mco-GHCNd/methods.html" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">GHCNd Station Drought Indices</a>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Data Archive</div>
-        <a href="https://data2.climate.umt.edu/gridmet/derived/conus_drought/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Drought Indices (gridMET)</a>
-        <a href="https://data2.climate.umt.edu/snodas/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Snowpack (SNODAS)</a>
+        <a href="https://data2.climate.umt.edu/gridmet/derived/conus_drought/" data-host-path="/gridmet/derived/conus_drought/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Drought Indices (gridMET)</a>
+        <a href="https://data2.climate.umt.edu/snodas/" data-host-path="/snodas/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Snowpack (SNODAS)</a>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="padding:4px 14px 2px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-family:var(--font-display);">Source Code</div>
         <a href="https://github.com/mt-climate-office/mco-drought-dashboard" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;background:none;border:none;color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-display);text-decoration:none;white-space:nowrap;transition:var(--transition);">Dashboard (Front End)</a>
@@ -741,12 +741,26 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════════════════════════════════════════════════════════════════
    CONFIG
    ════════════════════════════════════════════════════════════════ */
-const BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web/latest";
+// Host for gridMET drought and SNODAS data. Change this one line to repoint
+// every data URL (e.g. to the CloudFront domain d1s8jav5n0eyyf.cloudfront.net).
+const DATA_HOST = "https://d1s8jav5n0eyyf.cloudfront.net";
+const GRIDMET_URL = DATA_HOST + "/gridmet/derived/conus_drought";
+const SNODAS_COGS_URL = DATA_HOST + "/snodas/latest/cogs";
+const SNODAS_SWE_URL = SNODAS_COGS_URL + "/snodas_swe.tif";
+const SNODAS_SWE_STD_URL = SNODAS_COGS_URL + "/zig_swe_standardized.tif";
+const SNODAS_MANIFEST_URL = DATA_HOST + "/snodas/latest/manifest.json";
+
+// Point the "Data Archive" menu links at DATA_HOST.
+document.querySelectorAll('a[data-host-path]').forEach(function(a) {
+  a.href = DATA_HOST + a.getAttribute('data-host-path');
+});
+
+const BASE_URL = DATA_HOST + "/gridmet/derived/conus_drought_web/latest";
 
 // Fallback: when a file is missing from latest/ (silent pipeline failure),
 // walk backward day-by-day through the dated archive of web-optimized COGs.
 // Filename pattern in the dated folder: <fileBase>_<YYYY-MM-DD>.tif.
-const ARCHIVE_BASE_URL = "https://data2.climate.umt.edu/gridmet/derived/conus_drought_web";
+const ARCHIVE_BASE_URL = DATA_HOST + "/gridmet/derived/conus_drought_web";
 const ARCHIVE_MAX_DAYS = 14;
 const _layerUrlCache = {};
 
@@ -2403,8 +2417,8 @@ async function getCurrentZonalRaster() {
     url = hhpSmUrl();
   } else if (cfg.isSnodas) {
     url = cfg.isSnodasRaw
-      ? 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif'
-      : 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+      ? SNODAS_SWE_URL
+      : SNODAS_SWE_STD_URL;
     useZstd = true;
   } else {
     url = await resolveLayerUrl(cfg.prefix, activeTS, activePeriod);
@@ -5021,8 +5035,8 @@ function _loadSnodasLayer(varKey, paletteKey, rangeOverride) {
   // Load ZSTD-compressed SNODAS COG using geotiff.js v3 ESM (has native ZSTD support)
   // OL bundles geotiff.js v2 which lacks ZSTD, so we dynamically import v3 for this
   var snodasUrl = VAR_CONFIG[varKey].isSnodasRaw
-    ? 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif'
-    : 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+    ? SNODAS_SWE_URL
+    : SNODAS_SWE_STD_URL;
   var cfg = VAR_CONFIG[varKey];
 
   import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm').then(function(geotiff3) {
@@ -5300,7 +5314,7 @@ async function loadLayer(varKey, ts, period) {
   if (cfg.isHhpSm) {
     url = hhpSmUrl();
   } else if (cfg.isSnodas) {
-    url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+    url = SNODAS_SWE_STD_URL;
   } else if (cfg.isCdd) {
     url = await resolveCddUrl('scdd', activeCddThreshold, period);
   } else {
@@ -5315,7 +5329,7 @@ async function loadLayer(varKey, ts, period) {
   // For SNODAS, get date from manifest instead of TIFF metadata
   var datePromise;
   if (cfg.isSnodas) {
-    datePromise = fetch('https://data2.climate.umt.edu/snodas/latest/manifest.json')
+    datePromise = fetch(SNODAS_MANIFEST_URL)
       .then(function(r) { return r.json(); })
       .then(function(manifest) {
         dateCache[url] = manifest.date || "Date N/A";
@@ -5944,7 +5958,7 @@ function applyConvergence() {
         return { isHhp: true, geojson: geojson };
       });
     } else if (ci.isSnodas) {
-      var sUrl = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+      var sUrl = SNODAS_SWE_STD_URL;
       return import('https://cdn.jsdelivr.net/npm/geotiff@3.0.0/+esm').then(function(gt3) {
         return gt3.fromUrl(sUrl);
       }).then(function(tiff) {
@@ -7292,10 +7306,10 @@ async function downloadGeoTIFF() {
   var sourceUrl;
   var filename;
   if (cfg.isSnodasRaw) {
-    sourceUrl = 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif';
+    sourceUrl = SNODAS_SWE_URL;
     filename = 'snodas_swe_current_' + dateStr + '.tif';
   } else if (cfg.isSnodas) {
-    sourceUrl = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+    sourceUrl = SNODAS_SWE_STD_URL;
     filename = 'snodas_swe_standardized_' + dateStr + '.tif';
   } else if (cfg.isHhpSm) {
     sourceUrl = hhpSmUrl();
@@ -7303,16 +7317,16 @@ async function downloadGeoTIFF() {
   } else if (cfg.isCdd) {
     var cddFileBase = 'scdd-' + activeCddThreshold + '_' + CDD_CAP + '_' + activePeriod;
     sourceUrl = FORCE_ARCHIVE_DATE
-      ? 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/' + FORCE_ARCHIVE_DATE + '/' + cddFileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
-      : 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + cddFileBase + '.tif';
+      ? GRIDMET_URL + '/' + FORCE_ARCHIVE_DATE + '/' + cddFileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
+      : GRIDMET_URL + '/latest/' + cddFileBase + '.tif';
     filename = cddFileBase + '_' + dateStr + '.tif';
   } else {
     var fileBase = cfg.prefix + activeTS + '_' + activePeriod;
     // Keep the downloaded file consistent with what's on screen while
     // FORCE_ARCHIVE_DATE is active (see resolveLayerUrl).
     sourceUrl = FORCE_ARCHIVE_DATE
-      ? 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/' + FORCE_ARCHIVE_DATE + '/' + fileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
-      : 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + fileBase + '.tif';
+      ? GRIDMET_URL + '/' + FORCE_ARCHIVE_DATE + '/' + fileBase + '_' + FORCE_ARCHIVE_DATE + '.tif'
+      : GRIDMET_URL + '/latest/' + fileBase + '.tif';
     filename = fileBase + '_' + dateStr + '.tif';
   }
 
@@ -7876,13 +7890,13 @@ document.getElementById("copy-cog-url-btn").addEventListener("click", function()
   if (!cfg || cfg.noRaster) return;
   var url;
   if (cfg.isSnodasRaw) {
-    url = 'https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif';
+    url = SNODAS_SWE_URL;
   } else if (cfg.isSnodas) {
-    url = 'https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif';
+    url = SNODAS_SWE_STD_URL;
   } else if (cfg.isCdd) {
-    url = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/scdd-' + activeCddThreshold + '_' + CDD_CAP + '_' + activePeriod + '.tif';
+    url = GRIDMET_URL + '/latest/scdd-' + activeCddThreshold + '_' + CDD_CAP + '_' + activePeriod + '.tif';
   } else {
-    url = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
+    url = GRIDMET_URL + '/latest/' + cfg.prefix + activeTS + '_' + activePeriod + '.tif';
   }
   const vsicurl = '/vsicurl/' + url;
   navigator.clipboard.writeText(vsicurl).then(function() {
