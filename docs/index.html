@@ -742,8 +742,11 @@ document.addEventListener('DOMContentLoaded', function() {
    CONFIG
    ════════════════════════════════════════════════════════════════ */
 // Host for gridMET drought and SNODAS data. Change this one line to repoint
-// every data URL (e.g. to the CloudFront domain d1s8jav5n0eyyf.cloudfront.net).
-const DATA_HOST = "https://d1s8jav5n0eyyf.cloudfront.net";
+// every data URL.
+const DATA_HOST = "https://data2.climate.umt.edu";
+// Backup: data2's CloudFront default domain serves the same paths. Swap it in
+// if data2's certificate lapses again.
+// const DATA_HOST = "https://d1s8jav5n0eyyf.cloudfront.net";
 const GRIDMET_URL = DATA_HOST + "/gridmet/derived/conus_drought";
 const SNODAS_COGS_URL = DATA_HOST + "/snodas/latest/cogs";
 const SNODAS_SWE_URL = SNODAS_COGS_URL + "/snodas_swe.tif";
