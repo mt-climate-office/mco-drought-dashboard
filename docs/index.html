@@ -176,9 +176,9 @@
             <option value="spei">SPEI — Standardized Precipitation Evapotranspiration Index</option>
             <option value="eddi">EDDI — Evaporative Demand Drought Index</option>
             <option value="svpdi">SVPDI — Standardized Vapor Pressure Deficit Index</option>
-            <!-- SCDD is fully wired (VAR_CONFIG.scdd, resolveCddUrl, threshold strip,
+            <!-- SDDI is fully wired (VAR_CONFIG.sddi, resolveCddUrl, threshold strip,
                  share-link + point-query handling) but not yet public. Uncomment to go live.
-            <option value="scdd">SCDD — Standardized Consecutive Dry Days</option>
+            <option value="sddi">SDDI — Standardized Dry Days Index</option>
             -->
           </optgroup>
           <optgroup label="── Soil Moisture ──">
@@ -279,7 +279,7 @@
         <div id="sm-depth-strip"></div>
       </div>
 
-      <!-- CDD/SCDD Threshold — shown only for SCDD -->
+      <!-- CDD/SDDI Threshold — shown only for SDDI -->
       <div class="section-label" data-sec="sec-cdd-threshold" id="cdd-threshold-label" style="--i:1; display:none;">Threshold <span class="caret">&#9660;</span></div>
       <div class="section-body" id="sec-cdd-threshold" style="display:none;">
         <div id="cdd-threshold-strip"></div>
@@ -890,8 +890,8 @@ function smTsLabel(v) {
   return t ? t.label : v;
 }
 
-// CDD/SCDD threshold options (inches of daily precip below which a day
-// counts as "dry"). Shown in the Threshold section when SCDD is active.
+// CDD/SDDI threshold options (inches of daily precip below which a day
+// counts as "dry"). Shown in the Threshold section when SDDI is active.
 const CDD_THRESHOLDS = [
   { value: "005", label: "0.05 in" },
   { value: "010", label: "0.10 in" },
@@ -1085,7 +1085,8 @@ const VAR_CONFIG = {
   spei:         { label: "SPEI",                            prefix: "spei_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Precipitation Evapotranspiration Index (SPEI) incorporates both precipitation and potential evapotranspiration to capture the effect of temperature on drought. It is interpreted similarly to SPI." },
   eddi:         { label: "EDDI",                            prefix: "eddi_",         paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Evaporative Demand Drought Index (EDDI) characterizes drought and hot-dry anomalies based on atmospheric evaporative demand. Positive values indicate anomalously high evaporative demand (drought stress)." },
   svpdi:        { label: "SVPDI",                           prefix: "svpdi_",        paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),   dynamic: false, attribution: "gridMET", description: "The Standardized Vapor Pressure Deficit Index (SVPDI) measures anomalies in vapor pressure deficit, an indicator of atmospheric dryness. Positive values reflect drier-than-normal atmospheric conditions." },
-  scdd:         { label: "SCDD",                            prefix: null,            isCdd: true,                    paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Standardized Consecutive Dry Days (SCDD) measures how anomalous the current dry-day streak is relative to the same calendar day's climatology (Stagge et al. 2015 mixed Weibull/gamma estimator — the same method SPI uses, applied to streak length instead of precipitation totals). Positive values indicate a longer-than-normal dry streak (drought); this is inverted relative to SPI/SPEI, matching EDDI/SVPDI convention. Note: 2026-05-27 is a known zeroed artifact in the upstream gridMET record; any streak spanning that date is inflated by one day." },
+  // Backend files stay scdd-*/cdd-* (see resolveCddUrl); the public name is SDDI.
+  sddi:         { label: "SDDI",                            prefix: null,            isCdd: true,                    paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: true,  breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(2),   dynamic: false, attribution: "gridMET", description: "Standardized Dry Days Index (SDDI) measures how anomalous the current dry-day streak is relative to the same calendar day's climatology (Stagge et al. 2015 mixed Weibull/gamma estimator — the same method SPI uses, applied to streak length instead of precipitation totals). Positive values indicate a longer-than-normal dry streak (drought); this is inverted relative to SPI/SPEI, matching EDDI/SVPDI convention. Note: 2026-05-27 is a known zeroed artifact in the upstream gridMET record; any streak spanning that date is inflated by one day." },
   'precip-pon':   { label: "Precipitation — % of Normal",     prefix: "precip-pon_",   paletteGroup: 'pon',            defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging_centered', center: 100, clampMin: 0, attribution: "gridMET", description: "Precipitation expressed as a percentage of the long-term normal for the selected period. Values below 100% indicate below-normal precipitation; values above 100% indicate above-normal precipitation." },
   'precip-dev':   { label: "Precipitation — Departure (in)",   prefix: "precip-dev_",   paletteGroup: 'dyn_diverging',  defaultPalette: 'brbg',    reversed: false, dynamic: true,  dynamicType: 'diverging',  unit: 'in', mmToIn: true, attribution: "gridMET", description: "Precipitation departure from the long-term normal, expressed in inches. Negative values indicate a precipitation deficit; positive values indicate a surplus." },
   'precip-pctile':{ label: "Precipitation — Percentile",      prefix: "precip-pctile_",paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: false, breaks: BRBG_BREAKS_PCTILE, labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Precipitation expressed as a percentile relative to the historical distribution. Low percentiles (near 0) indicate unusually dry conditions; high percentiles (near 1) indicate unusually wet conditions." },
@@ -1657,7 +1658,7 @@ function setSmDepthVisible(show) {
   if (show) renderDepthStrip();
 }
 
-// Threshold selector for SCDD/CDD (timescale-strip-style).
+// Threshold selector for SDDI/CDD (timescale-strip-style).
 function renderCddThresholdStrip() {
   const strip = document.getElementById("cdd-threshold-strip");
   if (!strip) return;
@@ -1679,7 +1680,7 @@ function renderCddThresholdStrip() {
     strip.appendChild(btn);
   });
 }
-// Show/hide the Threshold section (only relevant for SCDD/CDD layers).
+// Show/hide the Threshold section (only relevant for SDDI/CDD layers).
 function setCddThresholdVisible(show) {
   document.getElementById("cdd-threshold-label").style.display = show ? "" : "none";
   document.getElementById("sec-cdd-threshold").style.display   = show ? "" : "none";
@@ -2055,7 +2056,7 @@ document.getElementById("var-select").addEventListener("change", function() {
   }
 
   if (VAR_CONFIG[activeVar].isCdd) {
-    // SCDD: no timescale dimension (threshold section covers that instead);
+    // SDDI: no timescale dimension (threshold section covers that instead);
     // reference period stays visible — climatology reuses it as-is.
     tsLabel.style.display = "none";
     tsBody.style.display  = "none";
@@ -3341,7 +3342,7 @@ function queryRasterAt(coord) {
   popupContent.innerHTML = html;
   popupOverlay.setPosition(ol.proj.fromLonLat(coord));
 
-  // SCDD popup: fetch the paired raw-CDD companion COG (same threshold +
+  // SDDI popup: fetch the paired raw-CDD companion COG (same threshold +
   // climatology) and report the actual day count, per ~/temp/CDD-handoff.md
   // ("Return raw CDD in the point query so a click reports something
   // physical"). Doesn't block the popup — patches in once resolved.
@@ -7612,7 +7613,7 @@ async function takeScreenshot(exportScale) {
         titleLine1 = getFullVarName(activeVar) + (HHP_SM_SHOW_TIMESCALES ? ' \u2014 ' + smTsLabel(activeSmTS) : '');
         titleLine2 = smDepthLabel(activeSmDepth) + '  |  Data Valid: ' + dateTxt;
       } else if (cfg && cfg.isCdd) {
-        // SCDD: show threshold instead of timescale; reference period stays.
+        // SDDI: show threshold instead of timescale; reference period stays.
         titleLine1 = getFullVarName(activeVar) + ' \u2014 ' + cddThresholdLabel(activeCddThreshold);
         titleLine2 = 'Ref. Period: ' + periodLabel + '  |  Data Valid: ' + dateTxt;
       } else if (cfg && cfg.tileLayer) {
@@ -8137,7 +8138,7 @@ function buildShareUrl() {
     hash = '#' + activeVar + '/' + activeTS + '/' + activePeriod;
     // SMI depth isn't part of the var key, so carry it as a query param.
     if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isHhpSm) qp.set('smd', activeSmDepth);
-    // Same for the CDD/SCDD threshold.
+    // Same for the CDD/SDDI threshold.
     if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isCdd) qp.set('cddt', activeCddThreshold);
   }
 
@@ -8565,7 +8566,7 @@ if (savedState) {
     }
     setSmDepthVisible(true);
   } else if (VAR_CONFIG[activeVar] && VAR_CONFIG[activeVar].isCdd) {
-    // SCDD: no timescale dimension; reference period stays visible.
+    // SDDI: no timescale dimension; reference period stays visible.
     document.querySelector(".section-label[data-sec='sec-timescale']").style.display = "none";
     document.getElementById("sec-timescale").style.display = "none";
     setCddThresholdVisible(true);
