@@ -753,6 +753,17 @@ const SNODAS_LATEST_URL = DATA_HOST + "/snodas/gridded/daily/latest";
 const SNODAS_SWE_URL = SNODAS_LATEST_URL + "/snodas_swe.tif";
 const SNODAS_SWE_STD_URL = SNODAS_LATEST_URL + "/snodas_smoothed_swe_standardized.tif";
 const SNODAS_MANIFEST_URL = SNODAS_LATEST_URL + "/manifest.json";
+// The latest SNODAS manifest, fetched once: its date, and the reference period
+// of the normals the anomaly uses (roles.snodas: period, first_year, last_year).
+let _snodasManifest = null;
+function snodasManifest() {
+  if (!_snodasManifest) {
+    _snodasManifest = fetch(SNODAS_MANIFEST_URL)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .catch(function(e) { _snodasManifest = null; throw e; });
+  }
+  return _snodasManifest;
+}
 
 // Point the "Data Archive" menu links at DATA_HOST.
 document.querySelectorAll('a[data-host-path]').forEach(function(a) {
@@ -1113,7 +1124,7 @@ const VAR_CONFIG = {
   'vpd-pctile':   { label: "VPD — Percentile",                prefix: "vpd-pctile_",   paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Vapor pressure deficit expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously high evaporative demand and atmospheric dryness." },
   'tmax-pctile':  { label: "Maximum Temperature — Percentile",prefix: "tmax-pctile_",  paletteGroup: 'pctile',         defaultPalette: 'usdm',    reversed: true,  breaks: RDBU_BREAKS,         labelFmt: v => (v * 100).toFixed(0) + '%',   dynamic: false, attribution: "gridMET", description: "Daily maximum temperature expressed as a percentile relative to the historical distribution. High percentiles indicate anomalously warm temperatures that can intensify drought conditions." },
   'tmax-dev':     { label: "Maximum Temperature — Departure (\u00b0F)", prefix: "tmax-dev_", paletteGroup: 'dyn_diverging', defaultPalette: 'bluered', reversed: false, dynamic: true, dynamicType: 'diverging', cToF: true, unit: '\u00b0F', attribution: "gridMET", description: "Daily maximum temperature departure from the long-term normal, expressed in degrees Fahrenheit. Positive values indicate warmer-than-normal conditions; negative values indicate cooler-than-normal conditions." },
-  'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution with its parameters smoothed through the year. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Period of record: 2004\u20132026. Updated daily." },
+  'snodas-swe': { label: "SWE Standardized (SNODAS)",         prefix: null,            paletteGroup: 'idx_diverging',  defaultPalette: 'usdm',    reversed: false, breaks: USDM_BREAKS,        labelFmt: v => v.toFixed(1),    dynamic: false, isSnodas: true, nodata: -32768, rawScale: 0.01, attribution: "SNODAS", description: "Standardized Snow Water Equivalent (SWE) anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution with its parameters smoothed through the year. Values are in standard deviations, interpreted like SPI: negative values indicate below-normal snowpack, positive values indicate above-normal snowpack. Updated daily." },
   'snodas-swe-raw': { label: "SWE Current (SNODAS)",             prefix: null,            paletteGroup: 'dyn_sequential', defaultPalette: 'viridis', reversed: true,  dynamic: true, dynamicType: 'sequential', isSnodas: true, isSnodasRaw: true, nodata: -32768, rawScale: 1, mmToIn: true, unit: 'in', attribution: "SNODAS", description: "Current Snow Water Equivalent (SWE) from SNODAS in inches. Shows the total water content of the snowpack for today. Higher values indicate deeper or denser snowpack. Updated daily." },
   'hhp-sm-shallow': { label: "HHP Soil Moisture — SMI", fullLabel: "HHP Soil Moisture — SMI (Soil Moisture Index)", prefix: null, isHhpSm: true, smTimescales: HHP_SM_TIMESCALES, smUrls: HHP_SM_SHALLOW_URLS, hidePeriod: true, paletteGroup: 'idx_diverging', defaultPalette: 'usdm', reversed: false, breaks: USDM_BREAKS, labelFmt: v => v.toFixed(1), dynamic: false, rawScale: 1, nodata: -9999, nanNodata: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML soil moisture, reported as a Soil Moisture Index (SMI) — a beta-distribution parametric standardized anomaly against a 30-year climatology. Interpreted like SPI: negative values indicate drier-than-normal soils, positive values wetter-than-normal. This shallow (0–10 cm) product is available at 1-, 7-, 15-, and 30-day timescales and is provisional and in review." },
   hhp:          { label: "HHP Streamflow (Modelled Percentiles)", prefix: null,            paletteGroup: null,             defaultPalette: null,      reversed: false, dynamic: false, noRaster: true, attribution: "HHP", description: "Headwaters Hydrology Project (HHP) KGML streamflow is a knowledge-guided machine learning (KGML) model that predicts daily streamflow for every HUC10 basin in the conterminous US, using a soft-gated ensemble of four LSTM flow architectures (SingleExpert, TwoExpertAverage, MoE, MoeDynamic) masked by a separate wet/dry gate model — 50 trained models in all (5 model types × 10 cross-validation folds) — over GridMET meteorological forcing. Operationally it produces daily gated-ensemble streamflow plus a Stagge-formulation percentile/SSI classification against a 30-year climatology, shown here as USDM-style drought-to-wet bands with per-basin time-series plots on click." },
@@ -2243,6 +2254,22 @@ function updateVarInfo(varKey) {
     var smHtml = `<p>${cfg.description || ""}</p>`;
     if (HHP_SM_SHOW_TIMESCALES) smHtml += `<p style="margin-top:6px"><b>Timescale:</b> ${smTsLabel(activeSmTS)}.</p>`;
     el.innerHTML = smHtml;
+    return;
+  }
+
+  if (cfg.isSnodas) {
+    // SNODAS is one daily layer: no timescale, and the dashboard's reference
+    // period does not apply. Its normals are the water years of the SNODAS
+    // record before the current one, as the manifest gives them.
+    el.innerHTML = `<p>${cfg.description}</p>`;
+    snodasManifest().then(function(m) {
+      var r = m && m.roles && m.roles.snodas;
+      if (!r || !r.first_year || !r.last_year || activeVar !== varKey) return;
+      el.innerHTML = `<p>${cfg.description}</p>` +
+        `<p style="margin-top:4px"><b>Reference period:</b> Anomalies are calculated relative to water years ` +
+        `${r.first_year}\u2013${r.last_year} (October 1, ${r.first_year - 1} through September 30, ${r.last_year}), ` +
+        `the SNODAS record before the current water year.</p>`;
+    }).catch(function() {});
     return;
   }
 
@@ -5333,8 +5360,7 @@ async function loadLayer(varKey, ts, period) {
   // For SNODAS, get date from manifest instead of TIFF metadata
   var datePromise;
   if (cfg.isSnodas) {
-    datePromise = fetch(SNODAS_MANIFEST_URL)
-      .then(function(r) { return r.json(); })
+    datePromise = snodasManifest()
       .then(function(manifest) {
         dateCache[url] = manifest.date || "Date N/A";
       }).catch(function() { dateCache[url] = "Date N/A"; });
