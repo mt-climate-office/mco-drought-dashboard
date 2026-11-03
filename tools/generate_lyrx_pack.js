@@ -34,7 +34,7 @@ const PERIODS = [
 ];
 
 const GRIDMET_DIR = 'https://data2.climate.umt.edu/gridmet/derived/conus_drought/latest';
-const SNODAS_DIR  = 'https://data2.climate.umt.edu/snodas/latest/cogs';
+const SNODAS_DIR  = 'https://data2.climate.umt.edu/snodas/gridded/daily/latest';
 
 const PALETTES = {
   brbg:    ['#8C510A','#D8B365','#F5F5F5','#5AB4AC','#01665E'],
@@ -61,8 +61,8 @@ const VARS = [
 
 /* SNODAS — no timescale or reference period */
 const SNODAS_LAYERS = [
-  { label:'SWE Standardized (SNODAS)', file:'zig_swe_standardized.tif', classify:true, breaks:USDM_BREAKS, colors:USDM_COLORS, reversed:false, description:'Standardized snow water equivalent anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution.' },
-  { label:'SWE Current (SNODAS, in)',  file:'snodas_swe.tif',           dynamic:true,  dMin:0, dMax:30, palette:'viridis', reversed:true, description:'Current snow water equivalent in inches.' }
+  { label:'SWE Standardized (SNODAS)', file:'snodas_smoothed_swe_standardized.tif', id:'zig_swe_standardized', classify:true, breaks:USDM_BREAKS, colors:USDM_COLORS, reversed:false, description:'Standardized snow water equivalent anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution with its parameters smoothed through the year.' },
+  { label:'SWE Current (SNODAS, in)',  file:'snodas_swe.tif',                       id:'snodas_swe',           dynamic:true,  dMin:0, dMax:30, palette:'viridis', reversed:true, description:'Current snow water equivalent in inches.' }
 ];
 
 /* ── CIM helpers ────────────────────────────────────────────────── */
@@ -216,7 +216,8 @@ function build() {
   // SNODAS group (no timescale / period)
   const snodasChildURIs = [];
   SNODAS_LAYERS.forEach(s => {
-    const uRI = cimPath('snodas_' + s.file.replace('.tif', ''));
+    // The id keeps each layer's CIM path stable when its file name changes.
+    const uRI = cimPath('snodas_' + s.id);
     layerDefinitions.push(makeRasterLayer(s.label, uRI, SNODAS_DIR, s.file, s, s.description));
     snodasChildURIs.push(uRI);
   });

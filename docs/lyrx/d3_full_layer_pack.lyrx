@@ -76107,7 +76107,7 @@
         "type": "TimeInstant"
       },
       "useSourceMetadata": true,
-      "description": "Standardized snow water equivalent anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution.",
+      "description": "Standardized snow water equivalent anomaly from SNODAS, processed by the Montana Climate Office using a Zero-Inflated Gamma distribution with its parameters smoothed through the year.",
       "layerType": "Operational",
       "showLegends": true,
       "visibility": false,
@@ -76122,7 +76122,7 @@
         "type": "CIMStandardDataConnection",
         "workspaceConnectionString": "",
         "workspaceFactory": "Raster",
-        "dataset": "/vsicurl/https://data2.climate.umt.edu/snodas/latest/cogs/zig_swe_standardized.tif",
+        "dataset": "/vsicurl/https://data2.climate.umt.edu/snodas/gridded/daily/latest/snodas_smoothed_swe_standardized.tif",
         "datasetType": "esriDTRasterDataset"
       },
       "colorizer": {
@@ -76321,7 +76321,7 @@
         "type": "CIMStandardDataConnection",
         "workspaceConnectionString": "",
         "workspaceFactory": "Raster",
-        "dataset": "/vsicurl/https://data2.climate.umt.edu/snodas/latest/cogs/snodas_swe.tif",
+        "dataset": "/vsicurl/https://data2.climate.umt.edu/snodas/gridded/daily/latest/snodas_swe.tif",
         "datasetType": "esriDTRasterDataset"
       },
       "colorizer": {
